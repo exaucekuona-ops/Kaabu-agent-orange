@@ -25,6 +25,11 @@
   .barre { background: #111b21; padding: 10px; display: flex; gap: 8px; }
   .barre input { flex: 1; border-radius: 24px; }
   .envoi { width: 46px; height: 46px; border-radius: 50%; background: #00a884; color: #111b21; padding: 0; }
+  .admin { position: fixed; inset: 0; background: #0b141a; z-index: 10; overflow-y: auto; }
+  .ligne { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid #222e35; }
+  .ligne small { color: #8696a0; display: block; }
+  .ligne button { padding: 8px 12px; font-size: 0.9rem; margin-left: 6px; }
+  .danger { background: #dc2626; color: #fff; }
 </style>
 </head>
 <body>
@@ -47,13 +52,24 @@
 <div id="chat" class="ecran hidden">
   <div class="entete">
     <strong>SERVICES DE TOUT RÉSEAUX</strong>
-    <i class="fa-solid fa-right-from-bracket" style="cursor:pointer" onclick="deconnexion()"></i>
+    <span>
+      <i id="btn-admin" class="fa-solid fa-user-shield hidden" style="cursor:pointer;margin-right:18px" onclick="ouvrirAdmin()"></i>
+      <i class="fa-solid fa-right-from-bracket" style="cursor:pointer" onclick="deconnexion()"></i>
+    </span>
   </div>
   <div id="zone" class="zone"></div>
   <div class="barre">
     <input id="texte" type="text" placeholder="Message" onkeydown="if(event.key==='Enter')envoyer()">
     <button class="envoi" onclick="envoyer()"><i class="fa-solid fa-paper-plane"></i></button>
   </div>
+</div>
+
+<div id="admin" class="admin hidden">
+  <div class="entete">
+    <strong>Comptes</strong>
+    <i class="fa-solid fa-xmark" style="cursor:pointer" onclick="fermerAdmin()"></i>
+  </div>
+  <div id="liste"></div>
 </div>
 
 <script>
@@ -86,6 +102,7 @@
       return montrer('attente');
     }
     montrer('chat');
+    $('btn-admin').classList.toggle('hidden', !moi.is_admin);
     await chargerMessages();
     ecouter();
   }
@@ -127,12 +144,38 @@
       .subscribe();
   }
 
+  const ETIQUETTE = { en_attente: 'En attente', admis: 'Admis', banni: 'Banni' };
+
+  function fermerAdmin() { $('admin').classList.add('hidden'); }
+
+  async function ouvrirAdmin() {
+    $('admin').classList.remove('hidden');
+    const { data, error } = await sb.from('profiles')
+      .select('id,nom,statut,created_at').order('created_at', { ascending: false });
+    if (error) return alert(error.message);
+    $('liste').innerHTML = data.map(p => {
+      let actions = '<small>Toi</small>';
+      if (p.id !== moi.id) {
+        actions = (p.statut !== 'admis' ? `<button class="primaire" onclick="changerStatut('${p.id}','admis')">Admettre</button>` : '')
+                + (p.statut !== 'banni' ? `<button class="danger" onclick="changerStatut('${p.id}','banni')">Bannir</button>` : '');
+      }
+      return `<div class="ligne"><div>${esc(p.nom)}<small>${ETIQUETTE[p.statut] || ''}</small></div><div>${actions}</div></div>`;
+    }).join('');
+  }
+
+  async function changerStatut(id, statut) {
+    if (statut === 'banni' && !confirm('Bannir ce compte ?')) return;
+    const { error } = await sb.from('profiles').update({ statut }).eq('id', id);
+    if (error) return alert(error.message);
+    ouvrirAdmin();
+  }
+
   async function envoyer() {
     const t = $('texte').value.trim();
     if (!t) return;
     $('texte').value = '';
     const { error } = await sb.from('messages').insert({ auteur: moi.id, type: 'texte', contenu: t });
-    if (error) alert("Message non envoyé : " + error.message);
+    if (error) { alert("Message non envoyé : " + error.message); demarrer(); }
   }
 
   demarrer();
