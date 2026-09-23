@@ -162,4 +162,7 @@
             messagesParSalon[salonActuel.id].push({ sender: monProfil.name, text: texte });
             input.value = "";
 rafraichirMessages();if (iaTimers[salonActuel.id]) clearTimeout(iaTimers[salonActuel.id]);iaTimers[salonActuel.id] = setTimeout(() => { declencherReponseIA(salonActuel.id, texte); }, 4000);} 
-function declencherReponseIA(idSalon, dernierMessage) {const msgM = dernierMessage.toLowerCase();let rep = "Assistant IA : Disponible pour toute assistance Télécom.";if (msgM.includes("orange")) rep = "🤖 [IA Réseau] : Canal USSD Orange Money fluide. Commissions calculées.";else if (msgM.includes("airtel") || msgM.includes("cash")) rep = "🤖 [IA Réseau] : Alerte Airtel Money. Validation de la réserve USD requise.";else if (msgM.includes("vodacom") || msgM.includes("mpesa")) rep = "🤖 [IA Réseau] : Serveur M-Pesa synchronisé.";messagesParSalon[idSalon].push({ sender: "🤖 IA Réseau pro", text: rep });if (salonActuel && salonActuel.id === idSalon) rafraichirMessages();} EOF
+function declencherReponseIA(idSalon, dernierMessage) {const msgM = dernierMessage.toLowerCase();let rep = "Assistant IA : Disponible pour toute assistance Télécom.";if (msgM.includes("orange")) rep = "🤖 [IA Réseau] : Canal USSD Orange Money fluide. Commissions calculées.";else if (msgM.includes("airtel") || msgM.includes("cash")) rep = "🤖 [IA Réseau] : Alerte Airtel Money. Validation de la réserve USD requise.";else if (msgM.includes("vodacom") || msgM.includes("mpesa")) rep = "🤖 [IA Réseau] : Serveur M-Pesa synchronisé.";messagesParSalon[idSalon].push({ sender: "🤖 IA Réseau pro", text: rep });if (salonActuel && salonActuel.id === idSalon) rafraichirMessages();} 
+</script>
+</body>
+</html>
