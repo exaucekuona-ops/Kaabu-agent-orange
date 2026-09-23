@@ -1,168 +1,141 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp Telecom Pro</title>
-    <link rel="stylesheet" href="https://cloudflare.com">
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0b141a; margin: 0; padding: 0; color: #e9edef; }
-        .wa-header { background-color: #111b21; padding: 16px; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
-        .wa-top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-        .wa-logo { font-size: 1.4rem; font-weight: bold; color: #e9edef; }
-        .wa-icons { display: flex; gap: 20px; font-size: 1.2rem; color: #aebac1; }
-        .chat-list-item { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid #222e35; cursor: pointer; }
-        .chat-list-item:hover { background-color: #202c33; }
-        .avatar { width: 48px; height: 48px; border-radius: 50%; background-color: #ff6600; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; color: white; margin-right: 14px; }
-        .chat-details { flex: 1; }
-        .chat-title-row { display: flex; justify-content: space-between; align-items: center; }
-        .chat-name { font-weight: 600; }
-        .chat-msg-preview { font-size: 0.85rem; color: #8696a0; }
-        .admin-panel-card { background-color: #1c130e; border: 1px solid #fa6c14; border-radius: 12px; padding: 16px; margin: 12px; }
-        .admin-panel-card h3 { color: #fa6c14; margin-top: 0; }
-        .chat-window { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #0b141a; display: flex; flex-direction: column; z-index: 200; }
-        .chat-header { background-color: #111b21; padding: 10px 16px; display: flex; align-items: center; border-bottom: 1px solid #222e35; gap:12px; }
-        .messages-area { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; background-color: #0b141a; }
-        .bubble { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 0.95rem; }
-        .bubble.me { background-color: #005c4b; align-self: flex-end; }
-        .bubble.other { background-color: #202c33; align-self: flex-start; }
-        .input-bar { background-color: #111b21; padding: 10px; display: flex; align-items: center; gap: 8px; }
-        .input-bg { background-color: #2a3942; border-radius: 24px; flex: 1; display: flex; align-items: center; padding: 6px 12px; }
-        .input-bg input { background: transparent; border: none; color: white; flex: 1; padding: 8px; outline: none; }
-        .send-btn-circle { width: 45px; height: 45px; background-color: #00a884; border-radius: 50%; border: none; color: #111b21; display: flex; align-items: center; justify-content: center; }
-        .wa-bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background-color: #111b21; border-top: 1px solid #222e35; display: flex; justify-content: space-around; padding: 10px 0; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; color: #8696a0; font-size: 0.75rem; }
-        .nav-item.active { color: #e9edef; font-weight: bold; }
-        .hidden { display: none !important; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kaabu Agent</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: #0b141a; color: #e9edef; margin: 0; }
+  .ecran { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+  .hidden { display: none !important; }
+  .centre { justify-content: center; padding: 24px; gap: 12px; }
+  .centre h1 { margin: 0 0 8px; font-size: 1.5rem; }
+  input { background: #2a3942; border: 1px solid #222e35; border-radius: 8px; color: #fff; padding: 12px; font-size: 1rem; outline: none; }
+  button { border: none; border-radius: 8px; padding: 12px; font-weight: 600; font-size: 1rem; cursor: pointer; }
+  .primaire { background: #00a884; color: #111b21; }
+  .secondaire { background: #202c33; color: #e9edef; }
+  .entete { background: #111b21; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222e35; }
+  .zone { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .bulle { max-width: 75%; padding: 8px 12px; border-radius: 8px; word-wrap: break-word; }
+  .bulle.moi { background: #005c4b; align-self: flex-end; }
+  .bulle.autre { background: #202c33; align-self: flex-start; }
+  .bulle strong { font-size: 0.8rem; color: #8696a0; }
+  .barre { background: #111b21; padding: 10px; display: flex; gap: 8px; }
+  .barre input { flex: 1; border-radius: 24px; }
+  .envoi { width: 46px; height: 46px; border-radius: 50%; background: #00a884; color: #111b21; padding: 0; }
+</style>
 </head>
 <body>
 
-    <div id="main-app" style="padding-bottom: 75px;">
-        <div class="wa-header">
-            <div class="wa-top-bar">
-                <div class="wa-logo">WhatsApp</div>
-                <div class="wa-icons">
-                    <i class="fa-solid fa-camera"></i>
-                    <i class="fa-solid fa-ellipsis-vertical" style="cursor:pointer;" onclick="ouvrirMenuSettings()"></i>
-                </div>
-            </div>
-        </div>
+<div id="login" class="ecran centre hidden">
+  <h1>Kaabu Agent</h1>
+  <input id="email" type="email" placeholder="E-mail" autocomplete="email">
+  <input id="mdp" type="password" placeholder="Mot de passe" autocomplete="current-password">
+  <button class="primaire" onclick="connexion(false)">Se connecter</button>
+  <button class="secondaire" onclick="connexion(true)">Créer un compte</button>
+</div>
 
-        <!-- Section Admin ouverte d'office car tu es le créateur -->
-        <div id="settings-panel" class="hidden admin-panel-card">
-            <h3>⚙️ Paramètres Super Admin</h3>
-            <h3 style="color:#dc2626; border-top:1px solid #333; padding-top:10px;">🚫 Bannissement</h3>
-            <input type="text" id="ban-phone-input" style="width: 100%; padding: 12px; background-color: #2a3942; border: 1px solid #222e35; border-radius: 8px; color: white; box-sizing: border-box; margin-bottom: 14px;" placeholder="Numéro à bannir">
-            <button type="button" onclick="bannirUnAgent()" style="width: 100%; background-color: #dc2626; color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">Bannir l'agent</button>
-        </div>
+<div id="attente" class="ecran centre hidden">
+  <h1 id="attente-titre">Compte en attente</h1>
+  <p id="attente-msg"></p>
+  <button class="primaire" onclick="demarrer()">Vérifier à nouveau</button>
+  <button class="secondaire" onclick="deconnexion()">Se déconnecter</button>
+</div>
 
-        <div id="discussions-list-container">
-            <div class="chat-list-item" onclick="ouvrirDiscussion('groupe_general', 'SERVICES DE TOUT RÉSEAUX')">
-                <div class="avatar"><i class="fa-solid fa-tower-cell"></i></div>
-                <div class="chat-details">
-                    <div class="chat-title-row"><div class="chat-name" id="group-title-label">SERVICES DE TOUT RÉSEAUX</div></div>
-                    <div class="chat-msg-preview">Groupe général...</div>
-                </div>
-            </div>
-            <div id="inbox-list-area"></div>
-        </div>
+<div id="chat" class="ecran hidden">
+  <div class="entete">
+    <strong>SERVICES DE TOUT RÉSEAUX</strong>
+    <i class="fa-solid fa-right-from-bracket" style="cursor:pointer" onclick="deconnexion()"></i>
+  </div>
+  <div id="zone" class="zone"></div>
+  <div class="barre">
+    <input id="texte" type="text" placeholder="Message" onkeydown="if(event.key==='Enter')envoyer()">
+    <button class="envoi" onclick="envoyer()"><i class="fa-solid fa-paper-plane"></i></button>
+  </div>
+</div>
 
-        <div class="wa-bottom-nav">
-            <div class="nav-item active"><i class="fa-regular fa-comment-dots"></i><div>Discussions</div></div>
-            <div class="nav-item"><i class="fa-solid fa-phone"></i><div>Appels</div></div>
-        </div>
-    </div>
+<script>
+  // À REMPLACER par les valeurs de Supabase (Project Settings > API). Jamais la clé service_role.
+  const SUPABASE_URL = 'https://wmrpeeebdswenrshtlcr.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_tXKY7NtjUc8oN_Yh-6t6_g_OQE6OC5b';
 
-    <div id="chat-window-screen" class="hidden chat-window">
-        <div class="chat-header">
-            <i class="fa-solid fa-arrow-left" style="cursor:pointer;" onclick="fermerDiscussion()"></i>
-            <div id="chat-window-title" style="font-weight:bold;">Nom</div>
-        </div>
-        <div class="messages-area" id="chat-messages-zone"></div>
-        <div class="input-bar">
-            <div class="input-bg"><input type="text" id="wa-message-input" placeholder="Message"></div>
-            <button type="button" class="send-btn-circle" onclick="lancerEnvoiMessage()"><i class="fa-solid fa-paper-plane"></i></button>
-        </div>
-    </div>
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const $ = id => document.getElementById(id);
+  let moi = null, canal = null;
 
-    <script>
-        let monProfil = { role: 'admin', name: '🔑 Admin', phone: '0800200043' };
-        let salonActuel = null;
-        let iaTimers = {};
-        let listeNoireBannis = JSON.parse(localStorage.getItem('banned_users')) || [];
-        let messagesParSalon = {"groupe_general": [{ sender: "System", text: "Bienvenue sur votre réseau sécurisé." }]};
+  const esc = s => String(s ?? '').replace(/[&<>"']/g,
+    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-        window.onload = function() {
-            genererListeInboxPourAdmin();
-        };
+  function montrer(id) {
+    ['login', 'attente', 'chat'].forEach(x => $(x).classList.toggle('hidden', x !== id));
+  }
 
-        function ouvrirMenuSettings() {
-            document.getElementById('settings-panel').classList.toggle('hidden');
-        }
+  async function demarrer() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return montrer('login');
+    const { data: p } = await sb.from('profiles').select('nom,statut,is_admin').eq('id', session.user.id).single();
+    moi = { id: session.user.id, ...p };
+    if (!p || p.statut !== 'admis') {
+      const banni = p && p.statut === 'banni';
+      $('attente-titre').textContent = banni ? 'Compte banni' : 'Compte en attente';
+      $('attente-msg').textContent = banni
+        ? "L'administrateur a banni ce compte."
+        : "Ton compte doit être validé par l'administrateur avant d'accéder au chat.";
+      return montrer('attente');
+    }
+    montrer('chat');
+    await chargerMessages();
+    ecouter();
+  }
 
-        function bannirUnAgent() {
-            let num = document.getElementById('ban-phone-input').value.trim();
-            if (!num) return alert("Entrez un numéro.");
-            if (!num.startsWith('+')) num = "+243" + (num.startsWith('0') ? num.substring(1) : num);
-            if (!listeNoireBannis.includes(num)) {
-                listeNoireBannis.push(num);
-                localStorage.setItem('banned_users', JSON.stringify(listeNoireBannis));
-                alert(`L'agent ${num} a été banni avec succès !`);
-                document.getElementById('settings-panel').classList.add('hidden');
-            }
-        }
+  async function connexion(creer) {
+    const email = $('email').value.trim(), password = $('mdp').value;
+    if (!email || !password) return alert('Entre ton e-mail et ton mot de passe.');
+    const r = creer ? await sb.auth.signUp({ email, password })
+                    : await sb.auth.signInWithPassword({ email, password });
+    if (r.error) return alert(r.error.message);
+    if (creer && !r.data.session) return alert('Compte créé. Confirme ton e-mail, puis connecte-toi.');
+    demarrer();
+  }
 
-        function genererListeInboxPourAdmin() {
-            const container = document.getElementById('inbox-list-area');
-            container.innerHTML = `<h3 style="padding:10px 16px;margin:0;color:#00a884;font-size:0.85rem;text-transform:uppercase;">Inbox privés</h3>`;
-            const fauxUtilisateurs = [
-                { id: "user_lazard", name: "ETS LAZARD BUSINESS 🤝", phone: "+243851716277", msg: "Bjr cash USD disponible Airtel..." }
-            ];
-            fauxUtilisateurs.forEach(u => {
-                if (!messagesParSalon[u.id]) messagesParSalon[u.id] = [{ sender: u.name, text: u.msg }];
-                container.innerHTML += `
-                    <div class="chat-list-item" onclick="ouvrirDiscussion('${u.id}', '${u.name}')">
-                        <div class="avatar"><i class="fa-solid fa-user"></i></div>
-                        <div class="chat-details">
-                            <div class="chat-title-row"><div class="chat-name">${u.name}</div></div>
-                            <div class="chat-msg-preview">${messagesParSalon[u.id][messagesParSalon[u.id].length - 1].text}</div>
-                        </div>
-                    </div>`;
-            });
-        }
+  async function deconnexion() {
+    if (canal) sb.removeChannel(canal);
+    await sb.auth.signOut();
+    montrer('login');
+  }
 
-        function abrirDiscussion(idSalon, titre) {
-            ouvrirDiscussion(idSalon, titre);
-        }
+  function ajouter(m) {
+    const estMoi = m.auteur === moi.id;
+    $('zone').insertAdjacentHTML('beforeend',
+      `<div class="bulle ${estMoi ? 'moi' : 'autre'}"><strong>${esc(m.auteur_nom)}</strong><br>${esc(m.contenu)}</div>`);
+    $('zone').scrollTop = $('zone').scrollHeight;
+  }
 
-        function ouvrirDiscussion(idSalon, titre) {
-            salonActuel = { id: idSalon, title: titre };
-            document.getElementById('chat-window-title').innerText = titre;
-            rafraichirMessages();
-            document.getElementById('chat-window-screen').classList.remove('hidden');
-        }
+  async function chargerMessages() {
+    const { data } = await sb.from('messages').select('*')
+      .order('created_at', { ascending: false }).limit(100);
+    $('zone').innerHTML = '';
+    (data || []).reverse().forEach(ajouter);
+  }
 
-        function fermerDiscussion() { document.getElementById('chat-window-screen').classList.add('hidden'); }
-        
-        function rafraichirMessages() {
-            const area = document.getElementById('chat-messages-zone');
-            area.innerHTML = '';
-            messagesParSalon[salonActuel.id].forEach(m => {
-                const isMe = (m.sender === monProfil.name);
-                area.innerHTML += `<div class="bubble ${isMe ? 'me' : 'other'}"><strong>${m.sender}</strong><br><div>${m.text}</div></div>`;
-            });
-            area.scrollTop = area.scrollHeight;
-        }
+  function ecouter() {
+    if (canal) sb.removeChannel(canal);
+    canal = sb.channel('chat-general')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => ajouter(p.new))
+      .subscribe();
+  }
 
-        function lancerEnvoiMessage() {
-            const input = document.getElementById('wa-message-input');
-            const texte = input.value.trim();
-            if (!texte) return;
-            messagesParSalon[salonActuel.id].push({ sender: monProfil.name, text: texte });
-            input.value = "";
-rafraichirMessages();if (iaTimers[salonActuel.id]) clearTimeout(iaTimers[salonActuel.id]);iaTimers[salonActuel.id] = setTimeout(() => { declencherReponseIA(salonActuel.id, texte); }, 4000);} 
-function declencherReponseIA(idSalon, dernierMessage) {const msgM = dernierMessage.toLowerCase();let rep = "Assistant IA : Disponible pour toute assistance Télécom.";if (msgM.includes("orange")) rep = "🤖 [IA Réseau] : Canal USSD Orange Money fluide. Commissions calculées.";else if (msgM.includes("airtel") || msgM.includes("cash")) rep = "🤖 [IA Réseau] : Alerte Airtel Money. Validation de la réserve USD requise.";else if (msgM.includes("vodacom") || msgM.includes("mpesa")) rep = "🤖 [IA Réseau] : Serveur M-Pesa synchronisé.";messagesParSalon[idSalon].push({ sender: "🤖 IA Réseau pro", text: rep });if (salonActuel && salonActuel.id === idSalon) rafraichirMessages();} 
+  async function envoyer() {
+    const t = $('texte').value.trim();
+    if (!t) return;
+    $('texte').value = '';
+    const { error } = await sb.from('messages').insert({ auteur: moi.id, type: 'texte', contenu: t });
+    if (error) alert("Message non envoyé : " + error.message);
+  }
+
+  demarrer();
 </script>
 </body>
 </html>
