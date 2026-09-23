@@ -1,5 +1,5 @@
 {
   "appId": "com.kaabu.agent",
   "appName": "KaabuAgent",
-  "webDir": "public"
+  "webDir": "docs"
 }
