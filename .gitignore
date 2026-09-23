@@ -1,2 +1,5 @@
 node_modules/
 android/local.properties
+
+# Local Netlify folder
+.netlify

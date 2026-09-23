@@ -1,5 +1,8 @@
 {
   "appId": "com.kaabu.agent",
   "appName": "KaabuAgent",
-  "webDir": "docs"
+  "webDir": "docs",
+  "server": {
+    "url": "https://kaabu-agent-app.netlify.app"
+  }
 }
