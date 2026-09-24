@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20260924-211123">
+<meta name="build" content="20260924-213709">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -114,10 +114,10 @@
 
 <div id="chat" class="ecran hidden">
   <div class="entete">
-    <strong>SERVICES DE TOUT RÉSEAUX</strong>
+    <span style="display:flex;align-items:center;gap:8px"><img id="logo-app" class="hidden" style="width:32px;height:32px;border-radius:8px;object-fit:cover"><strong id="titre-app">SERVICES DE TOUT RÉSEAUX</strong></span>
     <span>
       <i class="fa-solid fa-circle-user" style="cursor:pointer;margin-right:18px" onclick="ouvrirProfil()"></i>
-      <i id="btn-admin" class="fa-solid fa-user-shield hidden" style="cursor:pointer;margin-right:18px" onclick="ouvrirAdmin()"></i>
+      <i id="btn-reglages" class="fa-solid fa-gear hidden" style="cursor:pointer;margin-right:18px" onclick="ouvrirReglages()"></i><i id="btn-admin" class="fa-solid fa-user-shield hidden" style="cursor:pointer;margin-right:18px" onclick="ouvrirAdmin()"></i>
       <i class="fa-solid fa-right-from-bracket" style="cursor:pointer" onclick="deconnexion()"></i>
     </span>
   </div>
@@ -129,6 +129,8 @@
   <div id="saisie" class="barre">
     <input id="fichier" type="file" accept="image/*" class="hidden" onchange="envoyerPhoto(this)">
     <button class="ico" onclick="$('fichier').click()"><i class="fa-solid fa-image"></i></button>
+    <input id="fichier-doc" type="file" class="hidden" onchange="envoyerFichier(this)">
+    <button class="ico" onclick="$('fichier-doc').click()"><i class="fa-solid fa-paperclip"></i></button>
     <input id="texte" type="text" placeholder="Message" onkeydown="if(event.key==='Enter')envoyer()">
     <button id="micro" class="ico" onclick="demarrerVocal()"><i class="fa-solid fa-microphone"></i></button>
     <button class="envoi" onclick="envoyer()"><i class="fa-solid fa-paper-plane"></i></button>
@@ -233,6 +235,7 @@
     montrer('chat');
     await chargerAnnuaire();
     $('btn-admin').classList.toggle('hidden', !moi.is_admin);
+    $('btn-reglages').classList.toggle('hidden', !moi.is_admin);
     await chargerMessages();
     ecouter();
   }
@@ -610,3 +613,80 @@
 </script>
 
 </html>
+<script>
+async function chargerConfig(){
+  try{
+    const r = await sb.from('config').select('app_name,app_logo').eq('id',1).single();
+    const d = r.data; if(!d) return;
+    if(d.app_name){ $('titre-app').textContent = d.app_name; document.title = d.app_name; }
+    const l = $('logo-app');
+    if(d.app_logo){ l.src = d.app_logo; l.classList.remove('hidden'); } else { l.classList.add('hidden'); }
+  }catch(e){}
+}
+function logoEnDataUrl(file, t){
+  return new Promise(function(ok, ko){
+    var img = new Image(), u = URL.createObjectURL(file);
+    img.onload = function(){
+      var c = document.createElement('canvas'); c.width = t; c.height = t;
+      var s = Math.min(img.width, img.height);
+      c.getContext('2d').drawImage(img, (img.width-s)/2, (img.height-s)/2, s, s, 0, 0, t, t);
+      URL.revokeObjectURL(u); ok(c.toDataURL('image/png'));
+    };
+    img.onerror = ko; img.src = u;
+  });
+}
+function ouvrirReglages(){
+  var o = document.createElement('div');
+  o.style.cssText = 'position:fixed;inset:0;background:#111b21;z-index:9999;display:flex;flex-direction:column;justify-content:center;padding:24px;gap:12px;color:#fff';
+  o.innerHTML = '<h2>Réglages de l\'app</h2>' +
+    '<label>Nom de l\'app</label><input id="rg-nom" type="text" style="padding:12px;font-size:16px;border-radius:8px;border:0">' +
+    '<label>Logo (image carrée de préférence)</label>' +
+    '<div style="display:flex;align-items:center;gap:12px"><img id="rg-apercu" style="width:64px;height:64px;border-radius:12px;object-fit:cover;background:#2a3942"><input id="rg-fichier" type="file" accept="image/*"></div>' +
+    '<div id="rg-err" style="color:#ff6b6b"></div>' +
+    '<button id="rg-ok" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#00a884;color:#fff">Enregistrer</button>' +
+    '<button id="rg-non" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#2a3942;color:#fff">Annuler</button>';
+  document.body.appendChild(o);
+  var nom = o.querySelector('#rg-nom'), ap = o.querySelector('#rg-apercu'), fi = o.querySelector('#rg-fichier'), err = o.querySelector('#rg-err');
+  nom.value = $('titre-app').textContent;
+  var lg = $('logo-app'); if(!lg.classList.contains('hidden')) ap.src = lg.src;
+  var nouveau = null;
+  fi.onchange = async function(){
+    if(!fi.files[0]) return;
+    try{ nouveau = await logoEnDataUrl(fi.files[0], 192); ap.src = nouveau; }catch(e){ err.textContent = 'Image illisible.'; }
+  };
+  o.querySelector('#rg-non').onclick = function(){ o.remove(); };
+  o.querySelector('#rg-ok').onclick = async function(){
+    var n = nom.value.trim();
+    if(!n){ err.textContent = 'Le nom ne peut pas être vide.'; return; }
+    var m = { app_name: n }; if(nouveau) m.app_logo = nouveau;
+    var r = await sb.from('config').update(m).eq('id',1).select();
+    if(r.error){ err.textContent = 'Erreur : ' + r.error.message; return; }
+    if(!r.data || !r.data.length){ err.textContent = 'Refusé : réservé à l\'admin (ou table config absente).'; return; }
+    o.remove(); chargerConfig();
+  };
+}
+window.addEventListener('load', chargerConfig);
+document.addEventListener('visibilitychange', function(){ if(!document.hidden) chargerConfig(); });
+
+async function envoyerFichier(inp){
+  var f = inp.files[0]; inp.value = ''; if(!f) return;
+  if(f.size > 20*1024*1024){ alert('Fichier trop lourd (20 Mo maximum).'); return; }
+  var nom = f.name.replace(/[^A-Za-z0-9._-]+/g,'_').slice(-80);
+  var chemin = moi.id + '/' + Date.now() + '__' + nom;
+  var up = await sb.storage.from('chat').upload(chemin, f, { contentType: f.type || 'application/octet-stream' });
+  if(up.error){ alert('Envoi impossible : ' + up.error.message); return; }
+  var r = await sb.from('messages').insert({ auteur: moi.id, type: 'fichier', contenu: chemin });
+  if(r.error){ alert('Message non envoyé : ' + r.error.message); }
+}
+function lienFichier(m, url){
+  var n = m.contenu.split('__').slice(1).join('__') || 'fichier';
+  return '<a href="' + url + '" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;color:inherit;text-decoration:none"><i class="fa-solid fa-file"></i><span style="word-break:break-all">' + esc(n) + '</span></a>';
+}
+var _afficherMediaOrig = afficherMedia;
+afficherMedia = async function(m){
+  if(m.type !== 'fichier') return _afficherMediaOrig(m);
+  var r = await sb.storage.from('chat').createSignedUrl(m.contenu, 3600);
+  var url = r.data ? esc(r.data.signedUrl) : '';
+  $('m' + m.id).innerHTML = url ? lienFichier(m, url) : '(fichier indisponible)';
+};
+</script>
