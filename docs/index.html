@@ -1,6 +1,47 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<meta name="build" content="20260924-210745">
+<script>
+(function(){
+  var affiche=false, enCours=false;
+  function monTampon(){ var m=document.querySelector('meta[name="build"]'); return m?m.content:null; }
+  function toast(t){
+    var d=document.createElement('div'); d.textContent=t;
+    d.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:99999;background:#075e54;color:#fff;padding:10px 16px;border-radius:20px;font:14px sans-serif';
+    document.body.appendChild(d); setTimeout(function(){d.remove();},4000);
+  }
+  function bandeau(){
+    if(affiche||!document.body) return; affiche=true;
+    var d=document.createElement('div');
+    d.style.cssText='position:fixed;left:0;right:0;top:0;z-index:99999;background:#00a884;color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;font:15px sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.4)';
+    d.innerHTML='<span>Nouvelle mise à jour disponible</span><button style="border:0;border-radius:8px;padding:8px 14px;font-size:15px;font-weight:bold;background:#fff;color:#075e54">Mettre à jour</button>';
+    d.querySelector('button').onclick=function(){ location.reload(); };
+    document.body.appendChild(d);
+  }
+  async function verifier(){
+    if(enCours) return; enCours=true;
+    try{
+      var r=await fetch('/?maj='+Date.now(),{cache:'no-store'});
+      var t=await r.text();
+      var m=t.match(/<meta name="build" content="([^"]*)"/);
+      var mien=monTampon();
+      if(m && mien && m[1]!==mien) bandeau();
+    }catch(e){}
+    enCours=false;
+  }
+  setInterval(verifier,60000);
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden) verifier(); });
+  window.addEventListener('load',function(){
+    var b=monTampon();
+    try{
+      var avant=localStorage.getItem('kaabu_build');
+      if(b && b!=='dev'){ if(avant && avant!==b) toast('✅ Application mise à jour'); localStorage.setItem('kaabu_build',b); }
+    }catch(e){}
+    setTimeout(verifier,3000);
+  });
+})();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kaabu Agent</title>
@@ -140,6 +181,31 @@
   const SUPABASE_KEY = 'sb_publishable_tXKY7NtjUc8oN_Yh-6t6_g_OQE6OC5b';
 
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { flowType: 'pkce' } });
+  function normPhone(s){
+    s = s.replace(/[\s\-().]/g,'');
+    if (s.startsWith('00')) s = '+' + s.slice(2);
+    return /^\+[1-9]\d{7,14}$/.test(s) ? s : null;
+  }
+  function askPhone(){
+    return new Promise(resolve=>{
+      const o = document.createElement('div');
+      o.style.cssText = 'position:fixed;inset:0;background:#111b21;z-index:9999;display:flex;flex-direction:column;justify-content:center;padding:24px;gap:12px;color:#fff';
+      o.innerHTML = '<h2>Ton numéro de téléphone</h2><p>Avec l\'indicatif pays (ex. +243812345678). Un numéro = un seul compte.</p><input id="ph" type="tel" placeholder="+243..." style="padding:12px;font-size:16px;border-radius:8px;border:0"><div id="pherr" style="color:#ff6b6b"></div><button id="phok" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#00a884;color:#fff">Valider</button>';
+      document.body.appendChild(o);
+      o.querySelector('#phok').onclick = async ()=>{
+        const err = o.querySelector('#pherr');
+        const p = normPhone(o.querySelector('#ph').value);
+        if(!p){ err.textContent = 'Numéro invalide. Format : +243812345678'; return; }
+        const { data:{ user } } = await sb.auth.getUser();
+        const { error } = await sb.from('profiles').update({ phone:p }).eq('id', user.id);
+        if(error){
+          err.textContent = error.code==='23505' ? 'Ce numéro est déjà utilisé par un autre compte.' : 'Erreur : ' + error.message;
+          return;
+        }
+        o.remove(); resolve(p);
+      };
+    });
+  }
   const $ = id => document.getElementById(id);
   let moi = null, canal = null;
 
@@ -155,6 +221,7 @@
     if (!session) return montrer('login');
     const { data: p } = await sb.from('profiles').select('nom,statut,is_admin').eq('id', session.user.id).single();
     moi = { id: session.user.id, ...p };
+//     if (p && p.statut !== 'banni' && !p.phone) { p.phone = await askPhone(); moi.phone = p.phone; }
     if (!p || p.statut !== 'admis') {
       const banni = p && p.statut === 'banni';
       $('attente-titre').textContent = banni ? 'Compte banni' : 'Compte en attente';
