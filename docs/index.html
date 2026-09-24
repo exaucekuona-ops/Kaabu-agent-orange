@@ -61,6 +61,7 @@
   <input id="mdp" type="password" placeholder="Mot de passe" autocomplete="current-password">
   <button class="primaire" onclick="connexion(false)">Se connecter</button>
   <button class="secondaire" onclick="connexion(true)">Créer un compte</button>
+  <button class="secondaire" onclick="connexionGoogle()"><i class="fa-brands fa-google"></i>&nbsp; Continuer avec Google</button>
 </div>
 
 <div id="attente" class="ecran centre hidden">
@@ -138,7 +139,7 @@
   const SUPABASE_URL = 'https://wmrpeeebdswenrshtlcr.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_tXKY7NtjUc8oN_Yh-6t6_g_OQE6OC5b';
 
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { flowType: 'pkce' } });
   const $ = id => document.getElementById(id);
   let moi = null, canal = null;
 
@@ -496,6 +497,46 @@
     $('texte').value = '';
     const { error } = await sb.from('messages').insert({ auteur: moi.id, type: 'texte', contenu: t });
     if (error) { alert("Message non envoyé : " + error.message); demarrer(); }
+  }
+
+  // Connexion Google : dans l'app, on ouvre le navigateur puis on revient par un lien
+  const RETOUR = 'com.kaabu.agent://login-callback';
+  const natif = () => !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
+
+  async function connexionGoogle() {
+    const nat = natif();
+    const { data, error } = await sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: nat ? RETOUR : window.location.origin, skipBrowserRedirect: nat }
+    });
+    if (error) return alert(error.message);
+    if (nat) {
+      const nav = Capacitor.Plugins && Capacitor.Plugins.Browser;
+      if (!nav) return alert("Mets l'application à jour pour utiliser Google.");
+      await nav.open({ url: data.url });
+    }
+  }
+
+  async function finirGoogle(url) {
+    try {
+      const u = new URL(url);
+      const code = u.searchParams.get('code');
+      const err = u.searchParams.get('error_description');
+      if (err) throw new Error(err);
+      if (code) {
+        const { error } = await sb.auth.exchangeCodeForSession(code);
+        if (error) throw error;
+      }
+      const nav = Capacitor.Plugins && Capacitor.Plugins.Browser;
+      try { if (nav) await nav.close(); } catch (e) {}
+      demarrer();
+    } catch (e) { alert('Connexion Google échouée : ' + e.message); }
+  }
+
+  if (natif() && Capacitor.Plugins && Capacitor.Plugins.App) {
+    Capacitor.Plugins.App.addListener('appUrlOpen', ev => {
+      if (ev.url && ev.url.startsWith(RETOUR)) finirGoogle(ev.url);
+    });
   }
 
   demarrer();
