@@ -32,7 +32,10 @@
   .danger { background: #dc2626; color: #fff; }
   .barre .ico { width: 42px; height: 42px; border-radius: 50%; background: #202c33; color: #e9edef; padding: 0; flex: none; }
   .barre .ico.rec { background: #dc2626; color: #fff; }
-  .bulle img { max-width: 100%; border-radius: 6px; display: block; margin-top: 4px; }
+  .bulle img { display: block; width: 220px; max-width: 100%; max-height: 260px; object-fit: cover; border-radius: 6px; margin-top: 4px; cursor: pointer; }
+  #enreg { align-items: center; }
+  .point { width: 12px; height: 12px; border-radius: 50%; background: #dc2626; animation: clignote 1s infinite; }
+  @keyframes clignote { 50% { opacity: 0.2; } }
   .bulle audio { width: 220px; max-width: 100%; margin-top: 4px; }
 </style>
 </head>
@@ -62,13 +65,36 @@
     </span>
   </div>
   <div id="zone" class="zone"></div>
-  <div class="barre">
+  <div id="bandeau" class="barre hidden" style="justify-content:space-between">
+    <span>✏️ Modification du message</span>
+    <i class="fa-solid fa-xmark" style="cursor:pointer" onclick="annulerEdition()"></i>
+  </div>
+  <div id="saisie" class="barre">
     <input id="fichier" type="file" accept="image/*" class="hidden" onchange="envoyerPhoto(this)">
     <button class="ico" onclick="$('fichier').click()"><i class="fa-solid fa-image"></i></button>
     <input id="texte" type="text" placeholder="Message" onkeydown="if(event.key==='Enter')envoyer()">
-    <button id="micro" class="ico" onclick="basculerMicro()"><i class="fa-solid fa-microphone"></i></button>
+    <button id="micro" class="ico" onclick="demarrerVocal()"><i class="fa-solid fa-microphone"></i></button>
     <button class="envoi" onclick="envoyer()"><i class="fa-solid fa-paper-plane"></i></button>
   </div>
+  <div id="enreg" class="barre hidden">
+    <span class="point"></span>
+    <strong id="chrono">0:00</strong>
+    <span style="flex:1">Enregistrement…</span>
+    <button class="ico" onclick="finirVocal(false)"><i class="fa-solid fa-trash"></i></button>
+    <button class="envoi" onclick="finirVocal(true)"><i class="fa-solid fa-paper-plane"></i></button>
+  </div>
+</div>
+
+<div id="menu" class="admin hidden" style="display:flex;align-items:flex-end;background:rgba(0,0,0,.6)" onclick="fermerMenu()">
+  <div style="background:#202c33;width:100%;padding:8px 16px 24px;border-radius:16px 16px 0 0" onclick="event.stopPropagation()">
+    <button id="menu-modif" class="secondaire" style="width:100%;margin-top:8px" onclick="commencerEdition()">Modifier</button>
+    <button id="menu-suppr" class="danger" style="width:100%;margin-top:8px" onclick="supprimerChoisi()">Supprimer</button>
+    <button class="secondaire" style="width:100%;margin-top:8px" onclick="fermerMenu()">Annuler</button>
+  </div>
+</div>
+
+<div id="visio" class="admin hidden" style="display:flex;align-items:center;justify-content:center" onclick="this.classList.add('hidden')">
+  <img id="visio-img" style="max-width:100%;max-height:100%">
 </div>
 
 <div id="admin" class="admin hidden">
@@ -130,10 +156,32 @@
     montrer('login');
   }
 
+  const msgs = {};
+
+  function texteMsg(m) {
+    return esc(m.contenu) + (m.modifie ? ' <small style="color:#8696a0">(modifié)</small>' : '');
+  }
+
+  function tombe(m) {
+    const soi = m.supprime_par === m.auteur_nom;
+    return '<em style="color:#8696a0">🚫 ' + (soi ? 'Ce message a été supprimé'
+      : "Message supprimé par l'admin " + esc(m.supprime_par)) + '</em>';
+  }
+
+  function majMessage(m) {
+    msgs[m.id] = m;
+    const el = $('m' + m.id);
+    if (!el) return;
+    if (m.supprime) el.innerHTML = tombe(m);
+    else if (m.type === 'texte') el.innerHTML = texteMsg(m);
+  }
+
   function ajouter(m) {
-    const estMoi = m.auteur === moi.id, media = m.type !== 'texte';
+    msgs[m.id] = m;
+    const estMoi = m.auteur === moi.id, media = m.type !== 'texte' && !m.supprime;
+    const corps = m.supprime ? tombe(m) : media ? '…' : texteMsg(m);
     $('zone').insertAdjacentHTML('beforeend',
-      `<div class="bulle ${estMoi ? 'moi' : 'autre'}"><strong>${esc(m.auteur_nom)}</strong><br><span id="m${m.id}">${media ? '…' : esc(m.contenu)}</span></div>`);
+      `<div id="b${m.id}" class="bulle ${estMoi ? 'moi' : 'autre'}"><strong>${esc(m.auteur_nom)}</strong><br><span id="m${m.id}">${corps}</span></div>`);
     $('zone').scrollTop = $('zone').scrollHeight;
     if (media) afficherMedia(m);
   }
@@ -142,7 +190,7 @@
     const { data } = await sb.storage.from('chat').createSignedUrl(m.contenu, 3600);
     const url = data ? esc(data.signedUrl) : '';
     $('m' + m.id).innerHTML = !url ? '(fichier indisponible)'
-      : m.type === 'image' ? `<img src="${url}" onload="$('zone').scrollTop=$('zone').scrollHeight">`
+      : m.type === 'image' ? `<img src="${url}" onclick="voirPhoto(this.src)" onload="$('zone').scrollTop=$('zone').scrollHeight">`
       : `<audio controls src="${url}"></audio>`;
   }
 
@@ -150,6 +198,7 @@
     const { data } = await sb.from('messages').select('*')
       .order('created_at', { ascending: false }).limit(100);
     $('zone').innerHTML = '';
+    for (const k in msgs) delete msgs[k];
     (data || []).reverse().forEach(ajouter);
   }
 
@@ -157,6 +206,8 @@
     if (canal) sb.removeChannel(canal);
     canal = sb.channel('chat-general')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => ajouter(p.new))
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, p => retirer(p.old.id))
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, p => majMessage(p.new))
       .subscribe();
   }
 
@@ -218,31 +269,122 @@
     catch (e) { alert(e.message); }
   }
 
-  let enregistreur = null, morceaux = [];
+  let enregistreur = null, morceaux = [], envoyerVocal = false, chrono = null;
 
-  async function basculerMicro() {
-    if (enregistreur) { enregistreur.stop(); return; }
+  function afficherChrono(t0) {
+    const sec = Math.floor((Date.now() - t0) / 1000);
+    $('chrono').textContent = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+  }
+
+  async function demarrerVocal() {
     try {
       const flux = await navigator.mediaDevices.getUserMedia({ audio: true });
       const rec = new MediaRecorder(flux);
       morceaux = [];
       rec.ondataavailable = e => morceaux.push(e.data);
       rec.onstop = async () => {
+        clearInterval(chrono);
         flux.getTracks().forEach(t => t.stop());
-        $('micro').classList.remove('rec');
+        $('enreg').classList.add('hidden');
+        $('saisie').classList.remove('hidden');
         enregistreur = null;
         const blob = new Blob(morceaux, { type: 'audio/webm' });
-        if (blob.size > 1000) await televerser(blob, 'vocal', 'webm', 'audio/webm');
+        if (envoyerVocal && blob.size > 1000) await televerser(blob, 'vocal', 'webm', 'audio/webm');
       };
       rec.start();
       enregistreur = rec;
-      $('micro').classList.add('rec');
+      const t0 = Date.now();
+      afficherChrono(t0);
+      chrono = setInterval(() => afficherChrono(t0), 500);
+      $('saisie').classList.add('hidden');
+      $('enreg').classList.remove('hidden');
     } catch (e) { alert('Micro indisponible : ' + e.message); }
   }
+
+  function finirVocal(envoyer) {
+    if (!enregistreur) return;
+    envoyerVocal = envoyer;
+    enregistreur.stop();
+  }
+
+  // Photo en grand, suppression par appui long
+  let appuiLong = false, minuteur = null;
+
+  function voirPhoto(src) {
+    if (appuiLong) { appuiLong = false; return; }
+    $('visio-img').src = src;
+    $('visio').classList.remove('hidden');
+  }
+
+  function retirer(id) {
+    const el = $('b' + id);
+    if (el) el.remove();
+    delete msgs[id];
+  }
+
+  let choisi = null, edition = null;
+
+  function ouvrirMenu(id) {
+    const m = msgs[id];
+    if (!m || m.supprime) return;
+    const perso = m.auteur === moi.id;
+    if (!perso && !moi.is_admin) return;
+    $('menu-modif').classList.toggle('hidden', !(perso && m.type === 'texte'));
+    $('menu-suppr').classList.toggle('hidden', !(perso || moi.is_admin));
+    choisi = id;
+    $('menu').classList.remove('hidden');
+  }
+
+  function fermerMenu() { $('menu').classList.add('hidden'); }
+
+  function supprimerChoisi() { fermerMenu(); supprimer(choisi); }
+
+  function commencerEdition() {
+    fermerMenu();
+    const m = msgs[choisi];
+    if (!m) return;
+    edition = m.id;
+    $('texte').value = m.contenu;
+    $('bandeau').classList.remove('hidden');
+    $('texte').focus();
+  }
+
+  function annulerEdition() {
+    edition = null;
+    $('texte').value = '';
+    $('bandeau').classList.add('hidden');
+  }
+
+  async function supprimer(id) {
+    const m = msgs[id];
+    if (!m || m.supprime || !(m.auteur === moi.id || moi.is_admin)) return;
+    const { data: chemin, error } = await sb.rpc('supprimer_message', { p_id: Number(id) });
+    if (error) return alert('Suppression impossible : ' + error.message);
+    if (chemin && m.type !== 'texte') await sb.storage.from('chat').remove([chemin]);
+    majMessage({ ...m, supprime: true, supprime_par: moi.nom, contenu: null });
+  }
+
+  $('zone').addEventListener('touchstart', e => {
+    appuiLong = false;
+    const b = e.target.closest('.bulle');
+    if (!b) return;
+    clearTimeout(minuteur);
+    minuteur = setTimeout(() => { appuiLong = true; ouvrirMenu(b.id.slice(1)); }, 600);
+  }, { passive: true });
+  ['touchend', 'touchmove', 'touchcancel'].forEach(t =>
+    $('zone').addEventListener(t, () => clearTimeout(minuteur), { passive: true }));
 
   async function envoyer() {
     const t = $('texte').value.trim();
     if (!t) return;
+    if (edition) {
+      const id = edition;
+      annulerEdition();
+      const { data, error } = await sb.from('messages').update({ contenu: t }).eq('id', id).select();
+      if (error || !data || !data.length) alert('Modification refusée.');
+      else majMessage(data[0]);
+      return;
+    }
     $('texte').value = '';
     const { error } = await sb.from('messages').insert({ auteur: moi.id, type: 'texte', contenu: t });
     if (error) { alert("Message non envoyé : " + error.message); demarrer(); }
