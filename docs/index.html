@@ -37,6 +37,20 @@
   .point { width: 12px; height: 12px; border-radius: 50%; background: #dc2626; animation: clignote 1s infinite; }
   @keyframes clignote { 50% { opacity: 0.2; } }
   .bulle audio { width: 220px; max-width: 100%; margin-top: 4px; }
+  .av, .ini { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 6px; display: inline-block; }
+  .ini { background: #374248; color: #e9edef; font-size: 0.7rem; text-align: center; line-height: 22px; }
+  .grand .av, .grand .ini { width: 120px; height: 120px; line-height: 120px; font-size: 3rem; margin: 0; }
+  .zone { gap: 4px; padding: 12px 10px; }
+  .rang { display: flex; align-items: flex-end; gap: 6px; max-width: 85%; }
+  .rang.moi { align-self: flex-end; }
+  .rang.autre { align-self: flex-start; }
+  .bulle { max-width: 100%; padding: 6px 10px 4px; align-self: auto; }
+  .bulle.moi { align-self: auto; border-top-right-radius: 0; }
+  .bulle.autre { align-self: auto; border-top-left-radius: 0; }
+  .nom { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 2px; }
+  .heure { float: right; margin: 8px 0 0 12px; font-size: 0.68rem; color: #8696a0; }
+  .jour { align-self: center; background: #182229; color: #8696a0; font-size: 0.75rem; padding: 4px 12px; border-radius: 8px; margin: 10px 0 6px; }
+  .rang .av, .rang .ini { width: 32px; height: 32px; line-height: 32px; font-size: 0.9rem; margin: 0; flex: none; }
 </style>
 </head>
 <body>
@@ -60,6 +74,7 @@
   <div class="entete">
     <strong>SERVICES DE TOUT RÉSEAUX</strong>
     <span>
+      <i class="fa-solid fa-circle-user" style="cursor:pointer;margin-right:18px" onclick="ouvrirProfil()"></i>
       <i id="btn-admin" class="fa-solid fa-user-shield hidden" style="cursor:pointer;margin-right:18px" onclick="ouvrirAdmin()"></i>
       <i class="fa-solid fa-right-from-bracket" style="cursor:pointer" onclick="deconnexion()"></i>
     </span>
@@ -82,6 +97,19 @@
     <span style="flex:1">Enregistrement…</span>
     <button class="ico" onclick="finirVocal(false)"><i class="fa-solid fa-trash"></i></button>
     <button class="envoi" onclick="finirVocal(true)"><i class="fa-solid fa-paper-plane"></i></button>
+  </div>
+</div>
+
+<div id="profil" class="admin hidden">
+  <div class="entete">
+    <strong>Mon profil</strong>
+    <i class="fa-solid fa-xmark" style="cursor:pointer" onclick="$('profil').classList.add('hidden')"></i>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:32px 24px">
+    <div id="profil-av" class="grand"></div>
+    <strong id="profil-nom" style="font-size:1.2rem"></strong>
+    <input id="fichier-profil" type="file" accept="image/*" class="hidden" onchange="changerPhoto(this)">
+    <button class="primaire" onclick="$('fichier-profil').click()">Changer la photo</button>
   </div>
 </div>
 
@@ -135,6 +163,7 @@
       return montrer('attente');
     }
     montrer('chat');
+    await chargerAnnuaire();
     $('btn-admin').classList.toggle('hidden', !moi.is_admin);
     await chargerMessages();
     ecouter();
@@ -157,6 +186,27 @@
   }
 
   const msgs = {};
+  let annuaire = {};
+
+  async function chargerAnnuaire() {
+    const { data } = await sb.rpc('annuaire');
+    annuaire = {};
+    (data || []).forEach(p => { annuaire[p.id] = p; });
+  }
+
+  function avatarDe(id, nom) {
+    const p = annuaire[id];
+    if (p && p.photo_url) {
+      const url = sb.storage.from('avatars').getPublicUrl(p.photo_url).data.publicUrl;
+      return `<img class="av" src="${esc(url)}">`;
+    }
+    return `<span class="ini">${esc((nom || '?').charAt(0).toUpperCase())}</span>`;
+  }
+
+  function recu(m) {
+    if (m.auteur && !annuaire[m.auteur]) chargerAnnuaire().then(() => ajouter(m));
+    else ajouter(m);
+  }
 
   function texteMsg(m) {
     return esc(m.contenu) + (m.modifie ? ' <small style="color:#8696a0">(modifié)</small>' : '');
@@ -176,12 +226,32 @@
     else if (m.type === 'texte') el.innerHTML = texteMsg(m);
   }
 
+  let dernierJour = '';
+
+  function libelleJour(d) {
+    const hier = new Date(Date.now() - 864e5);
+    if (d.toDateString() === new Date().toDateString()) return "Aujourd'hui";
+    if (d.toDateString() === hier.toDateString()) return 'Hier';
+    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  const COULEURS = ['#53bdeb', '#e9a23b', '#c6a3ff', '#ff8a8a', '#7fd67f', '#f0a1d1'];
+  const couleurDe = nom => COULEURS[[...String(nom || '')].reduce((a, c) => a + c.charCodeAt(0), 0) % COULEURS.length];
+
   function ajouter(m) {
     msgs[m.id] = m;
     const estMoi = m.auteur === moi.id, media = m.type !== 'texte' && !m.supprime;
     const corps = m.supprime ? tombe(m) : media ? '…' : texteMsg(m);
+    const d = new Date(m.created_at || Date.now());
+    if (d.toDateString() !== dernierJour) {
+      dernierJour = d.toDateString();
+      $('zone').insertAdjacentHTML('beforeend', `<div class="jour">${libelleJour(d)}</div>`);
+    }
+    const heure = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const nom = estMoi ? '' : `<span class="nom" style="color:${couleurDe(m.auteur_nom)}">${esc(m.auteur_nom)}</span>`;
     $('zone').insertAdjacentHTML('beforeend',
-      `<div id="b${m.id}" class="bulle ${estMoi ? 'moi' : 'autre'}"><strong>${esc(m.auteur_nom)}</strong><br><span id="m${m.id}">${corps}</span></div>`);
+      `<div class="rang ${estMoi ? 'moi' : 'autre'}">${estMoi ? '' : avatarDe(m.auteur, m.auteur_nom)}` +
+      `<div id="b${m.id}" class="bulle ${estMoi ? 'moi' : 'autre'}">${nom}<span id="m${m.id}">${corps}</span><span class="heure">${heure}</span></div></div>`);
     $('zone').scrollTop = $('zone').scrollHeight;
     if (media) afficherMedia(m);
   }
@@ -199,13 +269,14 @@
       .order('created_at', { ascending: false }).limit(100);
     $('zone').innerHTML = '';
     for (const k in msgs) delete msgs[k];
+    dernierJour = '';
     (data || []).reverse().forEach(ajouter);
   }
 
   function ecouter() {
     if (canal) sb.removeChannel(canal);
     canal = sb.channel('chat-general')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => ajouter(p.new))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => recu(p.new))
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, p => retirer(p.old.id))
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, p => majMessage(p.new))
       .subscribe();
@@ -307,6 +378,43 @@
     enregistreur.stop();
   }
 
+  function carre(file, t) {
+    return new Promise((ok, ko) => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = c.height = t;
+        const m = Math.min(img.width, img.height);
+        c.getContext('2d').drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, t, t);
+        c.toBlob(b => b ? ok(b) : ko(new Error('Image illisible')), 'image/jpeg', 0.85);
+      };
+      img.onerror = () => ko(new Error('Image illisible'));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  function ouvrirProfil() {
+    $('profil-av').innerHTML = avatarDe(moi.id, moi.nom);
+    $('profil-nom').textContent = moi.nom || '';
+    $('profil').classList.remove('hidden');
+  }
+
+  async function changerPhoto(input) {
+    const f = input.files[0];
+    input.value = '';
+    if (!f) return;
+    try {
+      const chemin = `${moi.id}/${Date.now()}.jpg`;
+      const up = await sb.storage.from('avatars').upload(chemin, await carre(f, 256), { contentType: 'image/jpeg' });
+      if (up.error) throw up.error;
+      const r = await sb.rpc('changer_photo', { p_chemin: chemin });
+      if (r.error) throw r.error;
+      await chargerAnnuaire();
+      ouvrirProfil();
+      await chargerMessages();
+    } catch (e) { alert('Photo non enregistrée : ' + e.message); }
+  }
+
   // Photo en grand, suppression par appui long
   let appuiLong = false, minuteur = null;
 
@@ -318,7 +426,7 @@
 
   function retirer(id) {
     const el = $('b' + id);
-    if (el) el.remove();
+    if (el) (el.closest('.rang') || el).remove();
     delete msgs[id];
   }
 
