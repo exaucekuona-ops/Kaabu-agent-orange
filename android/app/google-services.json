@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1092243540777",
+    "project_id": "telecom-e2cf6",
+    "storage_bucket": "telecom-e2cf6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1092243540777:android:98e400426a12a695af8538",
+        "android_client_info": {
+          "package_name": "com.kaabu.agent"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD0PqNvwpFuYUbqGX4v7MmOHBSrbXxVNJk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
