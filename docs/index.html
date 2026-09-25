@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20260925-075055">
+<meta name="build" content="20260925-081251">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -693,17 +693,19 @@ afficherMedia = async function(m){
 <script>
 async function initPush(){
   try{
-    const { PushNotifications } = await import('https://esm.sh/@capacitor/push-notifications@8?bundle');
-    const perm = await PushNotifications.checkPermissions();
+    if (!window.Capacitor || !window.Capacitor.isNativePlatform || !window.Capacitor.isNativePlatform()) return;
+    const P = window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications;
+    if (!P) { console.error('push: plugin natif absent'); return; }
+    const perm = await P.checkPermissions();
     if (perm.receive !== 'granted') {
-      const req = await PushNotifications.requestPermissions();
+      const req = await P.requestPermissions();
       if (req.receive !== 'granted') return;
     }
-    await PushNotifications.register();
-    PushNotifications.addListener('registration', async (t) => {
-      try{ await sb.rpc('enregistrer_jeton', { t: t.value }); }catch(e){}
+    await P.register();
+    P.addListener('registration', async (t) => {
+      try{ await sb.rpc('enregistrer_jeton', { t: t.value }); }catch(e){ console.error('rpc', e); }
     });
-    PushNotifications.addListener('registrationError', (e) => console.error('push', e));
+    P.addListener('registrationError', (e) => console.error('push registration', e));
   }catch(e){ console.error('push init', e); }
 }
 window.addEventListener('load', () => setTimeout(initPush, 1500));
