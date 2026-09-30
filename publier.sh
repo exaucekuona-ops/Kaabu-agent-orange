@@ -17,9 +17,8 @@ if ! grep -q 'name="build"' docs/index.html; then
 fi
 STAMP=$(date +%Y%m%d-%H%M%S)
 sed -i "s|<meta name=\"build\" content=\"[^\"]*\">|<meta name=\"build\" content=\"$STAMP\">|" docs/index.html
-netlify deploy --prod --dir=docs || exit 1
 git add -A docs
 git commit -m "Mise à jour de l'interface $STAMP [skip ci]"
 git push
 rm -f ~/storage/downloads/index*.html
-echo "Terminé : interface publiée ($STAMP)"
+echo "Terminé : interface publiée sur GitHub Pages ($STAMP)"

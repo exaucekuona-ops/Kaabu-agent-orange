@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20260925-081251">
+<meta name="build" content="20260925-083048">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -692,21 +692,33 @@ afficherMedia = async function(m){
 </script>
 <script>
 async function initPush(){
+  var d = document.createElement('div');
+  d.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#000;color:#0f0;font:11px monospace;padding:8px;border-radius:8px;white-space:pre-wrap;max-height:40vh;overflow:auto';
+  document.body.appendChild(d);
+  function log(s){ d.textContent += s + '
+'; }
   try{
-    if (!window.Capacitor || !window.Capacitor.isNativePlatform || !window.Capacitor.isNativePlatform()) return;
+    log('Capacitor: ' + (!!window.Capacitor));
+    log('natif: ' + (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()));
+    log('plugins: ' + (window.Capacitor && window.Capacitor.Plugins ? Object.keys(window.Capacitor.Plugins).join(', ') : 'aucun'));
+    if (!window.Capacitor || !window.Capacitor.isNativePlatform || !window.Capacitor.isNativePlatform()) { log('arret: pas natif'); return; }
     const P = window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications;
-    if (!P) { console.error('push: plugin natif absent'); return; }
+    if (!P) { log('arret: PushNotifications absent'); return; }
     const perm = await P.checkPermissions();
+    log('perm actuelle: ' + JSON.stringify(perm));
     if (perm.receive !== 'granted') {
       const req = await P.requestPermissions();
-      if (req.receive !== 'granted') return;
+      log('perm demandee: ' + JSON.stringify(req));
+      if (req.receive !== 'granted') { log('arret: refuse'); return; }
     }
     await P.register();
+    log('register() appele');
     P.addListener('registration', async (t) => {
-      try{ await sb.rpc('enregistrer_jeton', { t: t.value }); }catch(e){ console.error('rpc', e); }
+      log('jeton recu, longueur ' + t.value.length);
+      try{ const r = await sb.rpc('enregistrer_jeton', { t: t.value }); log('rpc: ' + JSON.stringify(r.error || 'ok')); }catch(e){ log('rpc erreur: ' + e.message); }
     });
-    P.addListener('registrationError', (e) => console.error('push registration', e));
-  }catch(e){ console.error('push init', e); }
+    P.addListener('registrationError', (e) => log('erreur registration: ' + JSON.stringify(e)));
+  }catch(e){ log('exception: ' + e.message); }
 }
 window.addEventListener('load', () => setTimeout(initPush, 1500));
 </script>
