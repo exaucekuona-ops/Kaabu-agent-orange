@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261001-122029">
+<meta name="build" content="20261001-124245">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -112,15 +112,34 @@
   <button class="secondaire" onclick="deconnexion()">Se déconnecter</button>
 </div>
 
+<style>
+.conv{display:flex;gap:12px;padding:12px 16px;cursor:pointer;align-items:center}
+.conv:active{background:#182229}
+.conv-av{flex:none;width:52px;height:52px;border-radius:50%;overflow:hidden;background:#374248;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#e9edef}
+.conv-av img{width:100%;height:100%;object-fit:cover}
+.conv-av .av,.conv-av .ini{width:52px;height:52px;line-height:52px;font-size:1.3rem;margin:0}
+.conv-mid{flex:1;min-width:0}
+.conv-top,.conv-bot{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.conv-top small{color:#8696a0;white-space:nowrap}
+.conv-txt{color:#8696a0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{background:#00a884;color:#111b21;border-radius:12px;min-width:20px;padding:1px 6px;text-align:center;font-size:.75rem;font-weight:700;flex:none}
+.mi{display:flex;align-items:center;gap:14px;padding:13px 18px;cursor:pointer}
+.mi i{width:20px;text-align:center;color:#8696a0}
+.mi:active{background:#2a3942}
+</style>
+<div id="accueil" class="ecran hidden">
+  <div class="entete">
+    <span style="display:flex;align-items:center;gap:10px"><img id="logo-acc" class="hidden" style="width:32px;height:32px;border-radius:8px;object-fit:cover"><strong id="titre-acc">Discussions</strong></span>
+    <i class="fa-solid fa-ellipsis-vertical" style="cursor:pointer;padding:6px 12px;font-size:1.3rem" onclick="ouvrirMenuPlus()"></i>
+  </div>
+  <div id="liste-conv" style="flex:1;overflow-y:auto;padding-bottom:96px"></div>
+  <button onclick="ouvrirMembres()" style="position:fixed;right:18px;bottom:22px;z-index:5;width:56px;height:56px;border-radius:16px;background:#00a884;color:#111b21;font-size:1.3rem;padding:0;box-shadow:0 4px 12px rgba(0,0,0,.5)"><i class="fa-solid fa-message"></i></button>
+</div>
+
 <div id="chat" class="ecran hidden">
   <div class="entete">
-    <span style="display:flex;align-items:center;gap:8px"><img id="logo-app" class="hidden" style="width:32px;height:32px;border-radius:8px;object-fit:cover"><strong id="titre-app">SERVICES DE TOUT RÉSEAUX</strong></span>
-    <span>
-      <i id="btn-membres" class="fa-solid fa-users" style="cursor:pointer;margin-right:18px" onclick="ouvrirMembres()"></i>
-      <i class="fa-solid fa-circle-user" style="cursor:pointer;margin-right:18px" onclick="ouvrirProfil()"></i>
-      <i id="btn-reglages" class="fa-solid fa-gear hidden" style="cursor:pointer;margin-right:18px" onclick="ouvrirReglages()"></i><i id="btn-admin" class="fa-solid fa-user-shield hidden" style="cursor:pointer;margin-right:18px" onclick="ouvrirAdmin()"></i>
-      <i class="fa-solid fa-right-from-bracket" style="cursor:pointer" onclick="deconnexion()"></i>
-    </span>
+    <span style="display:flex;align-items:center;gap:12px"><i class="fa-solid fa-arrow-left" style="cursor:pointer" onclick="retourAccueil()"></i><img id="logo-app" class="hidden" style="width:32px;height:32px;border-radius:8px;object-fit:cover"><strong id="titre-app">SERVICES DE TOUT RÉSEAUX</strong></span>
+    
   </div>
   <div id="zone" class="zone"></div>
   <div id="bandeau" class="barre hidden" style="justify-content:space-between">
@@ -177,6 +196,16 @@
     <i class="fa-solid fa-xmark" style="cursor:pointer" onclick="fermerAdmin()"></i>
   </div>
   <div id="liste"></div>
+</div>
+
+<div id="menuplus" class="admin hidden" style="background:transparent;z-index:30" onclick="fermerMenuPlus()">
+  <div style="position:absolute;right:10px;top:60px;background:#233138;border-radius:10px;min-width:220px;padding:6px 0;box-shadow:0 6px 20px rgba(0,0,0,.55)" onclick="event.stopPropagation()">
+    <div class="mi" onclick="fermerMenuPlus();ouvrirProfil()"><i class="fa-solid fa-circle-user"></i>Mon profil</div>
+    <div class="mi" onclick="fermerMenuPlus();ouvrirMembres()"><i class="fa-solid fa-users"></i>Membres</div>
+    <div id="mi-reglages" class="mi hidden" onclick="fermerMenuPlus();ouvrirReglages()"><i class="fa-solid fa-gear"></i>Réglages de l'app</div>
+    <div id="mi-admin" class="mi hidden" onclick="fermerMenuPlus();ouvrirAdmin()"><i class="fa-solid fa-user-shield"></i>Comptes</div>
+    <div class="mi" onclick="fermerMenuPlus();deconnexion()"><i class="fa-solid fa-right-from-bracket"></i>Se déconnecter</div>
+  </div>
 </div>
 
 <div id="membres" class="admin hidden">
@@ -250,7 +279,7 @@
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   function montrer(id) {
-    ['login', 'attente', 'chat'].forEach(x => $(x).classList.toggle('hidden', x !== id));
+    ['login', 'attente', 'accueil', 'chat'].forEach(x => $(x).classList.toggle('hidden', x !== id));
   }
 
   async function demarrer() {
@@ -274,13 +303,13 @@
         : "Ton compte doit être validé par l'administrateur avant d'accéder au chat.";
       return montrer('attente');
     }
-    montrer('chat');
+    montrer('accueil');
     await chargerAnnuaire();
-    $('btn-admin').classList.toggle('hidden', !moi.is_admin);
-    $('btn-reglages').classList.toggle('hidden', !moi.is_admin);
+    $('mi-admin').classList.toggle('hidden', !moi.is_admin);
+    $('mi-reglages').classList.toggle('hidden', !moi.is_admin);
     await chargerMessages();
     ecouter();
-    try { ecouterPrive(); chargerNonLus(); } catch (e) {}
+    try { ecouterPrive(); chargerNonLus(); chargerAccueil(); setTimeout(chargerAccueil, 2500); } catch (e) {}
   }
 
   async function connexion(creer) {
@@ -856,6 +885,7 @@ function ecouterPrive(){
   canalP = sb.channel('chat-prive')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'prives' }, p => {
       const m = p.new;
+      setTimeout(chargerAccueil, 300);
       if (m.de === moi.id) return ajouterPrive(m);
       if (m.a !== moi.id) return;
       if (priveId === m.de) { ajouterPrive(m); marquerVu(m.de); }
@@ -891,8 +921,9 @@ if (natif() && Capacitor.Plugins && Capacitor.Plugins.App) {
     if (!$('prive').classList.contains('hidden')) return fermerPrive();
     const tel = $('ov-tel'); if (tel) return $('phback').click();
     if ($('ov-visage')) return $('vback').click();
-    for (const id of ['contact', 'menu', 'visio', 'membres', 'profil', 'admin'])
+    for (const id of ['menuplus', 'contact', 'menu', 'visio', 'membres', 'profil', 'admin'])
       if (!$(id).classList.contains('hidden')) return $(id).classList.add('hidden');
+    if (!$('chat').classList.contains('hidden')) return retourAccueil();
     Capacitor.Plugins.App.exitApp();
   });
 }
@@ -1003,4 +1034,78 @@ async function reinitVisage(id){
   if (r.error || r.data !== 'ok') return alert('Refusé : ' + (r.error ? r.error.message : r.data));
   alert('Visage réinitialisé.');
 }
+</script>
+
+<script>
+const vuGroupe = () => 'groupe_vu_' + moi.id;
+let accEnCours = false, accRefaire = false;
+function ouvrirMenuPlus(){ $('menuplus').classList.remove('hidden'); }
+function fermerMenuPlus(){ $('menuplus').classList.add('hidden'); }
+function heureConv(iso){
+  const d = new Date(iso), n = new Date();
+  if (d.toDateString() === n.toDateString()) return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  if (d.toDateString() === new Date(Date.now() - 864e5).toDateString()) return 'Hier';
+  return d.toLocaleDateString('fr-FR');
+}
+function apercuGroupe(m){
+  if (m.supprime) return '🚫 Message supprimé';
+  const qui = m.auteur === moi.id ? 'Toi : ' : (m.auteur_nom ? m.auteur_nom + ' : ' : '');
+  const c = m.type === 'image' ? '📷 Photo' : m.type === 'vocal' ? '🎤 Message vocal' : m.type === 'fichier' ? '📎 Fichier' : (m.contenu || '');
+  return qui + c;
+}
+function marquerGroupeVu(){ try { localStorage.setItem(vuGroupe(), new Date().toISOString()); } catch (e) {} }
+function ouvrirGroupe(){
+  montrer('chat'); marquerGroupeVu();
+  $('zone').scrollTop = $('zone').scrollHeight;
+}
+function retourAccueil(){
+  marquerGroupeVu(); montrer('accueil'); chargerAccueil();
+}
+async function rendreAccueil(){
+  $('titre-acc').textContent = $('titre-app').textContent;
+  const lg = $('logo-app'), logo = (!lg.classList.contains('hidden') && lg.src) || '';
+  if (logo) { $('logo-acc').src = logo; $('logo-acc').classList.remove('hidden'); }
+  let vu = null;
+  try { vu = localStorage.getItem(vuGroupe()); if (!vu) { vu = new Date().toISOString(); localStorage.setItem(vuGroupe(), vu); } } catch (e) {}
+  const [g, gc, pv] = await Promise.all([
+    sb.from('messages').select('contenu,type,supprime,auteur,auteur_nom,created_at').order('created_at', { ascending: false }).limit(1),
+    sb.from('messages').select('id', { count: 'exact', head: true }).gt('created_at', vu || new Date().toISOString()).neq('auteur', moi.id),
+    sb.from('prives').select('*').or(`de.eq.${moi.id},a.eq.${moi.id}`).order('created_at', { ascending: false }).limit(300)
+  ]);
+  const m = g.data && g.data[0];
+  const items = [{ groupe: true, t: m ? m.created_at : '1970-01-01', apercu: m ? apercuGroupe(m) : 'Aucun message', n: gc.count || 0 }];
+  const par = {};
+  (pv.data || []).forEach(x => {
+    const autre = x.de === moi.id ? x.a : x.de;
+    if (!par[autre]) par[autre] = { id: autre, t: x.created_at, apercu: (x.de === moi.id ? 'Toi : ' : '') + x.contenu, n: 0 };
+    if (x.a === moi.id) {
+      let v = null; try { v = localStorage.getItem(vuCle(autre)); } catch (e) {}
+      if (!v || new Date(x.created_at) > new Date(v)) par[autre].n++;
+    }
+  });
+  Object.values(par).forEach(c => items.push(c));
+  items.sort((a, b) => new Date(b.t) - new Date(a.t));
+  $('liste-conv').innerHTML = items.map(c => {
+    const av = c.groupe ? (logo ? `<img src="${esc(logo)}">` : '<i class="fa-solid fa-users"></i>') : avatarDe(c.id, nomDe(c.id));
+    const nom = c.groupe ? 'Groupe général' : nomDe(c.id);
+    const clic = c.groupe ? 'ouvrirGroupe()' : `ouvrirPrive('${c.id}')`;
+    const h = c.t > '1971' ? heureConv(c.t) : '';
+    return `<div class="conv" onclick="${clic}"><div class="conv-av">${av}</div><div class="conv-mid">` +
+      `<div class="conv-top"><strong>${esc(nom)}</strong><small${c.n ? ' style="color:#00a884"' : ''}>${h}</small></div>` +
+      `<div class="conv-bot"><span class="conv-txt">${esc(c.apercu)}</span>${c.n ? `<span class="badge">${c.n}</span>` : ''}</div></div></div>`;
+  }).join('') + (items.length === 1 ? '<p style="color:#8696a0;text-align:center;padding:24px 16px">Touche le bouton 💬 pour écrire en privé à un membre.</p>' : '');
+}
+async function chargerAccueil(){
+  if (!moi) return;
+  if (accEnCours) { accRefaire = true; return; }
+  accEnCours = true;
+  try { await rendreAccueil(); } catch (e) {}
+  accEnCours = false;
+  if (accRefaire) { accRefaire = false; chargerAccueil(); }
+}
+var _recu = recu;
+recu = function(m){ _recu(m); setTimeout(chargerAccueil, 300); };
+var _fermerPrive = fermerPrive;
+fermerPrive = function(){ _fermerPrive(); chargerAccueil(); };
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) chargerAccueil(); });
 </script>
