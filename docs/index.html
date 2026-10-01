@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20260925-083048">
+<meta name="build" content="20261001-111209">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -221,9 +221,9 @@
   async function demarrer() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return montrer('login');
-    const { data: p } = await sb.from('profiles').select('nom,statut,is_admin').eq('id', session.user.id).single();
+    const { data: p } = await sb.from('profiles').select('nom,statut,is_admin,phone').eq('id', session.user.id).single();
     moi = { id: session.user.id, ...p };
-//     if (p && p.statut !== 'banni' && !p.phone) { p.phone = await askPhone(); moi.phone = p.phone; }
+     if (p && p.statut !== 'banni' && !p.phone) { p.phone = await askPhone(); }
     if (!p || p.statut !== 'admis') {
       const banni = p && p.statut === 'banni';
       $('attente-titre').textContent = banni ? 'Compte banni' : 'Compte en attente';
