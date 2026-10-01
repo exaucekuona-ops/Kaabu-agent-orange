@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261001-111209">
+<meta name="build" content="20261001-114138">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -116,6 +116,7 @@
   <div class="entete">
     <span style="display:flex;align-items:center;gap:8px"><img id="logo-app" class="hidden" style="width:32px;height:32px;border-radius:8px;object-fit:cover"><strong id="titre-app">SERVICES DE TOUT RÉSEAUX</strong></span>
     <span>
+      <i id="btn-membres" class="fa-solid fa-users" style="cursor:pointer;margin-right:18px" onclick="ouvrirMembres()"></i>
       <i class="fa-solid fa-circle-user" style="cursor:pointer;margin-right:18px" onclick="ouvrirProfil()"></i>
       <i id="btn-reglages" class="fa-solid fa-gear hidden" style="cursor:pointer;margin-right:18px" onclick="ouvrirReglages()"></i><i id="btn-admin" class="fa-solid fa-user-shield hidden" style="cursor:pointer;margin-right:18px" onclick="ouvrirAdmin()"></i>
       <i class="fa-solid fa-right-from-bracket" style="cursor:pointer" onclick="deconnexion()"></i>
@@ -152,6 +153,7 @@
   <div style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:32px 24px">
     <div id="profil-av" class="grand"></div>
     <strong id="profil-nom" style="font-size:1.2rem"></strong>
+    <span id="profil-tel" style="color:#8696a0"></span>
     <input id="fichier-profil" type="file" accept="image/*" class="hidden" onchange="changerPhoto(this)">
     <button class="primaire" onclick="$('fichier-profil').click()">Changer la photo</button>
   </div>
@@ -177,6 +179,35 @@
   <div id="liste"></div>
 </div>
 
+<div id="membres" class="admin hidden">
+  <div class="entete">
+    <strong>Membres</strong>
+    <i class="fa-solid fa-xmark" style="cursor:pointer" onclick="$('membres').classList.add('hidden')"></i>
+  </div>
+  <div id="liste-membres"></div>
+</div>
+
+<div id="contact" class="admin hidden" style="display:flex;align-items:flex-end;background:rgba(0,0,0,.6)" onclick="fermerContact()">
+  <div style="background:#202c33;width:100%;box-sizing:border-box;padding:20px 16px 28px;border-radius:16px 16px 0 0;text-align:center" onclick="event.stopPropagation()">
+    <div id="contact-av" class="grand" style="display:flex;justify-content:center"></div>
+    <strong id="contact-nom" style="display:block;font-size:1.2rem;margin:10px 0 4px"></strong>
+    <div id="contact-tel" style="color:#8696a0;margin-bottom:10px"></div>
+    <div id="contact-actions"></div>
+  </div>
+</div>
+
+<div id="prive" class="ecran hidden" style="position:fixed;inset:0;z-index:20;background:#0b141a">
+  <div class="entete">
+    <span style="display:flex;align-items:center;gap:14px"><i class="fa-solid fa-arrow-left" style="cursor:pointer" onclick="fermerPrive()"></i><strong id="prive-nom"></strong></span>
+    <span id="prive-appel"></span>
+  </div>
+  <div id="prive-zone" class="zone"></div>
+  <div class="barre">
+    <input id="prive-texte" type="text" placeholder="Message privé" style="min-width:0" onkeydown="if(event.key==='Enter')envoyerPrive()">
+    <button class="envoi" onclick="envoyerPrive()"><i class="fa-solid fa-paper-plane"></i></button>
+  </div>
+</div>
+
 <script>
   // À REMPLACER par les valeurs de Supabase (Project Settings > API). Jamais la clé service_role.
   const SUPABASE_URL = 'https://wmrpeeebdswenrshtlcr.supabase.co';
@@ -191,17 +222,21 @@
   function askPhone(){
     return new Promise(resolve=>{
       const o = document.createElement('div');
+      o.id = 'ov-tel';
       o.style.cssText = 'position:fixed;inset:0;background:#111b21;z-index:9999;display:flex;flex-direction:column;justify-content:center;padding:24px;gap:12px;color:#fff';
-      o.innerHTML = '<h2>Ton numéro de téléphone</h2><p>Avec l\'indicatif pays (ex. +243812345678). Un numéro = un seul compte.</p><input id="ph" type="tel" placeholder="+243..." style="padding:12px;font-size:16px;border-radius:8px;border:0"><div id="pherr" style="color:#ff6b6b"></div><button id="phok" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#00a884;color:#fff">Valider</button>';
+      o.innerHTML = '<h2>Ton numéro de téléphone</h2><p>Avec l\'indicatif pays (ex. +243812345678). Un numéro = un seul compte.</p><input id="ph" type="tel" placeholder="+243..." style="padding:12px;font-size:16px;border-radius:8px;border:0"><div id="pherr" style="color:#ff6b6b"></div><button id="phok" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#00a884;color:#fff">Valider</button><button id="phback" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#2a3942;color:#fff">← Retour</button>';
       document.body.appendChild(o);
+      o.querySelector('#phback').onclick = async ()=>{ o.remove(); await deconnexion(); resolve(null); };
       o.querySelector('#phok').onclick = async ()=>{
         const err = o.querySelector('#pherr');
         const p = normPhone(o.querySelector('#ph').value);
         if(!p){ err.textContent = 'Numéro invalide. Format : +243812345678'; return; }
-        const { data:{ user } } = await sb.auth.getUser();
-        const { error } = await sb.from('profiles').update({ phone:p }).eq('id', user.id);
-        if(error){
-          err.textContent = error.code==='23505' ? 'Ce numéro est déjà utilisé par un autre compte.' : 'Erreur : ' + error.message;
+        err.textContent = '';
+        const { data: rep, error } = await sb.rpc('enregistrer_telephone', { p_phone: p });
+        if(error || rep !== 'ok'){
+          err.textContent = rep === 'deja_utilise' ? 'Ce numéro est déjà utilisé par un autre compte.'
+            : rep === 'invalide' ? 'Numéro invalide. Format : +243812345678'
+            : 'Erreur : ' + (error ? error.message : rep);
           return;
         }
         o.remove(); resolve(p);
@@ -223,7 +258,11 @@
     if (!session) return montrer('login');
     const { data: p } = await sb.from('profiles').select('nom,statut,is_admin,phone').eq('id', session.user.id).single();
     moi = { id: session.user.id, ...p };
-     if (p && p.statut !== 'banni' && !p.phone) { p.phone = await askPhone(); }
+    if (p && p.statut !== 'banni' && !p.phone) {
+      const ph = await askPhone();
+      if (!ph) return;
+      p.phone = ph; moi.phone = ph;
+    }
     if (!p || p.statut !== 'admis') {
       const banni = p && p.statut === 'banni';
       $('attente-titre').textContent = banni ? 'Compte banni' : 'Compte en attente';
@@ -238,6 +277,7 @@
     $('btn-reglages').classList.toggle('hidden', !moi.is_admin);
     await chargerMessages();
     ecouter();
+    try { ecouterPrive(); chargerNonLus(); } catch (e) {}
   }
 
   async function connexion(creer) {
@@ -257,12 +297,13 @@
   }
 
   const msgs = {};
-  let annuaire = {};
+  let annuaire = {}, tels = {};
 
   async function chargerAnnuaire() {
     const { data } = await sb.rpc('annuaire');
     annuaire = {};
     (data || []).forEach(p => { annuaire[p.id] = p; });
+    try { const t = await sb.rpc('annuaire_tel'); tels = {}; (t.data || []).forEach(x => { tels[x.id] = x; }); } catch (e) {}
   }
 
   function avatarDe(id, nom) {
@@ -319,9 +360,9 @@
       $('zone').insertAdjacentHTML('beforeend', `<div class="jour">${libelleJour(d)}</div>`);
     }
     const heure = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    const nom = estMoi ? '' : `<span class="nom" style="color:${couleurDe(m.auteur_nom)}">${esc(m.auteur_nom)}</span>`;
+    const nom = estMoi ? '' : `<span class="nom" style="color:${couleurDe(m.auteur_nom)};cursor:pointer" onclick="ouvrirContact('${m.auteur}')">${esc(m.auteur_nom)}</span>`;
     $('zone').insertAdjacentHTML('beforeend',
-      `<div class="rang ${estMoi ? 'moi' : 'autre'}">${estMoi ? '' : avatarDe(m.auteur, m.auteur_nom)}` +
+      `<div class="rang ${estMoi ? 'moi' : 'autre'}">${estMoi ? '' : `<span onclick="ouvrirContact('${m.auteur}')" style="cursor:pointer;display:flex;flex:none">${avatarDe(m.auteur, m.auteur_nom)}</span>`}` +
       `<div id="b${m.id}" class="bulle ${estMoi ? 'moi' : 'autre'}">${nom}<span id="m${m.id}">${corps}</span><span class="heure">${heure}</span></div></div>`);
     $('zone').scrollTop = $('zone').scrollHeight;
     if (media) afficherMedia(m);
@@ -467,6 +508,7 @@
   function ouvrirProfil() {
     $('profil-av').innerHTML = avatarDe(moi.id, moi.nom);
     $('profil-nom').textContent = moi.nom || '';
+    $('profil-tel').textContent = moi.phone ? '📞 ' + moi.phone : '';
     $('profil').classList.remove('hidden');
   }
 
@@ -721,4 +763,133 @@ async function initPush(){
   }catch(e){ log('exception: ' + e.message); }
 }
 window.addEventListener('load', () => setTimeout(initPush, 1500));
+</script>
+
+<script>
+let canalP = null, priveId = null, nonLus = new Set();
+const vuCle = id => 'prive_vu_' + moi.id + '_' + id;
+const nomDe = id => (tels[id] && tels[id].nom) || (annuaire[id] && annuaire[id].nom) || 'Membre';
+function majPointMembres(){ const b = $('btn-membres'); if (b) b.style.color = nonLus.size ? '#00a884' : ''; }
+function marquerVu(id){ try { localStorage.setItem(vuCle(id), new Date().toISOString()); } catch (e) {} nonLus.delete(id); majPointMembres(); }
+
+async function ouvrirMembres(){
+  await chargerAnnuaire();
+  const l = Object.values(tels).sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
+  $('liste-membres').innerHTML = l.map(p =>
+    `<div class="ligne" style="cursor:pointer" onclick="$('membres').classList.add('hidden');ouvrirContact('${p.id}')">` +
+    `<div style="display:flex;align-items:center;gap:10px">${avatarDe(p.id, p.nom)}<div>${esc(p.nom)}${p.id === moi.id ? ' (toi)' : ''}<small>${esc(p.phone || 'Numéro non renseigné')}</small></div></div>` +
+    `<div>${nonLus.has(p.id) ? '<i class="fa-solid fa-circle" style="color:#00a884;font-size:.7rem"></i>' : ''}</div></div>`).join('')
+    || '<p style="padding:16px">Aucun membre.</p>';
+  $('membres').classList.remove('hidden');
+}
+
+async function ouvrirContact(id){
+  if (!id) return;
+  if (!tels[id]) await chargerAnnuaire();
+  const t = tels[id] || {}, nom = t.nom || nomDe(id), tel = t.phone || '';
+  $('contact-av').innerHTML = avatarDe(id, nom);
+  $('contact-nom').textContent = nom;
+  $('contact-tel').textContent = tel || 'Numéro non renseigné';
+  const bt = 'display:block;width:100%;box-sizing:border-box;padding:12px;margin-top:8px;border-radius:8px;font-weight:600;font-size:1rem;text-decoration:none;text-align:center;border:0;';
+  $('contact-actions').innerHTML = id === moi.id ? '' :
+    (tel ? `<a href="tel:${esc(tel)}" style="${bt}background:#00a884;color:#111b21"><i class="fa-solid fa-phone"></i>&nbsp; Appeler</a>` : '') +
+    `<button style="${bt}background:#2a3942;color:#e9edef" onclick="ouvrirPrive('${id}')"><i class="fa-solid fa-comment"></i>&nbsp; Discuter en privé</button>`;
+  $('contact').classList.remove('hidden');
+}
+function fermerContact(){ $('contact').classList.add('hidden'); }
+
+function ajouterPrive(m){
+  if (!priveId || !((m.de === moi.id && m.a === priveId) || (m.de === priveId && m.a === moi.id))) return;
+  if ($('p' + m.id)) return;
+  const estMoi = m.de === moi.id, d = new Date(m.created_at || Date.now());
+  const h = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  $('prive-zone').insertAdjacentHTML('beforeend',
+    `<div class="rang ${estMoi ? 'moi' : 'autre'}"><div id="p${m.id}" class="bulle ${estMoi ? 'moi' : 'autre'}">${esc(m.contenu)}<span class="heure">${h}</span></div></div>`);
+  $('prive-zone').scrollTop = $('prive-zone').scrollHeight;
+}
+
+async function ouvrirPrive(id){
+  fermerContact();
+  priveId = id;
+  $('prive-nom').textContent = nomDe(id);
+  const tel = tels[id] && tels[id].phone;
+  $('prive-appel').innerHTML = tel ? `<a href="tel:${esc(tel)}" style="color:inherit"><i class="fa-solid fa-phone"></i></a>` : '';
+  $('prive-zone').innerHTML = '';
+  $('prive').classList.remove('hidden');
+  const { data, error } = await sb.from('prives').select('*')
+    .or(`and(de.eq.${moi.id},a.eq.${id}),and(de.eq.${id},a.eq.${moi.id})`)
+    .order('created_at', { ascending: false }).limit(100);
+  if (error) { $('prive-zone').textContent = 'Erreur : ' + error.message; return; }
+  (data || []).reverse().forEach(ajouterPrive);
+  marquerVu(id);
+}
+
+function fermerPrive(){
+  if (priveId) marquerVu(priveId);
+  priveId = null;
+  $('prive').classList.add('hidden');
+}
+
+async function envoyerPrive(){
+  const t = $('prive-texte').value.trim();
+  if (!t || !priveId) return;
+  $('prive-texte').value = '';
+  const { data, error } = await sb.from('prives').insert({ de: moi.id, a: priveId, contenu: t }).select();
+  if (error) { alert('Message non envoyé : ' + error.message); return; }
+  if (data && data[0]) ajouterPrive(data[0]);
+}
+
+function toastPrive(id){
+  const d = document.createElement('div');
+  d.textContent = '💬 Message privé de ' + nomDe(id);
+  d.style.cssText = 'position:fixed;left:50%;top:16px;transform:translateX(-50%);z-index:99998;background:#075e54;color:#fff;padding:10px 16px;border-radius:20px;font:14px sans-serif;cursor:pointer';
+  d.onclick = () => { d.remove(); ouvrirPrive(id); };
+  document.body.appendChild(d);
+  setTimeout(() => d.remove(), 5000);
+}
+
+function ecouterPrive(){
+  if (canalP) sb.removeChannel(canalP);
+  canalP = sb.channel('chat-prive')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'prives' }, p => {
+      const m = p.new;
+      if (m.de === moi.id) return ajouterPrive(m);
+      if (m.a !== moi.id) return;
+      if (priveId === m.de) { ajouterPrive(m); marquerVu(m.de); }
+      else { nonLus.add(m.de); majPointMembres(); toastPrive(m.de); }
+    }).subscribe();
+}
+
+async function chargerNonLus(){
+  try {
+    const { data } = await sb.from('prives').select('de,created_at').eq('a', moi.id)
+      .order('created_at', { ascending: false }).limit(200);
+    const der = {};
+    (data || []).forEach(m => { if (!der[m.de]) der[m.de] = m.created_at; });
+    for (const id in der) {
+      let vu = null; try { vu = localStorage.getItem(vuCle(id)); } catch (e) {}
+      if (!vu || new Date(der[id]) > new Date(vu)) nonLus.add(id);
+    }
+    majPointMembres();
+  } catch (e) {}
+}
+
+var _deco = deconnexion;
+deconnexion = async function(){
+  if (canalP) { sb.removeChannel(canalP); canalP = null; }
+  priveId = null; nonLus.clear(); tels = {};
+  $('prive').classList.add('hidden');
+  return _deco();
+};
+
+// Bouton retour d'Android
+if (natif() && Capacitor.Plugins && Capacitor.Plugins.App) {
+  Capacitor.Plugins.App.addListener('backButton', () => {
+    if (!$('prive').classList.contains('hidden')) return fermerPrive();
+    const tel = $('ov-tel'); if (tel) return $('phback').click();
+    for (const id of ['contact', 'menu', 'visio', 'membres', 'profil', 'admin'])
+      if (!$(id).classList.contains('hidden')) return $(id).classList.add('hidden');
+    Capacitor.Plugins.App.exitApp();
+  });
+}
 </script>
