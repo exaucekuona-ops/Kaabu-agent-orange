@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261001-115634">
+<meta name="build" content="20261001-122029">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -943,20 +943,21 @@ function askVisage(){
     const o = document.createElement('div');
     o.id = 'ov-visage';
     o.style.cssText = 'position:fixed;inset:0;background:#111b21;z-index:9999;display:flex;flex-direction:column;justify-content:center;padding:24px;gap:12px;color:#fff;overflow-y:auto';
-    o.innerHTML = '<h2>Vérification du visage</h2><p>Pour éviter qu\'une même personne ouvre plusieurs comptes, prends un selfie. La photo n\'est pas conservée : seule une empreinte numérique de ton visage est enregistrée. Elle n\'est visible par personne et ne sert qu\'à cette vérification.</p><video id="vvid" autoplay playsinline muted class="hidden" style="width:100%;max-height:45vh;object-fit:cover;border-radius:12px;background:#000;transform:scaleX(-1)"></video><div id="vmsg" style="color:#ff6b6b"></div><button id="vgo" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#00a884;color:#fff">J\'accepte · Ouvrir la caméra</button><button id="vback" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#2a3942;color:#fff">← Retour</button>';
+    o.innerHTML = '<h2>Vérification du visage</h2><p>Pour éviter qu\'une même personne ouvre plusieurs comptes, prends un selfie. La photo n\'est pas conservée : seule une empreinte numérique de ton visage est enregistrée. Elle n\'est visible par personne et ne sert qu\'à cette vérification.</p><div id="vcadre" class="hidden" style="position:relative;width:100%;border-radius:12px;overflow:hidden;background:#000"><video id="vvid" autoplay playsinline muted style="display:block;width:100%;height:48vh;object-fit:cover;transform:scaleX(-1)"></video><div style="position:absolute;left:50%;top:50%;width:64%;height:78%;transform:translate(-50%,-50%);border:3px solid #00a884;border-radius:50%;box-shadow:0 0 0 200vmax rgba(17,27,33,.72);pointer-events:none"></div></div><div id="vmsg" style="color:#ff6b6b"></div><button id="vgo" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#00a884;color:#fff">J\'accepte · Ouvrir la caméra</button><button id="vback" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#2a3942;color:#fff">← Retour</button>';
     document.body.appendChild(o);
-    const msg = o.querySelector('#vmsg'), go = o.querySelector('#vgo'), vid = o.querySelector('#vvid');
+    const msg = o.querySelector('#vmsg'), go = o.querySelector('#vgo'), vid = o.querySelector('#vvid'), cadre = o.querySelector('#vcadre');
     let flux = null, pret = false;
-    const arreter = () => { if (flux) flux.getTracks().forEach(t => t.stop()); flux = null; vid.classList.add('hidden'); };
+    const arreter = () => { if (flux) flux.getTracks().forEach(t => t.stop()); flux = null; cadre.classList.add('hidden'); };
     o.querySelector('#vback').onclick = async () => { arreter(); o.remove(); await deconnexion(); resolve(false); };
     go.onclick = async () => {
       if (!pret) {
         msg.textContent = '';
         try {
           flux = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 } }, audio: false });
-          vid.srcObject = flux; vid.classList.remove('hidden');
+          vid.srcObject = flux; cadre.classList.remove('hidden');
           try { await vid.play(); } catch (e) {}
           pret = true; go.textContent = '📸 Prendre la photo';
+          msg.style.color = '#8696a0'; msg.textContent = "Place ton visage dans l'ovale, sans masque ni lunettes, bien éclairé.";
         } catch (e) {
           msg.style.color = '#ff6b6b';
           msg.textContent = 'Caméra indisponible (' + e.name + '). Autorise la caméra pour l\'application, ou mets-la à jour.';
@@ -968,12 +969,19 @@ function askVisage(){
       try {
         if (!vid.videoWidth) throw new Error('Caméra pas encore prête, réessaie.');
         const c = document.createElement('canvas');
-        c.width = vid.videoWidth; c.height = vid.videoHeight;
-        c.getContext('2d').drawImage(vid, 0, 0);
+        const bw = vid.clientWidth, bh = vid.clientHeight, vw = vid.videoWidth, vh = vid.videoHeight;
+        const k = Math.max(bw / vw, bh / vh), sw = bw / k, sh = bh / k;
+        c.width = Math.round(sw); c.height = Math.round(sh);
+        c.getContext('2d').drawImage(vid, (vw - sw) / 2, (vh - sh) / 2, sw, sh, 0, 0, c.width, c.height);
         arreter(); pret = false;
         await chargerModeles();
         const det = await faceapi.detectSingleFace(c, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 })).withFaceLandmarks().withFaceDescriptor();
-        if (!det) throw new Error("Aucun visage détecté. Regarde la caméra de face, avec une bonne lumière.");
+        if (!det) throw new Error("Aucun visage détecté. Enlève le masque, regarde la caméra de face, avec une bonne lumière.");
+        const bx = det.detection.box, W = c.width, H = c.height;
+        if (bx.width < 0.35 * W) throw new Error("Rapproche-toi : ton visage doit remplir l'ovale.");
+        if (bx.width > 0.85 * W) throw new Error("Éloigne-toi un peu : ton visage doit tenir dans l'ovale.");
+        if (Math.abs(bx.x + bx.width / 2 - W / 2) > 0.18 * W || Math.abs(bx.y + bx.height / 2 - H / 2) > 0.2 * H)
+          throw new Error("Centre ton visage dans l'ovale.");
         const emp = Array.from(det.descriptor, x => Math.round(x * 1e5) / 1e5);
         const r = await sb.rpc('enregistrer_visage', { p_desc: emp });
         if (r.error || r.data !== 'ok') throw new Error(
