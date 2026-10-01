@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261001-195027">
+<meta name="build" content="20261001-195452">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -788,7 +788,7 @@ async function initPush(){
     log('register() appele');
     P.addListener('registration', async (t) => {
       log('jeton recu, longueur ' + t.value.length);
-      try{ const r = await sb.rpc('enregistrer_jeton', { t: t.value }); log('rpc: ' + JSON.stringify(r.error || 'ok')); }catch(e){ log('rpc erreur: ' + e.message); }
+      try{ const r = await (async()=>{ for(let i=0;i<300;i++){ const s=await sb.auth.getSession(); if(s.data&&s.data.session) break; await new Promise(z=>setTimeout(z,1000)); } return sb.rpc('enregistrer_jeton',{t:t.value}); })(); log('rpc: ' + JSON.stringify(r.error || 'ok')); }catch(e){ log('rpc erreur: ' + e.message); }
     });
     P.addListener('registrationError', (e) => log('erreur registration: ' + JSON.stringify(e)));
   }catch(e){ log('exception: ' + e.message); }
