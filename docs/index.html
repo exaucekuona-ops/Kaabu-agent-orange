@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261001-115144">
+<meta name="build" content="20261001-115634">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -942,22 +942,38 @@ function askVisage(){
   return new Promise(resolve => {
     const o = document.createElement('div');
     o.id = 'ov-visage';
-    o.style.cssText = 'position:fixed;inset:0;background:#111b21;z-index:9999;display:flex;flex-direction:column;justify-content:center;padding:24px;gap:12px;color:#fff';
-    o.innerHTML = '<h2>Vérification du visage</h2><p>Pour éviter qu\'une même personne ouvre plusieurs comptes, prends un selfie. La photo n\'est pas conservée : seule une empreinte numérique de ton visage est enregistrée. Elle n\'est visible par personne et ne sert qu\'à cette vérification.</p><input id="vf" type="file" accept="image/*" capture="user" class="hidden"><div id="vmsg" style="color:#ff6b6b"></div><button id="vgo" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#00a884;color:#fff">J\'accepte · Prendre un selfie</button><button id="vback" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#2a3942;color:#fff">← Retour</button>';
+    o.style.cssText = 'position:fixed;inset:0;background:#111b21;z-index:9999;display:flex;flex-direction:column;justify-content:center;padding:24px;gap:12px;color:#fff;overflow-y:auto';
+    o.innerHTML = '<h2>Vérification du visage</h2><p>Pour éviter qu\'une même personne ouvre plusieurs comptes, prends un selfie. La photo n\'est pas conservée : seule une empreinte numérique de ton visage est enregistrée. Elle n\'est visible par personne et ne sert qu\'à cette vérification.</p><video id="vvid" autoplay playsinline muted class="hidden" style="width:100%;max-height:45vh;object-fit:cover;border-radius:12px;background:#000;transform:scaleX(-1)"></video><div id="vmsg" style="color:#ff6b6b"></div><button id="vgo" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#00a884;color:#fff">J\'accepte · Ouvrir la caméra</button><button id="vback" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#2a3942;color:#fff">← Retour</button>';
     document.body.appendChild(o);
-    const msg = o.querySelector('#vmsg'), go = o.querySelector('#vgo'), fi = o.querySelector('#vf');
-    o.querySelector('#vback').onclick = async () => { o.remove(); await deconnexion(); resolve(false); };
-    go.onclick = () => fi.click();
-    fi.onchange = async () => {
-      const f = fi.files[0]; fi.value = '';
-      if (!f) return;
+    const msg = o.querySelector('#vmsg'), go = o.querySelector('#vgo'), vid = o.querySelector('#vvid');
+    let flux = null, pret = false;
+    const arreter = () => { if (flux) flux.getTracks().forEach(t => t.stop()); flux = null; vid.classList.add('hidden'); };
+    o.querySelector('#vback').onclick = async () => { arreter(); o.remove(); await deconnexion(); resolve(false); };
+    go.onclick = async () => {
+      if (!pret) {
+        msg.textContent = '';
+        try {
+          flux = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 } }, audio: false });
+          vid.srcObject = flux; vid.classList.remove('hidden');
+          try { await vid.play(); } catch (e) {}
+          pret = true; go.textContent = '📸 Prendre la photo';
+        } catch (e) {
+          msg.style.color = '#ff6b6b';
+          msg.textContent = 'Caméra indisponible (' + e.name + '). Autorise la caméra pour l\'application, ou mets-la à jour.';
+        }
+        return;
+      }
       go.disabled = true; msg.style.color = '#8696a0';
       msg.textContent = 'Analyse en cours… (le premier chargement peut durer un moment)';
       try {
+        if (!vid.videoWidth) throw new Error('Caméra pas encore prête, réessaie.');
+        const c = document.createElement('canvas');
+        c.width = vid.videoWidth; c.height = vid.videoHeight;
+        c.getContext('2d').drawImage(vid, 0, 0);
+        arreter(); pret = false;
         await chargerModeles();
-        const c = await versCanvas(f);
         const det = await faceapi.detectSingleFace(c, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 })).withFaceLandmarks().withFaceDescriptor();
-        if (!det) throw new Error("Aucun visage détecté. Regarde l'appareil de face, avec une bonne lumière.");
+        if (!det) throw new Error("Aucun visage détecté. Regarde la caméra de face, avec une bonne lumière.");
         const emp = Array.from(det.descriptor, x => Math.round(x * 1e5) / 1e5);
         const r = await sb.rpc('enregistrer_visage', { p_desc: emp });
         if (r.error || r.data !== 'ok') throw new Error(
@@ -965,7 +981,11 @@ function askVisage(){
           : r.data === 'invalide' ? 'Empreinte invalide, réessaie.'
           : 'Erreur : ' + (r.error ? r.error.message : r.data));
         o.remove(); resolve(true);
-      } catch (e) { msg.style.color = '#ff6b6b'; msg.textContent = e.message; go.disabled = false; }
+      } catch (e) {
+        arreter(); pret = false;
+        msg.style.color = '#ff6b6b'; msg.textContent = e.message;
+        go.disabled = false; go.textContent = 'Réessayer (ouvrir la caméra)';
+      }
     };
   });
 }
