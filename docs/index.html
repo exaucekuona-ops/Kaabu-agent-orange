@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261001-114138">
+<meta name="build" content="20261001-115144">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -263,6 +263,9 @@
       if (!ph) return;
       p.phone = ph; moi.phone = ph;
     }
+    if (p && p.statut !== 'banni' && !p.is_admin && !(await visageEnregistre())) {
+      if (!(await askVisage())) return;
+    }
     if (!p || p.statut !== 'admis') {
       const banni = p && p.statut === 'banni';
       $('attente-titre').textContent = banni ? 'Compte banni' : 'Compte en attente';
@@ -409,7 +412,7 @@
         actions = (p.statut !== 'admis' ? `<button class="primaire" onclick="changerStatut('${p.id}','admis')">Admettre</button>` : '')
                 + (p.statut !== 'banni' ? `<button class="danger" onclick="changerStatut('${p.id}','banni')">Bannir</button>` : '');
       }
-      return `<div class="ligne"><div>${esc(p.nom)}<small>${ETIQUETTE[p.statut] || ''}</small></div><div>${actions}</div></div>`;
+      return `<div class="ligne"><div>${esc(p.nom)}<small>${ETIQUETTE[p.statut] || ''}</small></div><div>${actions}${p.id !== moi.id ? `<button class="secondaire" onclick="reinitVisage('${p.id}')">Visage</button>` : ''}</div></div>`;
     }).join('');
   }
 
@@ -887,9 +890,89 @@ if (natif() && Capacitor.Plugins && Capacitor.Plugins.App) {
   Capacitor.Plugins.App.addListener('backButton', () => {
     if (!$('prive').classList.contains('hidden')) return fermerPrive();
     const tel = $('ov-tel'); if (tel) return $('phback').click();
+    if ($('ov-visage')) return $('vback').click();
     for (const id of ['contact', 'menu', 'visio', 'membres', 'profil', 'admin'])
       if (!$(id).classList.contains('hidden')) return $(id).classList.add('hidden');
     Capacitor.Plugins.App.exitApp();
   });
+}
+</script>
+
+<script>
+let modelesOk = false;
+const FA = 'https://cdn.jsdelivr.net/gh/vladmandic/face-api@1.7.12/';
+function chargerScript(src){
+  return new Promise((ok, ko) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = ok;
+    s.onerror = () => ko(new Error('Chargement impossible. Vérifie ta connexion.'));
+    document.head.appendChild(s);
+  });
+}
+async function chargerModeles(){
+  if (modelesOk) return;
+  if (!window.faceapi) await chargerScript(FA + 'dist/face-api.js');
+  const M = FA + 'model/';
+  await Promise.all([
+    faceapi.nets.tinyFaceDetector.loadFromUri(M),
+    faceapi.nets.faceLandmark68Net.loadFromUri(M),
+    faceapi.nets.faceRecognitionNet.loadFromUri(M)
+  ]);
+  modelesOk = true;
+}
+async function visageEnregistre(){
+  const r = await sb.rpc('mon_visage_ok');
+  return r.data === true;
+}
+function versCanvas(file){
+  return new Promise((ok, ko) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 640 / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(img.src); ok(c);
+    };
+    img.onerror = () => ko(new Error('Photo illisible.'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+function askVisage(){
+  return new Promise(resolve => {
+    const o = document.createElement('div');
+    o.id = 'ov-visage';
+    o.style.cssText = 'position:fixed;inset:0;background:#111b21;z-index:9999;display:flex;flex-direction:column;justify-content:center;padding:24px;gap:12px;color:#fff';
+    o.innerHTML = '<h2>Vérification du visage</h2><p>Pour éviter qu\'une même personne ouvre plusieurs comptes, prends un selfie. La photo n\'est pas conservée : seule une empreinte numérique de ton visage est enregistrée. Elle n\'est visible par personne et ne sert qu\'à cette vérification.</p><input id="vf" type="file" accept="image/*" capture="user" class="hidden"><div id="vmsg" style="color:#ff6b6b"></div><button id="vgo" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#00a884;color:#fff">J\'accepte · Prendre un selfie</button><button id="vback" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#2a3942;color:#fff">← Retour</button>';
+    document.body.appendChild(o);
+    const msg = o.querySelector('#vmsg'), go = o.querySelector('#vgo'), fi = o.querySelector('#vf');
+    o.querySelector('#vback').onclick = async () => { o.remove(); await deconnexion(); resolve(false); };
+    go.onclick = () => fi.click();
+    fi.onchange = async () => {
+      const f = fi.files[0]; fi.value = '';
+      if (!f) return;
+      go.disabled = true; msg.style.color = '#8696a0';
+      msg.textContent = 'Analyse en cours… (le premier chargement peut durer un moment)';
+      try {
+        await chargerModeles();
+        const c = await versCanvas(f);
+        const det = await faceapi.detectSingleFace(c, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 })).withFaceLandmarks().withFaceDescriptor();
+        if (!det) throw new Error("Aucun visage détecté. Regarde l'appareil de face, avec une bonne lumière.");
+        const emp = Array.from(det.descriptor, x => Math.round(x * 1e5) / 1e5);
+        const r = await sb.rpc('enregistrer_visage', { p_desc: emp });
+        if (r.error || r.data !== 'ok') throw new Error(
+          r.data === 'deja_utilise' ? 'Ce visage est déjà associé à un autre compte.'
+          : r.data === 'invalide' ? 'Empreinte invalide, réessaie.'
+          : 'Erreur : ' + (r.error ? r.error.message : r.data));
+        o.remove(); resolve(true);
+      } catch (e) { msg.style.color = '#ff6b6b'; msg.textContent = e.message; go.disabled = false; }
+    };
+  });
+}
+async function reinitVisage(id){
+  if (!confirm('Réinitialiser le visage de ce compte ? Il devra refaire un selfie.')) return;
+  const r = await sb.rpc('reinitialiser_visage', { p_id: id });
+  if (r.error || r.data !== 'ok') return alert('Refusé : ' + (r.error ? r.error.message : r.data));
+  alert('Visage réinitialisé.');
 }
 </script>
