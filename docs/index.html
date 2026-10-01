@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261001-124245">
+<meta name="build" content="20261001-193856">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -769,8 +769,7 @@ async function initPush(){
   var d = document.createElement('div');
   d.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#000;color:#0f0;font:11px monospace;padding:8px;border-radius:8px;white-space:pre-wrap;max-height:40vh;overflow:auto';
   document.body.appendChild(d);
-  function log(s){ d.textContent += s + '
-'; }
+  function log(s){ d.textContent += s + '\n'; }
   try{
     log('Capacitor: ' + (!!window.Capacitor));
     log('natif: ' + (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()));
