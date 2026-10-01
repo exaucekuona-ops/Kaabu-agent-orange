@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261001-205513">
+<meta name="build" content="20261001-211123">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -835,7 +835,7 @@ function ajouterPrive(m){
   const estMoi = m.de === moi.id, d = new Date(m.created_at || Date.now());
   const h = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   $('prive-zone').insertAdjacentHTML('beforeend',
-    `<div class="rang ${estMoi ? 'moi' : 'autre'}"><div id="p${m.id}" class="bulle ${estMoi ? 'moi' : 'autre'}">${esc(m.contenu)}<span class="heure">${h}</span></div></div>`);
+    `<div class="rang ${estMoi ? 'moi' : 'autre'}"><div id="p${m.id}" class="bulle ${estMoi ? 'moi' : 'autre'}">${contenuP(m)}<span class="heure">${h}</span>${estMoi ? cochesP(m) : ''}</div></div>`);
   $('prive-zone').scrollTop = $('prive-zone').scrollHeight;
 }
 
@@ -1235,6 +1235,110 @@ function repId(){ var r=window.repA?String(window.repA.id):null; annulerReponse(
   });
 })();
 </script>
+<style>
+.coches{margin-left:4px;font-size:.7rem;opacity:.75}
+.coches.lu{color:#53bdeb;opacity:1}
+.pbtn{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:#202c33;color:#aebac1;font-size:18px;cursor:pointer}
+.pfic{display:flex;align-items:center;gap:8px;color:inherit;text-decoration:none}
+</style>
+<script>
+function cochesP(m){
+  var lu=!!m.lu_at;
+  return '<span class="coches'+(lu?' lu':'')+'" id="c'+m.id+'"><i class="fa-solid '+(lu?'fa-check-double':'fa-check')+'"></i></span>';
+}
+function majCoche(id){
+  var e=document.getElementById('c'+id); if(!e) return;
+  e.classList.add('lu'); e.innerHTML='<i class="fa-solid fa-check-double"></i>';
+}
+function defP(){ var z=document.getElementById('prive-zone'); z.scrollTop=z.scrollHeight; }
+function contenuP(m){
+  if(!m.type||m.type==='texte') return esc(m.contenu);
+  setTimeout(function(){ afficherMediaP(m); },0);
+  return '<span id="pm'+m.id+'">…</span>';
+}
+async function afficherMediaP(m){
+  var e=document.getElementById('pm'+m.id); if(!e) return;
+  var r=await sb.storage.from('chat').createSignedUrl(m.contenu,3600);
+  var url=(r&&r.data)?esc(r.data.signedUrl):'';
+  if(!url){ e.textContent='(fichier indisponible)'; return; }
+  if(m.type==='image') e.innerHTML='<img src="'+url+'" onclick="voirPhoto(this.src)" onload="defP()">';
+  else if(m.type==='vocal') e.innerHTML=lecteurVocal(url,{id:m.id,auteur:m.de});
+  else {
+    var nom=decodeURIComponent(m.contenu.split('/').pop().replace(/^\d+_/,''));
+    e.innerHTML='<a class="pfic" href="'+url+'" target="_blank"><i class="fa-solid fa-file"></i><span>'+esc(nom)+'</span></a>';
+  }
+}
+async function envoyerMediaP(blob,type,fin,ct,cible){
+  cible=cible||priveId; if(!cible) return;
+  var chemin=moi.id+'/'+Date.now()+fin;
+  var up=await sb.storage.from('chat').upload(chemin,blob,{contentType:ct});
+  if(up.error){ alert('Envoi impossible : '+up.error.message); return; }
+  var r=await sb.from('prives').insert({de:moi.id,a:cible,type:type,contenu:chemin}).select();
+  if(r.error){ alert('Message non envoyé : '+r.error.message); return; }
+  if(r.data&&r.data[0]) ajouterPrive(r.data[0]);
+}
+async function photoP(inp){
+  var f=inp.files&&inp.files[0]; inp.value=''; if(!f) return;
+  try{ var b=await reduire(f); await envoyerMediaP(b,'image','.jpg','image/jpeg'); }
+  catch(e){ alert('Photo : '+e.message); }
+}
+async function fichierP(inp){
+  var f=inp.files&&inp.files[0]; inp.value=''; if(!f) return;
+  if(f.size>20*1024*1024){ alert('Fichier trop lourd (20 Mo max).'); return; }
+  var s=f.name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9._-]+/g,'_');
+  await envoyerMediaP(f,'fichier','_'+s,f.type||'application/octet-stream');
+}
+var recP=null;
+async function vocalP(btn){
+  if(recP){ recP.stop(); return; }
+  try{
+    var cible=priveId;
+    var flux=await navigator.mediaDevices.getUserMedia({audio:true});
+    var rec=new MediaRecorder(flux), morc=[];
+    rec.ondataavailable=function(e){ morc.push(e.data); };
+    rec.onstop=async function(){
+      flux.getTracks().forEach(function(t){ t.stop(); });
+      recP=null; btn.style.background=''; btn.innerHTML='<i class="fa-solid fa-microphone"></i>';
+      var blob=new Blob(morc,{type:'audio/webm'});
+      if(blob.size>1000) await envoyerMediaP(blob,'vocal','.webm','audio/webm',cible);
+    };
+    rec.start(); recP=rec;
+    btn.style.background='#c62828'; btn.innerHTML='<i class="fa-solid fa-stop"></i>';
+  }catch(e){ alert('Micro indisponible : '+e.message); }
+}
+(function(){
+  var inp=document.getElementById('prive-texte'); if(!inp) return;
+  function mk(ic,fn){ var b=document.createElement('button'); b.type='button'; b.className='pbtn'; b.innerHTML='<i class="fa-solid '+ic+'"></i>'; b.onclick=fn; return b; }
+  var fp=document.createElement('input'); fp.type='file'; fp.accept='image/*'; fp.style.display='none'; fp.onchange=function(){ photoP(fp); };
+  var ff=document.createElement('input'); ff.type='file'; ff.style.display='none'; ff.onchange=function(){ fichierP(ff); };
+  var bp=mk('fa-image',function(){ fp.click(); });
+  var bf=mk('fa-paperclip',function(){ ff.click(); });
+  var bm=mk('fa-microphone',function(){ vocalP(bm); });
+  var par=inp.parentNode;
+  par.insertBefore(bp,inp); par.insertBefore(bf,inp); par.insertBefore(fp,inp); par.insertBefore(ff,inp);
+  inp.insertAdjacentElement('afterend',bm);
+})();
+(function(){
+  var mv=window.marquerVu;
+  if(typeof mv==='function'){
+    window.marquerVu=function(id){
+      mv.apply(this,arguments);
+      try{ if(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) sb.rpc('marquer_lu',{p_de:id}).then(function(){}); }catch(e){}
+    };
+  }
+  var n=0, iv=setInterval(function(){
+    n++; if(n>120){ clearInterval(iv); return; }
+    var ok=false; try{ ok=!!(moi&&moi.id&&sb); }catch(e){ ok=false; }
+    if(!ok) return;
+    clearInterval(iv);
+    sb.channel('lu-prive').on('postgres_changes',{event:'UPDATE',schema:'public',table:'prives'},function(p){
+      var m=p.new; if(m && m.de===moi.id && m.lu_at) majCoche(m.id);
+    }).subscribe();
+  },1000);
+})();
+</script>
+
+
 
 
 
