@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261001-201441">
+<meta name="build" content="20261001-204206">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -405,7 +405,7 @@
     const url = data ? esc(data.signedUrl) : '';
     $('m' + m.id).innerHTML = !url ? '(fichier indisponible)'
       : m.type === 'image' ? `<img src="${url}" onclick="voirPhoto(this.src)" onload="$('zone').scrollTop=$('zone').scrollHeight">`
-      : `<audio controls src="${url}"></audio>`;
+      : lecteurVocal(url, m);
   }
 
   async function chargerMessages() {
@@ -1108,3 +1108,66 @@ var _fermerPrive = fermerPrive;
 fermerPrive = function(){ _fermerPrive(); chargerAccueil(); };
 document.addEventListener('visibilitychange', function(){ if (!document.hidden) chargerAccueil(); });
 </script>
+<style>
+.vx{display:flex;align-items:center;gap:8px;min-width:240px;padding:2px 0}
+.vx-play{flex:none;width:34px;height:34px;border:0;background:none;color:#cfd8dc;font-size:22px;padding:0;cursor:pointer}
+.vx-mid{flex:1;min-width:0}
+.vx-wave{display:flex;align-items:center;gap:2px;height:28px;cursor:pointer}
+.vx-wave span{flex:1;min-width:2px;max-width:4px;border-radius:2px;background:rgba(255,255,255,.4)}
+.vx-wave span.on{background:#53bdeb}
+.vx-t{display:block;font-size:.7rem;opacity:.75;margin-top:2px}
+.vx-av{position:relative;flex:none;width:44px;height:44px}
+.vx-av>*:not(.vx-mic){width:44px;height:44px;border-radius:50%;overflow:hidden;margin:0}
+.bulle .vx-av img{display:block;width:44px;height:44px;margin:0;border-radius:50%;object-fit:cover}
+.vx-mic{position:absolute;right:-4px;bottom:-2px;font-size:14px;color:#53bdeb}
+</style>
+<script>
+function vxFmt(s){ if(!isFinite(s)) s=0; s=Math.round(s); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function lecteurVocal(url, m){
+  var est=false; try{ est=(m.auteur===moi.id); }catch(e){}
+  var av=''; try{ av='<div class="vx-av">'+avatarDe(m.auteur, nomDe(m.auteur))+'<i class="fa-solid fa-microphone vx-mic"></i></div>'; }catch(e){}
+  var h=0, id=String(m.id);
+  for(var i=0;i<id.length;i++) h=(h*31+id.charCodeAt(i))>>>0;
+  var bars='';
+  for(var k=0;k<34;k++){ h=(h*1103515245+12345)>>>0; var v=4+Math.round(((h>>>16)%100)/100*20); bars+='<span style="height:'+v+'px"></span>'; }
+  var play='<button class="vx-play" onclick="vxToggle(this)"><i class="fa-solid fa-play"></i></button>';
+  var mid='<div class="vx-mid"><div class="vx-wave" onclick="vxSeek(event,this)">'+bars+'</div><span class="vx-t">0:00</span></div>';
+  var au='<audio preload="metadata" src="'+url+'"></audio>';
+  return '<div class="vx">'+(est?av+play+mid:play+mid+av)+au+'</div>';
+}
+function vxToggle(btn){
+  var a=btn.closest('.vx').querySelector('audio');
+  document.querySelectorAll('.vx audio').forEach(function(x){ if(x!==a && !x.paused) x.pause(); });
+  if(a.paused) a.play(); else a.pause();
+}
+function vxSeek(ev,w){
+  var a=w.closest('.vx').querySelector('audio');
+  var r=w.getBoundingClientRect();
+  if(isFinite(a.duration) && a.duration>0) a.currentTime=Math.max(0,Math.min(1,(ev.clientX-r.left)/r.width))*a.duration;
+}
+function vxProg(a){
+  var box=a.closest('.vx'); if(!box) return;
+  var ok=isFinite(a.duration)&&a.duration>0;
+  var ratio=ok?a.currentTime/a.duration:0;
+  var bs=box.querySelectorAll('.vx-wave span'), n=Math.round(ratio*bs.length);
+  bs.forEach(function(b,i){ b.classList.toggle('on', i<n); });
+  box.querySelector('.vx-t').textContent=vxFmt(a.paused&&ratio===0 ? a.duration : a.currentTime);
+}
+function vxIcone(a,pause){
+  var box=a.closest('.vx'); if(!box) return;
+  box.querySelector('.vx-play i').className='fa-solid '+(pause?'fa-pause':'fa-play');
+}
+document.addEventListener('loadedmetadata',function(e){
+  var a=e.target; if(!a.closest||!a.closest('.vx')) return;
+  if(a.duration===Infinity){
+    a._fix=true; a.currentTime=1e101;
+    a.addEventListener('timeupdate',function f(){ a.removeEventListener('timeupdate',f); a.currentTime=0; a._fix=false; vxProg(a); });
+  } else vxProg(a);
+},true);
+document.addEventListener('timeupdate',function(e){ var a=e.target; if(a.closest&&a.closest('.vx')&&!a._fix) vxProg(a); },true);
+document.addEventListener('play',function(e){ var a=e.target; if(a.closest&&a.closest('.vx')) vxIcone(a,true); },true);
+document.addEventListener('pause',function(e){ var a=e.target; if(a.closest&&a.closest('.vx')) vxIcone(a,false); },true);
+document.addEventListener('ended',function(e){ var a=e.target; if(a.closest&&a.closest('.vx')){ vxIcone(a,false); a.currentTime=0; vxProg(a); } },true);
+</script>
+
+
