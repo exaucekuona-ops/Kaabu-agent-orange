@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261001-204206">
+<meta name="build" content="20261001-205513">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -395,7 +395,7 @@
     const nom = estMoi ? '' : `<span class="nom" style="color:${couleurDe(m.auteur_nom)};cursor:pointer" onclick="ouvrirContact('${m.auteur}')">${esc(m.auteur_nom)}</span>`;
     $('zone').insertAdjacentHTML('beforeend',
       `<div class="rang ${estMoi ? 'moi' : 'autre'}">${estMoi ? '' : `<span onclick="ouvrirContact('${m.auteur}')" style="cursor:pointer;display:flex;flex:none">${avatarDe(m.auteur, m.auteur_nom)}</span>`}` +
-      `<div id="b${m.id}" class="bulle ${estMoi ? 'moi' : 'autre'}">${nom}<span id="m${m.id}">${corps}</span><span class="heure">${heure}</span></div></div>`);
+      `<div id="b${m.id}" class="bulle ${estMoi ? 'moi' : 'autre'}">${nom}${citation(m)}<span id="m${m.id}">${corps}</span><span class="heure">${heure}</span></div></div>`);
     $('zone').scrollTop = $('zone').scrollHeight;
     if (media) afficherMedia(m);
   }
@@ -639,7 +639,7 @@
       return;
     }
     $('texte').value = '';
-    const { error } = await sb.from('messages').insert({ auteur: moi.id, type: 'texte', contenu: t });
+    const { error } = await sb.from('messages').insert({ auteur: moi.id, type: 'texte', contenu: t, reponse_a: repId() });
     if (error) { alert("Message non envoyé : " + error.message); demarrer(); }
   }
 
@@ -1169,5 +1169,73 @@ document.addEventListener('play',function(e){ var a=e.target; if(a.closest&&a.cl
 document.addEventListener('pause',function(e){ var a=e.target; if(a.closest&&a.closest('.vx')) vxIcone(a,false); },true);
 document.addEventListener('ended',function(e){ var a=e.target; if(a.closest&&a.closest('.vx')){ vxIcone(a,false); a.currentTime=0; vxProg(a); } },true);
 </script>
+<style>
+.cit{border-left:4px solid #53bdeb;background:rgba(0,0,0,.22);border-radius:6px;padding:4px 8px;margin-bottom:4px;cursor:pointer}
+.cit b{display:block;color:#53bdeb;font-size:.8rem}
+.cit span{display:block;opacity:.85;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:230px}
+#repbar{display:none;background:#1f2c34;border-left:4px solid #53bdeb;padding:6px 10px;color:#e9edef;position:relative}
+#repbar b{display:block;color:#53bdeb;font-size:.8rem}
+#repbar span{display:block;opacity:.85;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:30px}
+#repbar i{position:absolute;right:12px;top:10px;font-size:18px;cursor:pointer}
+</style>
+<script>
+function txtApercu(o){
+  if(!o) return 'Message';
+  if(o.supprime) return 'Message supprimé';
+  if(o.type==='image') return '📷 Photo';
+  if(o.type==='vocal') return '🎤 Message vocal';
+  if(o.type==='fichier') return '📎 Fichier';
+  return o.contenu||'';
+}
+function nomApercu(o){ if(!o) return ''; return o.auteur===moi.id ? 'Toi' : (o.auteur_nom||''); }
+function citation(m){
+  if(!m.reponse_a) return '';
+  var o=msgs[m.reponse_a];
+  return '<div class="cit" onclick="allerA(\''+m.reponse_a+'\')"><b>'+esc(nomApercu(o))+'</b><span>'+esc(txtApercu(o))+'</span></div>';
+}
+function allerA(id){
+  var e=document.getElementById('b'+id); if(!e) return;
+  e.scrollIntoView({block:'center',behavior:'smooth'});
+  e.style.transition='background .3s'; e.style.background='#2a5a6a';
+  setTimeout(function(){ e.style.background=''; },900);
+}
+var repBar=null;
+function repondre(id){
+  var m=msgs[id]; if(!m) return;
+  window.repA=m;
+  if(!repBar){
+    repBar=document.createElement('div'); repBar.id='repbar';
+    var s=document.getElementById('saisie'); s.parentNode.insertBefore(repBar,s);
+  }
+  repBar.innerHTML='<b>'+esc(nomApercu(m))+'</b><span>'+esc(txtApercu(m))+'</span><i class="fa-solid fa-xmark" onclick="annulerReponse()"></i>';
+  repBar.style.display='block';
+  document.getElementById('texte').focus();
+}
+function annulerReponse(){ window.repA=null; if(repBar) repBar.style.display='none'; }
+function repId(){ var r=window.repA?String(window.repA.id):null; annulerReponse(); return r; }
+(function(){
+  var z=document.getElementById('zone'); if(!z) return;
+  var sx=0,sy=0,el=null,dx=0,hz=false;
+  z.addEventListener('touchstart',function(e){
+    var b=e.target.closest('.bulle');
+    if(!b||!/^b/.test(b.id)){ el=null; return; }
+    el=b; sx=e.touches[0].clientX; sy=e.touches[0].clientY; dx=0; hz=false;
+  },{passive:true});
+  z.addEventListener('touchmove',function(e){
+    if(!el) return;
+    var x=e.touches[0].clientX-sx, y=e.touches[0].clientY-sy;
+    if(!hz && Math.abs(y)>Math.abs(x) && Math.abs(y)>10){ el=null; return; }
+    if(x>10 && Math.abs(x)>Math.abs(y)){ hz=true; dx=Math.min(x,80); el.style.transition='none'; el.style.transform='translateX('+dx+'px)'; }
+  },{passive:true});
+  z.addEventListener('touchend',function(){
+    if(!el) return;
+    el.style.transition='transform .15s'; el.style.transform='';
+    var b=el; el=null;
+    if(hz && dx>=60) repondre(b.id.slice(1));
+  });
+})();
+</script>
+
+
 
 
