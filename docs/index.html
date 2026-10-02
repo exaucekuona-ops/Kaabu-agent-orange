@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261002-105234">
+<meta name="build" content="20261002-110835">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -307,7 +307,7 @@
     await chargerAnnuaire();
     $('mi-admin').classList.toggle('hidden', !moi.is_admin);
     $('mi-reglages').classList.toggle('hidden', !moi.is_admin);
-    await chargerMessages();
+    chargerMessages();
     ecouter();
     try { ecouterPrive(); chargerNonLus(); chargerAccueil(); setTimeout(chargerAccueil, 2500); } catch (e) {}
   }
