@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261002-122421">
+<meta name="build" content="20261002-122927">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -1628,10 +1628,10 @@ function majCoche(id){
 /* DEBUT-BADGE */
 (function(){
   var V={};
-  var BADGE='<svg class="vbadge" viewBox="0 0 24 24" aria-label="Compte vérifié"><circle cx="12" cy="12" r="9.2" fill="#25D366"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="4.5" fill="#25D366"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="4.5" fill="#25D366" transform="rotate(45 12 12)"/><path d="M7.6 12.4l3 3 5.8-6" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var BADGE='<svg class="vbadge" viewBox="0 0 24 24" aria-label="Compte vérifié"><circle cx="12" cy="12" r="9.2" fill="#1d9bf0"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="4.5" fill="#1d9bf0"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="4.5" fill="#1d9bf0" transform="rotate(45 12 12)"/><path d="M7.6 12.4l3 3 5.8-6" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var BT='display:block;width:100%;box-sizing:border-box;padding:12px;margin-top:8px;border-radius:8px;font-weight:600;font-size:1rem;text-align:center;border:0;background:#2a3942;color:#e9edef';
   var st=document.createElement('style');
-  st.textContent='.vbadge{display:inline-block;width:15px;height:15px;margin-left:4px;vertical-align:-2px;flex:none}';
+  st.textContent='.vbadge{display:inline-block;width:20px;height:20px;margin-left:5px;vertical-align:-4px;flex:none}';
   document.head.appendChild(st);
 
   function cle(p,id){ return 'kc_'+p+'_'+id; }
