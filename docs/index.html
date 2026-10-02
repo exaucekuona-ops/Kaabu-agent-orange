@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261002-115015">
+<meta name="build" content="20261002-122421">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -1624,6 +1624,108 @@ function majCoche(id){
   };
 })();
 /* FIN-CACHE2 */
+
+/* DEBUT-BADGE */
+(function(){
+  var V={};
+  var BADGE='<svg class="vbadge" viewBox="0 0 24 24" aria-label="Compte vérifié"><circle cx="12" cy="12" r="9.2" fill="#25D366"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="4.5" fill="#25D366"/><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="4.5" fill="#25D366" transform="rotate(45 12 12)"/><path d="M7.6 12.4l3 3 5.8-6" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var BT='display:block;width:100%;box-sizing:border-box;padding:12px;margin-top:8px;border-radius:8px;font-weight:600;font-size:1rem;text-align:center;border:0;background:#2a3942;color:#e9edef';
+  var st=document.createElement('style');
+  st.textContent='.vbadge{display:inline-block;width:15px;height:15px;margin-left:4px;vertical-align:-2px;flex:none}';
+  document.head.appendChild(st);
+
+  function cle(p,id){ return 'kc_'+p+'_'+id; }
+  function pret(){ try{ return !!(moi&&moi.id); }catch(e){ return false; } }
+  function sauverV(){ try{ if(pret()) localStorage.setItem(cle('ver',moi.id),JSON.stringify(Object.keys(V))); }catch(e){} }
+  function poser(el,id){
+    if(!el) return;
+    var b=el.querySelector('.vbadge');
+    if(V[id]){ if(!b) el.insertAdjacentHTML('beforeend',BADGE); }
+    else if(b){ b.remove(); }
+  }
+  function majBouton(id){
+    var b=document.getElementById('btn-verif');
+    if(b) b.textContent=V[id]?'Retirer le badge de vérification':'Vérifier ce compte';
+  }
+  function rafraichir(){
+    try{
+      Object.keys(msgs).forEach(function(k){
+        var m=msgs[k], b=document.getElementById('b'+m.id);
+        if(b) poser(b.querySelector('.nom'),m.auteur);
+      });
+    }catch(e){}
+    try{
+      [].slice.call(document.querySelectorAll('#liste-conv .conv')).forEach(function(c){
+        var r=/ouvrirPrive\('([^']+)'\)/.exec(c.getAttribute('onclick')||'');
+        if(r) poser(c.querySelector('strong'),r[1]);
+      });
+    }catch(e){}
+    try{ if(priveId) poser(document.getElementById('prive-nom'),priveId); }catch(e){}
+  }
+  async function chargerVerifies(){
+    try{
+      if(!pret()) return;
+      var r=await sb.rpc('verifies');
+      if(r.error||!Array.isArray(r.data)) return;
+      V={};
+      r.data.forEach(function(x){ var id=(typeof x==='string')?x:(x&&(x.verifies||x.id)); if(id) V[id]=1; });
+      sauverV(); rafraichir();
+    }catch(e){}
+  }
+
+  var _ca=chargerAnnuaire;
+  chargerAnnuaire=async function(){ var r=await _ca.apply(this,arguments); chargerVerifies(); return r; };
+  var _aj=ajouter;
+  ajouter=function(m){
+    var r=_aj.apply(this,arguments);
+    try{ var b=document.getElementById('b'+m.id); if(b) poser(b.querySelector('.nom'),m.auteur); }catch(e){}
+    return r;
+  };
+  var _ra=rendreAccueil;
+  rendreAccueil=async function(){ var r=await _ra.apply(this,arguments); rafraichir(); return r; };
+  var _op=ouvrirPrive;
+  ouvrirPrive=function(id){
+    var p=_op.apply(this,arguments);
+    try{ poser(document.getElementById('prive-nom'),id); }catch(e){}
+    return p;
+  };
+  var _oc=ouvrirContact;
+  ouvrirContact=async function(id){
+    var r=await _oc.apply(this,arguments);
+    try{
+      if(!id) return r;
+      poser(document.getElementById('contact-nom'),id);
+      if(moi&&moi.is_admin&&/^[0-9a-f-]{36}$/i.test(id)){
+        var ac=document.getElementById('contact-actions');
+        if(ac&&!document.getElementById('btn-verif')){
+          ac.insertAdjacentHTML('beforeend','<button id="btn-verif" style="'+BT+'" onclick="basculerVerifie(\''+id+'\')"></button>');
+        }
+        majBouton(id);
+      }
+    }catch(e){}
+    return r;
+  };
+  window.basculerVerifie=async function(id){
+    try{
+      if(!moi||!moi.is_admin) return;
+      var v=!V[id];
+      var r=await sb.from('profiles').update({verifie:v}).eq('id',id).select('id');
+      if(r.error||!r.data||!r.data.length){ alert('Impossible : '+(r.error?r.error.message:'aucune ligne modifiée')); return; }
+      if(v) V[id]=1; else delete V[id];
+      sauverV(); rafraichir(); poser(document.getElementById('contact-nom'),id); majBouton(id);
+    }catch(e){ alert('Erreur : '+e.message); }
+  };
+
+  (async function(){
+    try{
+      var r=await sb.auth.getSession(); var s=r&&r.data&&r.data.session; if(!s) return;
+      var c=localStorage.getItem(cle('ver',s.user.id));
+      if(c){ JSON.parse(c).forEach(function(id){ V[id]=1; }); rafraichir(); }
+    }catch(e){}
+  })();
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden) chargerVerifies(); });
+})();
+/* FIN-BADGE */
 
 </script>
 
