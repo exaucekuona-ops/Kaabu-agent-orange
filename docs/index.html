@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261002-110835">
+<meta name="build" content="20261002-114236">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -1489,6 +1489,56 @@ function majCoche(id){
   };
 })();
 /* FIN-WA */
+
+/* DEBUT-CACHE */
+(function(){
+  function cle(p,id){ return 'kc_'+p+'_'+id; }
+  function lire(k){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch(e){ return null; } }
+  function ecrire(k,o){ try{ localStorage.setItem(k,JSON.stringify(o)); }catch(e){} }
+  function pret(){ try{ return !!(moi&&moi.id); }catch(e){ return false; } }
+
+  var _ca=chargerAnnuaire;
+  chargerAnnuaire=async function(){
+    var r=await _ca.apply(this,arguments);
+    try{ if(pret()) ecrire(cle('ann',moi.id),{a:annuaire,t:tels}); }catch(e){}
+    return r;
+  };
+  var _ra=rendreAccueil;
+  rendreAccueil=async function(){
+    var r=await _ra.apply(this,arguments);
+    try{
+      if(pret()){
+        var lg=$('logo-acc');
+        ecrire(cle('acc',moi.id),{html:$('liste-conv').innerHTML,titre:$('titre-acc').textContent,logo:(lg&&!lg.classList.contains('hidden')&&lg.src)||''});
+      }
+    }catch(e){}
+    return r;
+  };
+  var _dc=deconnexion;
+  deconnexion=async function(){
+    try{ if(pret()){ localStorage.removeItem(cle('acc',moi.id)); localStorage.removeItem(cle('ann',moi.id)); } }catch(e){}
+    return _dc.apply(this,arguments);
+  };
+
+  (async function(){
+    try{
+      if(pret()) return;
+      var r=await sb.auth.getSession();
+      var s=r&&r.data&&r.data.session;
+      if(!s||pret()) return;
+      var a=lire(cle('ann',s.user.id));
+      if(a&&Object.keys(annuaire).length===0){ annuaire=a.a||{}; tels=a.t||{}; }
+      var c=lire(cle('acc',s.user.id));
+      if(c&&c.html){
+        $('liste-conv').innerHTML=c.html;
+        if(c.titre) $('titre-acc').textContent=c.titre;
+        if(c.logo){ $('logo-acc').src=c.logo; $('logo-acc').classList.remove('hidden'); }
+        montrer('accueil');
+      }
+    }catch(e){}
+  })();
+})();
+/* FIN-CACHE */
 
 </script>
 
