@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261002-104522">
+<meta name="build" content="20261002-105234">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -1337,6 +1337,7 @@ async function vocalP(btn){
   },1000);
 })();
 
+
 /* DEBUT-WA */
 function svgCoche(d){
   return '<svg viewBox="0 0 18 11" width="17" height="11" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 6l3.2 3.2L11 1.5"/>'+(d?'<path d="M7.6 8.6l.6.6L16 1.5"/>':'')+'</svg>';
@@ -1405,13 +1406,13 @@ function majCoche(id){
       var flux=await navigator.mediaDevices.getUserMedia({audio:true});
       var AC=window.AudioContext||window.webkitAudioContext;
       var ctx=new AC(), an=ctx.createAnalyser(); an.fftSize=256;
-      ctx.createMediaStreamSource(flux).connect(an);
-      var rec=new MediaRecorder(flux), morc=[];
+      var flux2=flux.clone(); ctx.createMediaStreamSource(flux2).connect(an);
+      var rec=new MediaRecorder(flux, MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?{mimeType:'audio/webm;codecs=opus'}:{}), morc=[];
       rec.ondataavailable=function(e){ if(e.data&&e.data.size) morc.push(e.data); };
-      S={rec:rec,flux:flux,ctx:ctx,an:an,morc:morc,cible:cible,t0:Date.now(),acc:0,run:true,bars:[],locked:false,annule:false};
+      S={rec:rec,flux:flux,flux2:flux2,ctx:ctx,an:an,morc:morc,cible:cible,t0:Date.now(),acc:0,run:true,bars:[],locked:false,annule:false};
       rec.onstop=async function(){
         var s=S; clearInterval(s.iv);
-        s.flux.getTracks().forEach(function(t){t.stop();});
+        s.flux.getTracks().forEach(function(t){t.stop();}); s.flux2.getTracks().forEach(function(t){t.stop();});
         try{s.ctx.close();}catch(e){}
         S=null; bar.style.display='none';
         var blob=new Blob(s.morc,{type:'audio/webm'});
