@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261002-114236">
+<meta name="build" content="20261002-115015">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -1539,6 +1539,91 @@ function majCoche(id){
   })();
 })();
 /* FIN-CACHE */
+
+/* DEBUT-CACHE2 */
+(function(){
+  function cle(p,id){ return 'kc_'+p+'_'+id; }
+  function lire(k){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch(e){ return null; } }
+  function ecrire(k,o){ try{ localStorage.setItem(k,JSON.stringify(o)); }catch(e){} }
+  function pret(){ try{ return !!(moi&&moi.id); }catch(e){ return false; } }
+  function parDate(x,y){ return new Date(x.created_at)-new Date(y.created_at); }
+
+  function sauverMsgs(){
+    try{
+      if(!pret()) return;
+      var a=Object.keys(msgs).map(function(k){ return msgs[k]; }).sort(parDate).slice(-100);
+      if(a.length) ecrire(cle('msg',moi.id),a);
+    }catch(e){}
+  }
+  var _cm=chargerMessages;
+  chargerMessages=async function(){
+    try{
+      if(pret()&&!$('zone').children.length){
+        var c=lire(cle('msg',moi.id));
+        if(c&&c.length){
+          Object.keys(msgs).forEach(function(k){ delete msgs[k]; });
+          dernierJour='';
+          c.forEach(function(m){ ajouter(m); });
+        }
+      }
+    }catch(e){}
+    var r=await _cm.apply(this,arguments);
+    sauverMsgs();
+    return r;
+  };
+
+  var pc={};
+  function sauverPrive(autre){
+    try{
+      if(!pret()||!pc[autre]) return;
+      var a=Object.keys(pc[autre]).map(function(k){ return pc[autre][k]; }).sort(parDate).slice(-100);
+      if(a.length) ecrire(cle('prv_'+autre,moi.id),a);
+    }catch(e){}
+  }
+  var _ap=ajouterPrive;
+  ajouterPrive=function(m){
+    try{ var autre=(m.de===moi.id)?m.a:m.de; (pc[autre]=pc[autre]||{})[m.id]=m; }catch(e){}
+    return _ap.apply(this,arguments);
+  };
+  async function majLus(id){
+    try{
+      var r=await sb.from('prives').select('id').eq('de',moi.id).eq('a',id).not('lu_at','is',null).order('created_at',{ascending:false}).limit(100);
+      (r.data||[]).forEach(function(x){ if(typeof majCoche==='function') majCoche(x.id); });
+    }catch(e){}
+  }
+  var _op=ouvrirPrive;
+  ouvrirPrive=async function(id){
+    var p=_op.apply(this,arguments);
+    var cache=false;
+    try{
+      if(pret()){
+        var c=lire(cle('prv_'+id,moi.id));
+        if(c&&c.length&&priveId===id){ c.forEach(function(m){ ajouterPrive(m); }); cache=true; }
+      }
+    }catch(e){}
+    try{ await p; }catch(e){}
+    sauverPrive(id);
+    if(cache) majLus(id);
+  };
+
+  function toutSauver(){ sauverMsgs(); try{ Object.keys(pc).forEach(sauverPrive); }catch(e){} }
+  document.addEventListener('visibilitychange',function(){ if(document.hidden) toutSauver(); });
+  window.addEventListener('pagehide',toutSauver);
+
+  var _dc2=deconnexion;
+  deconnexion=async function(){
+    try{
+      if(pret()){
+        var fin='_'+moi.id;
+        Object.keys(localStorage).forEach(function(k){
+          if(k.indexOf('kc_')===0&&k.slice(-fin.length)===fin) localStorage.removeItem(k);
+        });
+      }
+    }catch(e){}
+    return _dc2.apply(this,arguments);
+  };
+})();
+/* FIN-CACHE2 */
 
 </script>
 
