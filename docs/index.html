@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261002-154559">
+<meta name="build" content="20261002-161208">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -106,7 +106,15 @@
   .jour { align-self: center; background: #182229; color: #8696a0; font-size: 0.75rem; padding: 4px 12px; border-radius: 8px; margin: 10px 0 6px; }
   .rang .av, .rang .ini { width: 32px; height: 32px; line-height: 32px; font-size: 0.9rem; margin: 0; flex: none; }
 </style>
-<style>/*fix-largeur*/html,body{max-width:100%;overflow-x:hidden}.barre{box-sizing:border-box;max-width:100%}#texte{min-width:0;flex:1 1 0}#saisie .ico,#saisie .envoi{flex:0 0 auto}</style></head>
+<style>/*fix-largeur*/html,body{max-width:100%;overflow-x:hidden}.barre{box-sizing:border-box;max-width:100%}#texte{min-width:0;flex:1 1 0}#saisie .ico,#saisie .envoi{flex:0 0 auto}</style><style>/*barre-wa*/
+#saisie{align-items:center}
+#saisie .pilule{flex:1 1 0;min-width:0;display:flex;align-items:center;background:#202c33;border-radius:28px;padding:0 4px 0 16px;min-height:48px}
+#saisie .pilule #texte{flex:1 1 0;min-width:0;background:transparent;border:0;outline:0;box-shadow:none;border-radius:0;padding:10px 4px;color:#e9edef;font-size:17px}
+#saisie .pilule .ico{background:transparent;color:#8696a0;width:40px;height:40px}
+#saisie #micro:not(.rec){width:48px;height:48px;background:#fff;color:#111b21;font-size:20px}
+#saisie .envoi{display:none;width:48px;height:48px}
+#saisie.ecrit .envoi{display:inline-flex;align-items:center;justify-content:center}
+#saisie.ecrit #micro{display:none}</style></head>
 <body>
 
 <div id="login" class="ecran centre hidden">
@@ -700,7 +708,21 @@
   demarrer();
 </script>
 
-</html>
+<script>/*barre-wa*/
+(function(){
+  var s=document.getElementById('saisie'),t=document.getElementById('texte'),m=document.getElementById('micro');
+  if(!s||!t||!m||s.getAttribute('data-wa')) return;
+  s.setAttribute('data-wa','1');
+  var bs=[].slice.call(s.querySelectorAll('button.ico')).filter(function(b){return b!==m;});
+  var p=document.createElement('div'); p.className='pilule';
+  s.insertBefore(p,t); p.appendChild(t);
+  if(bs.length===2){
+    bs[0].innerHTML='<i class="fa-solid fa-camera"></i>';
+    p.appendChild(bs[1]); p.appendChild(bs[0]);
+  } else { bs.forEach(function(b){p.appendChild(b);}); }
+  function sync(){ if(t.value.trim()!=='') s.classList.add('ecrit'); else s.classList.remove('ecrit'); }
+  t.addEventListener('input',sync); setInterval(sync,300); sync();
+})();</script></html>
 <script>
 async function chargerConfig(){
   try{
