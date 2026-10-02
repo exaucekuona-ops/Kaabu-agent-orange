@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261002-134934">
+<meta name="build" content="20261002-154559">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -43,7 +43,7 @@
       else { toast('Impossible de vérifier la version'); }
     }catch(e){ toast('Vérification impossible : '+e.message); }
   };
-  setInterval(verifier,60000);
+  setInterval(verifier,300000);
   document.addEventListener('visibilitychange',function(){ if(!document.hidden) verifier(); });
   window.addEventListener('load',function(){
     var b=monTampon();
