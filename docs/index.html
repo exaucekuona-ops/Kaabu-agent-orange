@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261002-103038">
+<meta name="build" content="20261002-104522">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -1336,6 +1336,7 @@ async function vocalP(btn){
     }).subscribe();
   },1000);
 })();
+
 /* DEBUT-WA */
 function svgCoche(d){
   return '<svg viewBox="0 0 18 11" width="17" height="11" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 6l3.2 3.2L11 1.5"/>'+(d?'<path d="M7.6 8.6l.6.6L16 1.5"/>':'')+'</svg>';
@@ -1435,6 +1436,7 @@ function majCoche(id){
   };
   function verrouiller(){ S.locked=true; bar.querySelector('#vx-hint').style.display='none'; bar.querySelector('#vx-act').style.display='flex'; }
 
+  function relache(){ if(!S||S.locked) return; if(Date.now()-S.t0<600) verrouiller(); else finir(true); }
   var par=old.parentNode, bm=null;
   [].slice.call(par.querySelectorAll('button')).forEach(function(b){ if(b.querySelector('.fa-microphone')) bm=b; });
   if(bm){
@@ -1446,14 +1448,14 @@ function majCoche(id){
       e.preventDefault(); tenu=true; x0=e.clientX; y0=e.clientY;
       try{nb.setPointerCapture(e.pointerId);}catch(x){}
       var ok=await demarrer();
-      if(ok&&!tenu&&S&&!S.locked) finir(Date.now()-S.t0>700);
+      if(ok&&!tenu&&S&&!S.locked) relache();
     });
     nb.addEventListener('pointermove',function(e){
       if(!tenu||!S||S.locked) return;
       if(e.clientY-y0<-70) verrouiller();
       else if(e.clientX-x0<-90){ tenu=false; finir(false); }
     });
-    function relacher(){ if(!tenu) return; tenu=false; if(S&&!S.locked) finir(Date.now()-S.t0>700); }
+    function relacher(){ if(!tenu) return; tenu=false; if(S&&!S.locked) relache(); }
     nb.addEventListener('pointerup',relacher);
     nb.addEventListener('pointercancel',relacher);
   }
