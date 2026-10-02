@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261001-211123">
+<meta name="build" content="20261002-103038">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -1336,6 +1336,157 @@ async function vocalP(btn){
     }).subscribe();
   },1000);
 })();
+/* DEBUT-WA */
+function svgCoche(d){
+  return '<svg viewBox="0 0 18 11" width="17" height="11" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 6l3.2 3.2L11 1.5"/>'+(d?'<path d="M7.6 8.6l.6.6L16 1.5"/>':'')+'</svg>';
+}
+function cochesP(m){
+  var lu=!!m.lu_at;
+  return '<span class="coches'+(lu?' lu':'')+'" id="c'+m.id+'">'+svgCoche(lu)+'</span>';
+}
+function majCoche(id){
+  var e=document.getElementById('c'+id); if(!e) return;
+  e.className='coches lu'; e.innerHTML=svgCoche(true);
+}
+(function(){
+  var old=document.getElementById('prive-texte'); if(!old) return;
+  var css=document.createElement('style');
+  css.textContent='.coches svg{vertical-align:-1px}'+
+  '#vx-bar{position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#111b21;color:#e9edef;padding:12px 14px 16px;display:none;border-radius:18px 18px 0 0;box-shadow:0 -4px 18px rgba(0,0,0,.5)}'+
+  '#vx-bar .l1{display:flex;align-items:center;gap:12px}'+
+  '#vx-tps{font-size:1.15rem;min-width:46px}'+
+  '#vx-cv{flex:1;height:44px;min-width:0}'+
+  '#vx-hint{text-align:center;font-size:.8rem;opacity:.7;margin-top:8px}'+
+  '#vx-act{display:none;justify-content:space-between;align-items:center;margin-top:12px}'+
+  '#vx-act button{border:0;border-radius:50%;width:52px;height:52px;font-size:1.2rem}'+
+  '#vx-del{background:#3a1f22;color:#ff5a5f}'+
+  '#vx-pause{border-radius:26px!important;width:auto!important;padding:0 22px;background:#202c33;color:#e9edef}'+
+  '#vx-go{background:#fff;color:#111}'+
+  '#cam-ov{position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#000;display:none;flex-direction:column}'+
+  '#cam-ov video{flex:1;width:100%;min-height:0;object-fit:cover}'+
+  '#cam-ov .cbar{display:flex;justify-content:space-around;align-items:center;padding:18px 0 28px;background:#000}'+
+  '#cam-ov button{border:0;border-radius:50%;width:48px;height:48px;background:#222;color:#fff;font-size:1.1rem}'+
+  '#cam-ov #cam-shot{width:70px;height:70px;background:#fff;border:5px solid #888}';
+  document.head.appendChild(css);
+
+  var bar=document.createElement('div'); bar.id='vx-bar';
+  bar.innerHTML='<div class="l1"><i class="fa-solid fa-microphone" style="color:#ff5a5f"></i><span id="vx-tps">0:00</span><canvas id="vx-cv"></canvas></div><div id="vx-hint">⬆ Glisse vers le haut pour verrouiller · ⬅ vers la gauche pour annuler</div><div id="vx-act"><button id="vx-del"><i class="fa-solid fa-trash"></i></button><button id="vx-pause"><i class="fa-solid fa-pause"></i> Pause</button><button id="vx-go"><i class="fa-solid fa-paper-plane"></i></button></div>';
+  document.body.appendChild(bar);
+  var cv=bar.querySelector('#vx-cv'), tps=bar.querySelector('#vx-tps'), S=null;
+  function fmt(ms){var s=Math.floor(ms/1000);return Math.floor(s/60)+':'+('0'+(s%60)).slice(-2);}
+  function dessiner(){
+    if(!S) return;
+    var w=cv.clientWidth,h=cv.clientHeight; if(!w) return;
+    if(cv.width!==w) cv.width=w; if(cv.height!==h) cv.height=h;
+    var g=cv.getContext('2d'); g.clearRect(0,0,w,h);
+    var pas=5,n=Math.floor(w/pas);
+    for(var i=0;i<n;i++){
+      var idx=S.bars.length-1-i, x=w-(i+1)*pas;
+      var hh=idx>=0?Math.max(3,S.bars[idx]*h):2;
+      g.fillStyle=idx>=0?'#8696a0':'#3b4a54';
+      g.fillRect(x,(h-hh)/2,3,hh);
+    }
+  }
+  function tick(){
+    if(!S) return;
+    if(S.run){
+      var d=new Uint8Array(S.an.fftSize); S.an.getByteTimeDomainData(d);
+      var mx=0; for(var i=0;i<d.length;i++){var a=Math.abs(d[i]-128)/128; if(a>mx) mx=a;}
+      S.bars.push(Math.min(1,mx*2.2));
+      tps.textContent=fmt(S.acc+Date.now()-S.t0);
+    }
+    dessiner();
+  }
+  async function demarrer(){
+    if(S) return false;
+    var cible=priveId;
+    try{
+      var flux=await navigator.mediaDevices.getUserMedia({audio:true});
+      var AC=window.AudioContext||window.webkitAudioContext;
+      var ctx=new AC(), an=ctx.createAnalyser(); an.fftSize=256;
+      ctx.createMediaStreamSource(flux).connect(an);
+      var rec=new MediaRecorder(flux), morc=[];
+      rec.ondataavailable=function(e){ if(e.data&&e.data.size) morc.push(e.data); };
+      S={rec:rec,flux:flux,ctx:ctx,an:an,morc:morc,cible:cible,t0:Date.now(),acc:0,run:true,bars:[],locked:false,annule:false};
+      rec.onstop=async function(){
+        var s=S; clearInterval(s.iv);
+        s.flux.getTracks().forEach(function(t){t.stop();});
+        try{s.ctx.close();}catch(e){}
+        S=null; bar.style.display='none';
+        var blob=new Blob(s.morc,{type:'audio/webm'});
+        if(!s.annule&&blob.size>1000) await envoyerMediaP(blob,'vocal','.webm','audio/webm',s.cible);
+      };
+      rec.start(); S.iv=setInterval(tick,70);
+      tps.textContent='0:00';
+      bar.querySelector('#vx-hint').style.display='block';
+      bar.querySelector('#vx-act').style.display='none';
+      bar.querySelector('#vx-pause').innerHTML='<i class="fa-solid fa-pause"></i> Pause';
+      bar.style.display='block';
+      return true;
+    }catch(e){ alert('Micro indisponible : '+e.message); return false; }
+  }
+  function finir(envoyer){ if(!S) return; S.annule=!envoyer; if(S.rec.state!=='inactive') S.rec.stop(); }
+  bar.querySelector('#vx-del').onclick=function(){ finir(false); };
+  bar.querySelector('#vx-go').onclick=function(){ finir(true); };
+  bar.querySelector('#vx-pause').onclick=function(){
+    if(!S) return;
+    if(S.run){ S.rec.pause(); S.acc+=Date.now()-S.t0; S.run=false; this.innerHTML='<i class="fa-solid fa-microphone"></i> Reprendre'; }
+    else { S.rec.resume(); S.t0=Date.now(); S.run=true; this.innerHTML='<i class="fa-solid fa-pause"></i> Pause'; }
+  };
+  function verrouiller(){ S.locked=true; bar.querySelector('#vx-hint').style.display='none'; bar.querySelector('#vx-act').style.display='flex'; }
+
+  var par=old.parentNode, bm=null;
+  [].slice.call(par.querySelectorAll('button')).forEach(function(b){ if(b.querySelector('.fa-microphone')) bm=b; });
+  if(bm){
+    var nb=bm.cloneNode(true); bm.parentNode.replaceChild(nb,bm);
+    nb.style.touchAction='none'; nb.style.userSelect='none'; nb.style.webkitUserSelect='none';
+    var tenu=false,x0=0,y0=0;
+    nb.addEventListener('contextmenu',function(e){e.preventDefault();});
+    nb.addEventListener('pointerdown',async function(e){
+      e.preventDefault(); tenu=true; x0=e.clientX; y0=e.clientY;
+      try{nb.setPointerCapture(e.pointerId);}catch(x){}
+      var ok=await demarrer();
+      if(ok&&!tenu&&S&&!S.locked) finir(Date.now()-S.t0>700);
+    });
+    nb.addEventListener('pointermove',function(e){
+      if(!tenu||!S||S.locked) return;
+      if(e.clientY-y0<-70) verrouiller();
+      else if(e.clientX-x0<-90){ tenu=false; finir(false); }
+    });
+    function relacher(){ if(!tenu) return; tenu=false; if(S&&!S.locked) finir(Date.now()-S.t0>700); }
+    nb.addEventListener('pointerup',relacher);
+    nb.addEventListener('pointercancel',relacher);
+  }
+
+  var cam=document.createElement('button'); cam.type='button'; cam.className='pbtn';
+  cam.innerHTML='<i class="fa-solid fa-camera"></i>';
+  old.insertAdjacentElement('afterend',cam);
+  var ov=document.createElement('div'); ov.id='cam-ov';
+  ov.innerHTML='<video autoplay playsinline muted></video><div class="cbar"><button id="cam-x"><i class="fa-solid fa-xmark"></i></button><button id="cam-shot"></button><button id="cam-sw"><i class="fa-solid fa-rotate"></i></button></div>';
+  document.body.appendChild(ov);
+  var vid=ov.querySelector('video'), cflux=null, face='environment';
+  async function ouvrirCam(){
+    try{
+      if(cflux) cflux.getTracks().forEach(function(t){t.stop();});
+      cflux=await navigator.mediaDevices.getUserMedia({video:{facingMode:face}});
+      vid.srcObject=cflux; ov.style.display='flex';
+    }catch(e){ alert('Caméra indisponible : '+e.message); }
+  }
+  function fermerCam(){ if(cflux) cflux.getTracks().forEach(function(t){t.stop();}); cflux=null; vid.srcObject=null; ov.style.display='none'; }
+  cam.onclick=function(){ face='environment'; ouvrirCam(); };
+  ov.querySelector('#cam-x').onclick=fermerCam;
+  ov.querySelector('#cam-sw').onclick=function(){ face=(face==='environment')?'user':'environment'; ouvrirCam(); };
+  ov.querySelector('#cam-shot').onclick=function(){
+    var w=vid.videoWidth,h=vid.videoHeight; if(!w) return;
+    var k=Math.min(1,1280/Math.max(w,h)), c=document.createElement('canvas');
+    c.width=Math.round(w*k); c.height=Math.round(h*k);
+    c.getContext('2d').drawImage(vid,0,0,c.width,c.height);
+    var cible=priveId;
+    c.toBlob(async function(b){ fermerCam(); if(b) await envoyerMediaP(b,'image','.jpg','image/jpeg',cible); },'image/jpeg',0.82);
+  };
+})();
+/* FIN-WA */
+
 </script>
 
 
