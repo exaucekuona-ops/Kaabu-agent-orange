@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261002-124349">
+<meta name="build" content="20261002-132028">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -1076,7 +1076,7 @@ async function rendreAccueil(){
   const par = {};
   (pv.data || []).forEach(x => {
     const autre = x.de === moi.id ? x.a : x.de;
-    if (!par[autre]) par[autre] = { id: autre, t: x.created_at, apercu: (x.de === moi.id ? 'Toi : ' : '') + x.contenu, n: 0 };
+    if (!par[autre]) par[autre] = { id: autre, t: x.created_at, apercu: (x.de === moi.id ? 'Toi : ' : '') + (x.type==='image' ? '📷 Photo' : x.type==='vocal' ? '🎤 Message vocal' : x.type==='fichier' ? '📄 Fichier' : x.contenu), n: 0 };
     if (x.a === moi.id) {
       let v = null; try { v = localStorage.getItem(vuCle(autre)); } catch (e) {}
       if (!v || new Date(x.created_at) > new Date(v)) par[autre].n++;
