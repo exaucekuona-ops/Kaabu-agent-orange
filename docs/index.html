@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261003-121901">
+<meta name="build" content="20261003-172302">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -126,7 +126,7 @@
 
 <div id="login" class="ecran centre hidden">
   <h1>Kaabu Agent</h1>
-  <input id="email" type="email" placeholder="E-mail" autocomplete="email">
+  <input id="email" type="text" placeholder="Nom et prénom" autocomplete="name">
   <input id="mdp" type="password" placeholder="Mot de passe" autocomplete="current-password">
   <button class="primaire" onclick="connexion(false)">Se connecter</button>
   <button class="secondaire" onclick="connexion(true)">Créer un compte</button>
@@ -342,8 +342,9 @@
   }
 
   async function connexion(creer) {
-    const email = $('email').value.trim(), password = $('mdp').value;
-    if (!email || !password) return alert('Entre ton e-mail et ton mot de passe.');
+    const saisie = $('email').value.trim(), password = $('mdp').value;
+    const email = saisie.includes('@') ? saisie : saisie.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '') + '@kaabu.app';
+    if (!saisie || !password) return alert('Entre ton nom et prénom et ton mot de passe.');
     const r = creer ? await sb.auth.signUp({ email, password })
                     : await sb.auth.signInWithPassword({ email, password });
     if (r.error) return alert(r.error.message);
