@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261003-103642">
+<meta name="build" content="20261003-104321">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -1785,8 +1785,20 @@ function majCoche(id){
 
 </script>
 
-
-
-
-
-
+<script>/*photo-grand*/
+(function(){
+  function afficher(src){
+    var d=document.createElement('div');
+    d.style.cssText='position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483000;background:rgba(0,0,0,.95);display:flex;align-items:center;justify-content:center';
+    var i=document.createElement('img'); i.src=src; i.style.cssText='max-width:100%;max-height:100%';
+    d.appendChild(i); d.onclick=function(){ d.remove(); };
+    document.body.appendChild(d);
+  }
+  document.addEventListener('click',function(e){
+    var t=e.target;
+    if(t && t.tagName==='IMG' && t.closest && t.closest('#contact-av,#profil-av')){
+      e.stopPropagation(); afficher(t.src);
+    }
+  },true);
+})();
+</script>
