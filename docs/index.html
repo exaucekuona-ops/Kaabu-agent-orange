@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261003-101752">
+<meta name="build" content="20261003-102438">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -1139,7 +1139,7 @@ async function rendreAccueil(){
     const h = c.t > '1971' ? heureConv(c.t) : '';
     return `<div class="conv" onclick="${clic}"><div class="conv-av">${av}</div><div class="conv-mid">` +
       `<div class="conv-top"><strong>${esc(nom)}</strong><small${c.n ? ' style="color:#00a884"' : ''}>${h}</small></div>` +
-      `<div class="conv-bot"><span class="conv-txt">${esc(c.apercu)}</span>${c.n ? `<span class="badge">${c.n}</span>` : ''}</div></div></div>`;
+      `<div class="conv-bot"><span class="conv-txt">${esc(c.apercu).replace(/^(.{0,40} : )?§SYS§ /,'⚙️ Système : ')}</span>${c.n ? `<span class="badge">${c.n}</span>` : ''}</div></div></div>`;
   }).join('') + (items.length === 1 ? '<p style="color:#8696a0;text-align:center;padding:24px 16px">Touche le bouton 💬 pour écrire en privé à un membre.</p>' : '');
 }
 async function chargerAccueil(){
