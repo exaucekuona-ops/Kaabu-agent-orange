@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261003-095359">
+<meta name="build" content="20261003-101752">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -114,7 +114,7 @@
 #saisie #micro:not(.rec){width:48px;height:48px;background:#fff;color:#111b21;font-size:20px}
 #saisie .envoi{display:none;width:48px;height:48px}
 #saisie.ecrit .envoi{display:inline-flex;align-items:center;justify-content:center}
-#saisie.ecrit #micro{display:none}#prive-saisie .pilule{flex:1 1 0;min-width:0;display:flex;align-items:center;background:#202c33;border-radius:28px;padding:0 16px;min-height:48px}#prive-saisie .pilule #prive-texte{flex:1 1 0;min-width:0;background:transparent;border:0;outline:0;box-shadow:none;border-radius:0;padding:10px 4px;color:#e9edef;font-size:17px}</style></head>
+#saisie.ecrit #micro{display:none}#prive-saisie .pilule{flex:1 1 0;min-width:0;display:flex;align-items:center;background:#202c33;border-radius:28px;padding:0 16px;min-height:48px}#prive-saisie .pilule #prive-texte{flex:1 1 0;min-width:0;background:transparent;border:0;outline:0;box-shadow:none;border-radius:0;padding:10px 4px;color:#e9edef;font-size:17px}.sys{width:fit-content;max-width:85%;margin:8px auto;background:#182229;color:#8696a0;padding:6px 12px;border-radius:8px;font-size:13px;text-align:center}.sys b{color:#53bdeb}</style></head>
 <body>
 
 <div id="login" class="ecran centre hidden">
@@ -414,6 +414,11 @@
       $('zone').insertAdjacentHTML('beforeend', `<div class="jour">${libelleJour(d)}</div>`);
     }
     const heure = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    if (m.type === 'texte' && String(m.contenu).indexOf('§SYS§ ') === 0) {
+      $('zone').insertAdjacentHTML('beforeend', `<div class="sys" id="b${m.id}">⚙️ <b>Système</b> : ${esc(String(m.contenu).slice(6))} <small>${heure}</small></div>`);
+      $('zone').scrollTop = $('zone').scrollHeight;
+      return;
+    }
     const nom = estMoi ? '' : `<span class="nom" style="color:${couleurDe(m.auteur_nom)};cursor:pointer" onclick="ouvrirContact('${m.auteur}')">${esc(m.auteur_nom)}</span>`;
     $('zone').insertAdjacentHTML('beforeend',
       `<div class="rang ${estMoi ? 'moi' : 'autre'}">${estMoi ? '' : `<span onclick="ouvrirContact('${m.auteur}')" style="cursor:pointer;display:flex;flex:none">${avatarDe(m.auteur, m.auteur_nom)}</span>`}` +
@@ -470,6 +475,13 @@
   async function changerStatut(id, statut) {
     if (statut === 'banni' && !confirm('Bannir ce compte ?')) return;
     const { error } = await sb.from('profiles').update({ statut }).eq('id', id);
+    if (!error && (statut === 'banni' || statut === 'admis')) {
+      try {
+        const q = await sb.from('profiles').select('nom').eq('id', id).single();
+        const nm = (q.data && q.data.nom) || 'Un compte';
+        await sb.from('messages').insert({ auteur: moi.id, type: 'texte', contenu: '§SYS§ ' + nm + (statut === 'banni' ? ' a été banni' : ' a été admis') });
+      } catch (e) {}
+    }
     if (error) return alert(error.message);
     ouvrirAdmin();
   }
