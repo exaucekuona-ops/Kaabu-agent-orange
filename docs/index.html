@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261003-172302">
+<meta name="build" content="20261003-173802">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -282,7 +282,7 @@
       const o = document.createElement('div');
       o.id = 'ov-tel';
       o.style.cssText = 'position:fixed;inset:0;background:#111b21;z-index:9999;display:flex;flex-direction:column;justify-content:center;padding:24px;gap:12px;color:#fff';
-      o.innerHTML = '<h2>Ton numéro de téléphone</h2><p>Avec l\'indicatif pays (ex. +243812345678). Un numéro = un seul compte.</p><input id="ph" type="tel" placeholder="+243..." style="padding:12px;font-size:16px;border-radius:8px;border:0"><div id="pherr" style="color:#ff6b6b"></div><button id="phok" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#00a884;color:#fff">Valider</button><button id="phback" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#2a3942;color:#fff">← Retour</button>';
+      o.innerHTML = '<h2>Ton numéro de téléphone</h2><p>Avec l\'indicatif pays (ex. +243812345678). Un numéro = un seul compte.</p><input id="ph" type="tel" value="+243" placeholder="+243..." style="padding:12px;font-size:16px;border-radius:8px;border:0"><div id="pherr" style="color:#ff6b6b"></div><button id="phok" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#00a884;color:#fff">Valider</button><button id="phback" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#2a3942;color:#fff">← Retour</button>';
       document.body.appendChild(o);
       o.querySelector('#phback').onclick = async ()=>{ o.remove(); await deconnexion(); resolve(null); };
       o.querySelector('#phok').onclick = async ()=>{
