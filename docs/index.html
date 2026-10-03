@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261003-203029">
+<meta name="build" content="20261003-222324">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -448,7 +448,7 @@
   }
 
   async function chargerMessages() {
-    const { data } = await sb.from('messages').select('*')
+    const { data } = await sb.from('messages').select('*').is('groupe_id', null)
       .order('created_at', { ascending: false }).limit(100);
     $('zone').innerHTML = '';
     for (const k in msgs) delete msgs[k];
@@ -459,9 +459,9 @@
   function ecouter() {
     if (canal) sb.removeChannel(canal);
     canal = sb.channel('chat-general')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => recu(p.new))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => { if (!p.new.groupe_id) recu(p.new); })
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, p => retirer(p.old.id))
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, p => majMessage(p.new))
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, p => { if (!p.new.groupe_id) majMessage(p.new); })
       .subscribe();
   }
 
@@ -1138,8 +1138,8 @@ async function rendreAccueil(){
   let vu = null;
   try { vu = localStorage.getItem(vuGroupe()); if (!vu) { vu = new Date().toISOString(); localStorage.setItem(vuGroupe(), vu); } } catch (e) {}
   const [g, gc, pv] = await Promise.all([
-    sb.from('messages').select('contenu,type,supprime,auteur,auteur_nom,created_at').order('created_at', { ascending: false }).limit(1),
-    sb.from('messages').select('id', { count: 'exact', head: true }).gt('created_at', vu || new Date().toISOString()).neq('auteur', moi.id),
+    sb.from('messages').select('contenu,type,supprime,auteur,auteur_nom,created_at').is('groupe_id', null).order('created_at', { ascending: false }).limit(1),
+    sb.from('messages').select('id', { count: 'exact', head: true }).is('groupe_id', null).gt('created_at', vu || new Date().toISOString()).neq('auteur', moi.id),
     sb.from('prives').select('*').or(`de.eq.${moi.id},a.eq.${moi.id}`).order('created_at', { ascending: false }).limit(300)
   ]);
   const m = g.data && g.data[0];
