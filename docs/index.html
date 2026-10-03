@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261003-195551">
+<meta name="build" content="20261003-200128">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -233,7 +233,6 @@
     <div class="mi" onclick="fermerMenuPlus();ouvrirMembres()"><i class="fa-solid fa-users"></i>Membres</div>
     <div id="mi-reglages" class="mi hidden" onclick="fermerMenuPlus();ouvrirReglages()"><i class="fa-solid fa-gear"></i>Réglages de l'app</div>
     <div id="mi-admin" class="mi hidden" onclick="fermerMenuPlus();ouvrirAdmin()"><i class="fa-solid fa-user-shield"></i>Comptes</div>
-    <div id="mi-nom" class="mi" onclick="fermerMenuPlus();changerMonNom()"><i class="fa-solid fa-pen"></i>Changer mon nom</div>
     <div class="mi" onclick="fermerMenuPlus();rechercherMaj()"><i class="fa-solid fa-rotate"></i>Rechercher une mise à jour</div>
     <div class="mi" onclick="fermerMenuPlus();deconnexion()"><i class="fa-solid fa-right-from-bracket"></i>Se déconnecter</div>
   </div>
@@ -485,15 +484,6 @@
     };
     const actifs = data.filter(p => p.statut !== 'banni'), bannis = data.filter(p => p.statut === 'banni');
     $('liste').innerHTML = actifs.map(ligneDe).join('') + (bannis.length ? '<div style="padding:18px 12px 6px;color:#8696a0;font-weight:bold">Comptes bannis (' + bannis.length + ')</div>' + bannis.map(ligneDe).join('') : '');
-  }
-
-  async function changerMonNom() {
-    const n = prompt('Ton nouveau nom :', (moi && moi.nom) || '');
-    if (n === null) return;
-    const { data, error } = await sb.rpc('changer_nom', { p_nom: n });
-    if (error) return alert(error.message);
-    if (data === 'ok') { alert('Nom changé.'); location.reload(); }
-    else alert(data === 'invalide' ? 'Nom invalide (2 à 40 caractères).' : 'Impossible de changer le nom.');
   }
 
   async function changerStatut(id, statut) {
