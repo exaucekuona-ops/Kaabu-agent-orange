@@ -1,10 +1,17 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261003-102438">
+<meta name="build" content="20261003-103034">
 <script>
 (function(){
   var affiche=false, enCours=false;
+  try{
+    var cc=localStorage.getItem('kaabu_cible'), mm0=document.querySelector('meta[name="build"]'), cu=mm0?mm0.content:null;
+    if(cc && cu && cu!=='dev' && cc>cu){
+      var nn=+sessionStorage.getItem('kaabu_r')||0;
+      if(nn<2){ sessionStorage.setItem('kaabu_r',nn+1); location.replace(location.pathname+'?v='+Date.now()); }
+    } else if(cu && cu!=='dev'){ sessionStorage.removeItem('kaabu_r'); localStorage.setItem('kaabu_cible',cu); }
+  }catch(e){}
   function monTampon(){ var m=document.querySelector('meta[name="build"]'); return m?m.content:null; }
   function toast(t){
     var d=document.createElement('div'); d.textContent=t;
@@ -26,7 +33,7 @@
       var t=await r.text();
       var m=t.match(/<meta name="build" content="([^"]*)"/);
       var mien=monTampon();
-      if(m && mien && m[1]!==mien) bandeau();
+      if(m && mien && m[1]!==mien){ try{localStorage.setItem('kaabu_cible',m[1]);}catch(e){} bandeau(); }
     }catch(e){}
     enCours=false;
   }
@@ -38,7 +45,7 @@
       var t=await r.text();
       var m=t.match(/<meta name="build" content="([^"]*)"/);
       var mien=monTampon();
-      if(m&&mien&&m[1]!==mien){ toast('Mise à jour trouvée, installation…'); setTimeout(function(){ location.replace(location.pathname+'?v='+m[1]); },700); }
+      if(m&&mien&&m[1]!==mien){ try{localStorage.setItem('kaabu_cible',m[1]);}catch(e){} toast('Mise à jour trouvée, installation…'); setTimeout(function(){ location.replace(location.pathname+'?v='+m[1]); },700); }
       else if(m){ toast('✅ Déjà à jour'); }
       else { toast('Impossible de vérifier la version'); }
     }catch(e){ toast('Vérification impossible : '+e.message); }
