@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261003-173802">
+<meta name="build" content="20261003-180052">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -284,11 +284,13 @@
       o.style.cssText = 'position:fixed;inset:0;background:#111b21;z-index:9999;display:flex;flex-direction:column;justify-content:center;padding:24px;gap:12px;color:#fff';
       o.innerHTML = '<h2>Ton numéro de téléphone</h2><p>Avec l\'indicatif pays (ex. +243812345678). Un numéro = un seul compte.</p><input id="ph" type="tel" value="+243" placeholder="+243..." style="padding:12px;font-size:16px;border-radius:8px;border:0"><div id="pherr" style="color:#ff6b6b"></div><button id="phok" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#00a884;color:#fff">Valider</button><button id="phback" style="padding:12px;font-size:16px;border:0;border-radius:8px;background:#2a3942;color:#fff">← Retour</button>';
       document.body.appendChild(o);
+      o.querySelector('#ph').oninput = function(){ const d = this.value.replace(/\D/g,'').replace(/^243/,'').replace(/^0/,''); this.value = '+243' + d.slice(0,9); };
       o.querySelector('#phback').onclick = async ()=>{ o.remove(); await deconnexion(); resolve(null); };
       o.querySelector('#phok').onclick = async ()=>{
         const err = o.querySelector('#pherr');
-        const p = normPhone(o.querySelector('#ph').value);
-        if(!p){ err.textContent = 'Numéro invalide. Format : +243812345678'; return; }
+        const brut = o.querySelector('#ph').value.replace(/\D/g,'').replace(/^243/,'').replace(/^0/,'');
+        const p = /^[89][0-9]{8}$/.test(brut) ? '+243' + brut : null;
+        if(!p){ err.textContent = 'Numéro invalide. 9 chiffres commençant par 8 ou 9 (ex. 812345678)'; return; }
         err.textContent = '';
         const { data: rep, error } = await sb.rpc('enregistrer_telephone', { p_phone: p });
         if(error || rep !== 'ok'){
