@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261003-181607">
+<meta name="build" content="20261003-193622">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -474,14 +474,16 @@
     const { data, error } = await sb.from('profiles')
       .select('id,nom,statut,created_at').order('created_at', { ascending: false });
     if (error) return alert(error.message);
-    $('liste').innerHTML = data.map(p => {
+    const ligneDe = p => {
       let actions = '<small>Toi</small>';
       if (p.id !== moi.id) {
         actions = (p.statut !== 'admis' ? `<button class="primaire" onclick="changerStatut('${p.id}','admis')">Admettre</button>` : '')
                 + (p.statut !== 'banni' ? `<button class="danger" onclick="changerStatut('${p.id}','banni')">Bannir</button>` : '');
       }
       return `<div class="ligne"><div>${esc(p.nom)}<small>${ETIQUETTE[p.statut] || ''}</small></div><div>${actions}${p.id !== moi.id ? `<button class="secondaire" onclick="reinitVisage('${p.id}')">Visage</button>` : ''}</div></div>`;
-    }).join('');
+    };
+    const actifs = data.filter(p => p.statut !== 'banni'), bannis = data.filter(p => p.statut === 'banni');
+    $('liste').innerHTML = actifs.map(ligneDe).join('') + (bannis.length ? '<div style="padding:18px 12px 6px;color:#8696a0;font-weight:bold">Comptes bannis (' + bannis.length + ')</div>' + bannis.map(ligneDe).join('') : '');
   }
 
   async function changerStatut(id, statut) {
