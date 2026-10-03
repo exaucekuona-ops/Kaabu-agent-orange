@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261003-103034">
+<meta name="build" content="20261003-103642">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -121,7 +121,7 @@
 #saisie #micro:not(.rec){width:48px;height:48px;background:#fff;color:#111b21;font-size:20px}
 #saisie .envoi{display:none;width:48px;height:48px}
 #saisie.ecrit .envoi{display:inline-flex;align-items:center;justify-content:center}
-#saisie.ecrit #micro{display:none}#prive-saisie .pilule{flex:1 1 0;min-width:0;display:flex;align-items:center;background:#202c33;border-radius:28px;padding:0 16px;min-height:48px}#prive-saisie .pilule #prive-texte{flex:1 1 0;min-width:0;background:transparent;border:0;outline:0;box-shadow:none;border-radius:0;padding:10px 4px;color:#e9edef;font-size:17px}.sys{width:fit-content;max-width:85%;margin:8px auto;background:#182229;color:#8696a0;padding:6px 12px;border-radius:8px;font-size:13px;text-align:center}.sys b{color:#53bdeb}</style></head>
+#saisie.ecrit #micro{display:none}#prive-saisie .pilule{flex:1 1 0;min-width:0;display:flex;align-items:center;background:#202c33;border-radius:28px;padding:0 16px;min-height:48px}#prive-saisie .pilule #prive-texte{flex:1 1 0;min-width:0;background:transparent;border:0;outline:0;box-shadow:none;border-radius:0;padding:10px 4px;color:#e9edef;font-size:17px}.sys{width:fit-content;max-width:85%;margin:8px auto;background:#182229;color:#8696a0;padding:6px 12px;border-radius:8px;font-size:13px;text-align:center}.sys b{color:#53bdeb}#visio{z-index:100000 !important}</style></head>
 <body>
 
 <div id="login" class="ecran centre hidden">
@@ -579,7 +579,7 @@
   }
 
   function ouvrirProfil() {
-    $('profil-av').innerHTML = avatarDe(moi.id, moi.nom);
+    $('profil-av').innerHTML = avatarDe(moi.id, moi.nom); { const im = $('profil-av').querySelector('img'); if (im) { im.style.cursor = 'pointer'; im.onclick = function(){ voirPhoto(im.src); }; } }
     $('profil-nom').textContent = moi.nom || '';
     $('profil-tel').textContent = moi.phone ? '📞 ' + moi.phone : '';
     $('profil').classList.remove('hidden');
@@ -873,7 +873,7 @@ async function ouvrirContact(id){
   if (!id) return;
   if (!tels[id]) await chargerAnnuaire();
   const t = tels[id] || {}, nom = t.nom || nomDe(id), tel = t.phone || '';
-  $('contact-av').innerHTML = avatarDe(id, nom);
+  $('contact-av').innerHTML = avatarDe(id, nom); { const im = $('contact-av').querySelector('img'); if (im) { im.style.cursor = 'pointer'; im.onclick = function(){ voirPhoto(im.src); }; } }
   $('contact-nom').textContent = nom;
   $('contact-tel').textContent = tel || 'Numéro non renseigné';
   const bt = 'display:block;width:100%;box-sizing:border-box;padding:12px;margin-top:8px;border-radius:8px;font-weight:600;font-size:1rem;text-decoration:none;text-align:center;border:0;';
