@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261003-180052">
+<meta name="build" content="20261003-181607">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -126,7 +126,8 @@
 
 <div id="login" class="ecran centre hidden">
   <h1>Kaabu Agent</h1>
-  <input id="email" type="text" placeholder="Nom et prénom" autocomplete="name">
+  <input id="nom" type="text" placeholder="Nom" autocomplete="family-name">
+  <input id="prenom" type="text" placeholder="Prénom" autocomplete="given-name">
   <input id="mdp" type="password" placeholder="Mot de passe" autocomplete="current-password">
   <button class="primaire" onclick="connexion(false)">Se connecter</button>
   <button class="secondaire" onclick="connexion(true)">Créer un compte</button>
@@ -344,9 +345,10 @@
   }
 
   async function connexion(creer) {
-    const saisie = $('email').value.trim(), password = $('mdp').value;
-    const email = saisie.includes('@') ? saisie : saisie.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '') + '@kaabu.app';
-    if (!saisie || !password) return alert('Entre ton nom et prénom et ton mot de passe.');
+    const nom = $('nom').value.trim(), prenom = $('prenom').value.trim(), password = $('mdp').value;
+    const estEmail = nom.includes('@');
+    const email = estEmail ? nom : (prenom + nom).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '') + '@kaabu.app';
+    if (!nom || (!estEmail && !prenom) || !password) return alert('Entre ton nom, ton prénom et ton mot de passe.');
     const r = creer ? await sb.auth.signUp({ email, password })
                     : await sb.auth.signInWithPassword({ email, password });
     if (r.error) return alert(r.error.message);
