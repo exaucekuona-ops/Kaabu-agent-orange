@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261003-200128">
+<meta name="build" content="20261003-203029">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -317,7 +317,7 @@
   async function demarrer() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return montrer('login');
-    const { data: p } = await sb.from('profiles').select('nom,statut,is_admin,phone').eq('id', session.user.id).single();
+    const { data: p } = await sb.from('profiles').select('nom,statut,is_admin,is_supreme,phone').eq('id', session.user.id).single();
     moi = { id: session.user.id, ...p };
     if (p && p.statut !== 'banni' && !p.phone) {
       const ph = await askPhone();
@@ -472,18 +472,27 @@
   async function ouvrirAdmin() {
     $('admin').classList.remove('hidden');
     const { data, error } = await sb.from('profiles')
-      .select('id,nom,statut,created_at').order('created_at', { ascending: false });
+      .select('id,nom,statut,is_admin,created_at').order('created_at', { ascending: false });
     if (error) return alert(error.message);
     const ligneDe = p => {
       let actions = '<small>Toi</small>';
       if (p.id !== moi.id) {
         actions = (p.statut !== 'admis' ? `<button class="primaire" onclick="changerStatut('${p.id}','admis')">Admettre</button>` : '')
                 + (p.statut !== 'banni' ? `<button class="danger" onclick="changerStatut('${p.id}','banni')">Bannir</button>` : '');
+        if (p.is_admin && !moi.is_supreme) actions = '<small>Admin</small>';
+        else if (moi.is_supreme && p.statut === 'admis') actions += (p.is_admin ? `<button class="secondaire" onclick="changerAdmin('${p.id}',false)">Retirer admin</button>` : `<button class="secondaire" onclick="changerAdmin('${p.id}',true)">Nommer admin</button>`);
       }
       return `<div class="ligne"><div>${esc(p.nom)}<small>${ETIQUETTE[p.statut] || ''}</small></div><div>${actions}${p.id !== moi.id ? `<button class="secondaire" onclick="reinitVisage('${p.id}')">Visage</button>` : ''}</div></div>`;
     };
     const actifs = data.filter(p => p.statut !== 'banni'), bannis = data.filter(p => p.statut === 'banni');
     $('liste').innerHTML = actifs.map(ligneDe).join('') + (bannis.length ? '<div style="padding:18px 12px 6px;color:#8696a0;font-weight:bold">Comptes bannis (' + bannis.length + ')</div>' + bannis.map(ligneDe).join('') : '');
+  }
+
+  async function changerAdmin(id, valeur) {
+    if (!confirm(valeur ? 'Nommer ce compte administrateur ?' : "Retirer les droits d'administrateur ?")) return;
+    const { error } = await sb.from('profiles').update({ is_admin: valeur }).eq('id', id);
+    if (error) return alert(error.message);
+    ouvrirAdmin();
   }
 
   async function changerStatut(id, statut) {
