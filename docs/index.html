@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261005-102055">
+<meta name="build" content="20261005-104018">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -159,9 +159,10 @@
 </style>
 <div id="accueil" class="ecran hidden">
   <div class="entete">
-    <span style="display:flex;align-items:center;gap:10px"><img id="logo-acc" class="hidden" style="width:32px;height:32px;border-radius:8px;object-fit:cover"><strong id="titre-acc">Discussions</strong></span>
+    <span style="display:flex;align-items:center;gap:10px"><img id="logo-acc" class="hidden" style="width:32px;height:32px;border-radius:8px;object-fit:cover"><div style="display:flex;flex-direction:column;line-height:1.25"><strong id="titre-acc">Discussions</strong><small id="slogan-acc" style="color:#8696a0;font-size:.74rem;font-weight:normal">Connecter les Congolais, partout, toujours !</small></div></span>
     <i class="fa-solid fa-ellipsis-vertical" style="cursor:pointer;padding:6px 12px;font-size:1.3rem" onclick="ouvrirMenuPlus()"></i>
   </div>
+  <div style="padding:8px 12px"><div style="display:flex;align-items:center;gap:10px;background:#202c33;border-radius:24px;padding:0 16px;min-height:44px"><i class="fa-solid fa-magnifying-glass" style="color:#8696a0"></i><input id="rech-conv" type="search" placeholder="Rechercher une discussion" oninput="filtrerConv(this.value)" style="flex:1;background:transparent;border:0;color:inherit;font-size:16px;outline:0;padding:0"></div></div>
   <div id="liste-conv" style="flex:1;overflow-y:auto;padding-bottom:96px"></div>
   <button onclick="ouvrirMembres()" style="position:fixed;right:18px;bottom:22px;z-index:5;width:56px;height:56px;border-radius:16px;background:#00a884;color:#111b21;font-size:1.3rem;padding:0;box-shadow:0 4px 12px rgba(0,0,0,.5)"><i class="fa-solid fa-message"></i></button>
 </div>
@@ -1188,7 +1189,13 @@ async function rendreAccueil(){
       `<div class="conv-top"><strong>${esc(nom)}</strong><small${c.n ? ' style="color:#00a884"' : ''}>${h}</small></div>` +
       `<div class="conv-bot"><span class="conv-txt">${esc(c.apercu).replace(/^(.{0,40} : )?§SYS§ /,'⚙️ Système : ')}</span>${c.n ? `<span class="badge">${c.n}</span>` : ''}</div></div></div>`;
   }).join('') + (items.length === 1 ? '<p style="color:#8696a0;text-align:center;padding:24px 16px">Touche le bouton 💬 pour écrire en privé à un membre.</p>' : '');
-  document.querySelectorAll('#liste-conv .conv-av img').forEach(im => { im.style.cursor = 'pointer'; im.onclick = function(e){ e.stopPropagation(); voirPhoto(im.src); }; });
+  filtrerConv(($('rech-conv') || {}).value); document.querySelectorAll('#liste-conv .conv-av img').forEach(im => { im.style.cursor = 'pointer'; im.onclick = function(e){ e.stopPropagation(); voirPhoto(im.src); }; });
+}
+function filtrerConv(q) {
+  q = (q || '').toLowerCase().trim();
+  document.querySelectorAll('#liste-conv .conv').forEach(function (el) {
+    el.style.display = (!q || el.textContent.toLowerCase().indexOf(q) !== -1) ? '' : 'none';
+  });
 }
 async function chargerAccueil(){
   if (!moi) return;
