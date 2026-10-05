@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261005-215726">
+<meta name="build" content="20261005-221915">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -227,6 +227,7 @@
     <strong>Comptes</strong>
     <i class="fa-solid fa-xmark" style="cursor:pointer" onclick="fermerAdmin()"></i>
   </div>
+  <div id="onglets" style="display:flex;gap:8px;padding:10px 12px;flex-wrap:wrap"></div>
   <div id="liste"></div>
 </div>
 
@@ -511,7 +512,12 @@
       return `<div class="ligne"><div>${esc(p.nom)}<small>${ETIQUETTE[p.statut] || ''}</small></div><div>${actions}${p.id !== moi.id ? `<button class="secondaire" onclick="reinitVisage('${p.id}')">Visage</button>` : ''}</div></div>`;
     };
     const actifs = data.filter(p => p.statut !== 'banni'), bannis = data.filter(p => p.statut === 'banni');
-    $('liste').innerHTML = actifs.map(ligneDe).join('') + (bannis.length ? '<div style="padding:18px 12px 6px;color:#8696a0;font-weight:bold">Comptes bannis (' + bannis.length + ')</div>' + bannis.map(ligneDe).join('') : '');
+window.filtreCompte = window.filtreCompte || 'tous';
+const nbAdm = actifs.filter(p => p.is_admin).length;
+const vA = filtreCompte === 'bannis' ? [] : (filtreCompte === 'admins' ? actifs.filter(p => p.is_admin) : actifs);
+const vB = (filtreCompte === 'tous' || filtreCompte === 'bannis') ? bannis : [];
+$('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Admins (' + nbAdm + ')'], ['bannis', 'Bannis (' + bannis.length + ')']].map(o => `<button class="${filtreCompte === o[0] ? 'primaire' : 'secondaire'}" style="padding:8px 14px;border:0;border-radius:20px;font-weight:600" onclick="filtreCompte='${o[0]}';ouvrirAdmin()">${o[1]}</button>`).join('');
+    $('liste').innerHTML = vA.map(ligneDe).join('') + (vB.length ? '<div style="padding:18px 12px 6px;color:#8696a0;font-weight:bold">Comptes bannis (' + bannis.length + ')</div>' + vB.map(ligneDe).join('') : '');
   }
 
   async function changerAdmin(id, valeur) {
