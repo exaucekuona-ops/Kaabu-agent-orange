@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261003-222324">
+<meta name="build" content="20261005-095145">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -1164,6 +1164,7 @@ async function rendreAccueil(){
       `<div class="conv-top"><strong>${esc(nom)}</strong><small${c.n ? ' style="color:#00a884"' : ''}>${h}</small></div>` +
       `<div class="conv-bot"><span class="conv-txt">${esc(c.apercu).replace(/^(.{0,40} : )?§SYS§ /,'⚙️ Système : ')}</span>${c.n ? `<span class="badge">${c.n}</span>` : ''}</div></div></div>`;
   }).join('') + (items.length === 1 ? '<p style="color:#8696a0;text-align:center;padding:24px 16px">Touche le bouton 💬 pour écrire en privé à un membre.</p>' : '');
+  document.querySelectorAll('#liste-conv .conv-av img').forEach(im => { im.style.cursor = 'pointer'; im.onclick = function(e){ e.stopPropagation(); voirPhoto(im.src); }; });
 }
 async function chargerAccueil(){
   if (!moi) return;
