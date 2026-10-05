@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261005-095956">
+<meta name="build" content="20261005-102055">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -440,8 +440,31 @@
     if (media) afficherMedia(m);
   }
 
+    const _mediaUrls = {};
+  async function urlLocale(chemin) {
+    if (_mediaUrls[chemin]) return _mediaUrls[chemin];
+    try {
+      if (window.caches) {
+        const c = await caches.open('kaabu-medias');
+        const cle = new Request('/kaabu-media/' + encodeURIComponent(chemin));
+        let rep = await c.match(cle);
+        if (!rep) {
+          const sg = await sb.storage.from('chat').createSignedUrl(chemin, 3600);
+          if (!sg.data) return '';
+          const r = await fetch(sg.data.signedUrl);
+          if (!r.ok) return sg.data.signedUrl;
+          await c.put(cle, r.clone());
+          rep = r;
+        }
+        return (_mediaUrls[chemin] = URL.createObjectURL(await rep.blob()));
+      }
+    } catch (e) {}
+    const s2 = await sb.storage.from('chat').createSignedUrl(chemin, 3600);
+    return s2.data ? s2.data.signedUrl : '';
+  }
+
   async function afficherMedia(m) {
-    const { data } = await sb.storage.from('chat').createSignedUrl(m.contenu, 3600);
+    const data = { signedUrl: await urlLocale(m.contenu) };
     const url = data ? esc(data.signedUrl) : '';
     $('m' + m.id).innerHTML = !url ? '(fichier indisponible)'
       : m.type === 'image' ? `<img src="${url}" onclick="voirPhoto(this.src)" onload="$('zone').scrollTop=$('zone').scrollHeight">`
@@ -1331,7 +1354,7 @@ function contenuP(m){
 }
 async function afficherMediaP(m){
   var e=document.getElementById('pm'+m.id); if(!e) return;
-  var r=await sb.storage.from('chat').createSignedUrl(m.contenu,3600);
+  var r={data:{signedUrl:(m.type==='image'||m.type==='vocal')?await urlLocale(m.contenu):(((await sb.storage.from('chat').createSignedUrl(m.contenu,3600)).data||{}).signedUrl||'')}};
   var url=(r&&r.data)?esc(r.data.signedUrl):'';
   if(!url){ e.textContent='(fichier indisponible)'; return; }
   if(m.type==='image') e.innerHTML='<img src="'+url+'" onclick="voirPhoto(this.src)" onload="defP()">';
