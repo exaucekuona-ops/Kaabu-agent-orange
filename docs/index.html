@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261005-104342">
+<meta name="build" content="20261005-214150">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -905,7 +905,7 @@ async function ouvrirMembres(){
   const l = Object.values(tels).sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
   $('liste-membres').innerHTML = l.map(p =>
     `<div class="ligne" style="cursor:pointer" onclick="$('membres').classList.add('hidden');ouvrirContact('${p.id}')">` +
-    `<div style="display:flex;align-items:center;gap:10px">${avatarDe(p.id, p.nom)}<div>${esc(p.nom)}${p.id === moi.id ? ' (toi)' : ''}<small>${esc(p.phone || 'Numéro non renseigné')}</small></div></div>` +
+    `<div style="display:flex;align-items:center;gap:10px">${avatarDe(p.id, p.nom)}<div>${esc(p.nom)}${p.id === moi.id ? ' (toi)' : ''}${p.is_supreme ? ' 👑' : (p.is_admin ? ' <small style="color:#00a884">Admin</small>' : '')}<small>${esc(p.phone || 'Numéro non renseigné')}</small></div></div>` +
     `<div>${nonLus.has(p.id) ? '<i class="fa-solid fa-circle" style="color:#00a884;font-size:.7rem"></i>' : ''}</div></div>`).join('')
     || '<p style="padding:16px">Aucun membre.</p>';
   $('membres').classList.remove('hidden');
