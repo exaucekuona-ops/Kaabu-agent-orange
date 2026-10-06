@@ -261,7 +261,7 @@
 
 <div id="prive" class="ecran hidden" style="position:fixed;inset:0;z-index:20;background:#0b141a">
   <div class="entete">
-    <span style="display:flex;align-items:center;gap:14px"><i class="fa-solid fa-arrow-left" style="cursor:pointer" onclick="fermerPrive()"></i><strong id="prive-nom"></strong></span>
+    <span style="display:flex;align-items:center;gap:14px"><i class="fa-solid fa-arrow-left" style="cursor:pointer" onclick="fermerPrive()"></i><span style="display:flex;flex-direction:column"><strong id="prive-nom"></strong><small id="prive-statut" style="font-size:12px;opacity:.7"></small></span></span>
     <span id="prive-appel"></span>
   </div>
   <div id="prive-zone" class="zone"></div>
@@ -1855,5 +1855,41 @@ function majCoche(id){
       e.stopPropagation(); afficher(t.src);
     }
   },true);
+})();
+(function(){
+  function ici(){
+    if (document.visibilityState === 'visible' && typeof moi !== 'undefined' && moi) sb.rpc('je_suis_la');
+  }
+  setInterval(ici, 120000);
+  document.addEventListener('visibilitychange', ici);
+  setTimeout(ici, 3000);
+})();
+(function(){
+  var _o = ouvrirPrive, tm = null;
+  function fmt(d){
+    var h = d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    var a = new Date();
+    if (a.toDateString() === d.toDateString()) return "vu aujourd'hui à " + h;
+    if (new Date(a - 86400000).toDateString() === d.toDateString()) return "vu hier à " + h;
+    return 'vu le ' + d.toLocaleDateString('fr-FR') + ' à ' + h;
+  }
+  async function maj(){
+    var el = document.getElementById('prive-statut');
+    var p = document.getElementById('prive');
+    if (!el || !p || p.classList.contains('hidden')) { clearInterval(tm); return; }
+    var r = await sb.from('profiles').select('vu_le').eq('id', priveId).maybeSingle();
+    if (!r.data || !r.data.vu_le) { el.textContent = ''; return; }
+    var d = new Date(r.data.vu_le);
+    el.textContent = (Date.now() - d.getTime() < 180000) ? 'en ligne' : fmt(d);
+  }
+  ouvrirPrive = function(id){
+    var el = document.getElementById('prive-statut');
+    if (el) el.textContent = '';
+    var r = _o(id);
+    maj();
+    clearInterval(tm);
+    tm = setInterval(maj, 30000);
+    return r;
+  };
 })();
 </script>
