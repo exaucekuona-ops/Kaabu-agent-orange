@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261005-221915">
+<meta name="build" content="20261009-143131">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -432,6 +432,11 @@
     const heure = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     if (m.type === 'texte' && String(m.contenu).indexOf('§SYS§ ') === 0) {
       $('zone').insertAdjacentHTML('beforeend', `<div class="sys" id="b${m.id}">⚙️ <b>Système</b> : ${esc(String(m.contenu).slice(6))} <small>${heure}</small></div>`);
+      $('zone').scrollTop = $('zone').scrollHeight;
+      return;
+    }
+    if (m.type === 'texte' && String(m.contenu).indexOf('§IA§ ') === 0) {
+      $('zone').insertAdjacentHTML('beforeend', `<div class="rang autre"><div id="b${m.id}" class="bulle autre" style="white-space:pre-wrap"><span class="nom" style="color:#a78bfa">🤖 IA</span>${esc(String(m.contenu).slice(5))}<span class="heure">${heure}</span></div></div>`);
       $('zone').scrollTop = $('zone').scrollHeight;
       return;
     }
@@ -1194,7 +1199,7 @@ async function rendreAccueil(){
     const h = c.t > '1971' ? heureConv(c.t) : '';
     return `<div class="conv" onclick="${clic}"><div class="conv-av">${av}</div><div class="conv-mid">` +
       `<div class="conv-top"><strong>${esc(nom)}</strong><small${c.n ? ' style="color:#00a884"' : ''}>${h}</small></div>` +
-      `<div class="conv-bot"><span class="conv-txt">${esc(c.apercu).replace(/^(.{0,40} : )?§SYS§ /,'⚙️ Système : ')}</span>${c.n ? `<span class="badge">${c.n}</span>` : ''}</div></div></div>`;
+      `<div class="conv-bot"><span class="conv-txt">${esc(c.apercu).replace(/^(.{0,40} : )?§SYS§ /,'⚙️ Système : ').replace(/^(.{0,40} : )?§IA§ /,'🤖 IA : ')}</span>${c.n ? `<span class="badge">${c.n}</span>` : ''}</div></div></div>`;
   }).join('') + (items.length === 1 ? '<p style="color:#8696a0;text-align:center;padding:24px 16px">Touche le bouton 💬 pour écrire en privé à un membre.</p>' : '');
   filtrerConv(($('rech-conv') || {}).value); document.querySelectorAll('#liste-conv .conv-av img').forEach(im => { im.style.cursor = 'pointer'; im.onclick = function(e){ e.stopPropagation(); voirPhoto(im.src); }; });
 }
