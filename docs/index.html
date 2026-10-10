@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261010-093617">
+<meta name="build" content="20261010-094544">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -436,7 +436,7 @@
       return;
     }
     if (m.type === 'texte' && String(m.contenu).indexOf('§IA§ ') === 0) {
-      $('zone').insertAdjacentHTML('beforeend', `<div class="rang autre"><div id="b${m.id}" class="bulle autre" style="white-space:pre-wrap"><span class="nom" style="color:#a78bfa">🤖 IA</span>${esc(String(m.contenu).slice(5))}<span class="heure">${heure}</span></div></div>`);
+      $('zone').insertAdjacentHTML('beforeend', `<div class="rang autre"><span onclick="ouvrirContact('${m.auteur}')" style="cursor:pointer;display:flex;flex:none">${avatarDe(m.auteur, m.auteur_nom)}</span><div id="b${m.id}" class="bulle autre" style="white-space:pre-wrap"><span class="nom" style="color:#a78bfa;cursor:pointer" onclick="ouvrirContact('${m.auteur}')">🤖 IA</span>${esc(String(m.contenu).slice(5))}<span class="heure">${heure}</span></div></div>`);
       $('zone').scrollTop = $('zone').scrollHeight;
       return;
     }
