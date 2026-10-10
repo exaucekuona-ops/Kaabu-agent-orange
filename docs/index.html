@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261010-123518">
+<meta name="build" content="20261010-125341">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -170,7 +170,7 @@
 
 <div id="chat" class="ecran hidden">
   <div class="entete">
-    <span style="display:flex;align-items:center;gap:12px"><i class="fa-solid fa-arrow-left" style="cursor:pointer" onclick="retourAccueil()"></i><img id="logo-app" class="hidden" style="width:32px;height:32px;border-radius:8px;object-fit:cover"><strong id="titre-app">SERVICES DE TOUT RÉSEAUX</strong></span>
+    <span style="display:flex;align-items:center;gap:12px"><i class="fa-solid fa-arrow-left" style="cursor:pointer" onclick="retourAccueil()"></i><img id="logo-app" onclick="ouvrirInfosGroupe()" class="hidden" style="width:32px;height:32px;border-radius:8px;object-fit:cover"><strong id="titre-app" style="cursor:pointer" onclick="ouvrirInfosGroupe()">SERVICES DE TOUT RÉSEAUX</strong></span>
     
   </div>
   <div id="zone" class="zone"></div>
@@ -242,6 +242,13 @@
   </div>
 </div>
 
+<div id="infosgroupe" class="admin hidden">
+  <div class="entete">
+    <strong>Infos du groupe</strong>
+    <i class="fa-solid fa-xmark" style="cursor:pointer" onclick="$('infosgroupe').classList.add('hidden')"></i>
+  </div>
+  <div id="infosgroupe-corps"></div>
+</div>
 <div id="membres" class="admin hidden">
   <div class="entete">
     <strong>Membres</strong>
@@ -925,6 +932,36 @@ const vuCle = id => 'prive_vu_' + moi.id + '_' + id;
 const nomDe = id => (tels[id] && tels[id].nom) || (annuaire[id] && annuaire[id].nom) || 'Membre';
 function majPointMembres(){ const b = $('btn-membres'); if (b) b.style.color = nonLus.size ? '#00a884' : ''; }
 function marquerVu(id){ try { localStorage.setItem(vuCle(id), new Date().toISOString()); } catch (e) {} nonLus.delete(id); majPointMembres(); }
+
+async function ouvrirInfosGroupe(){
+  const o = $('infosgroupe'), c = $('infosgroupe-corps');
+  if (!o || !c) return;
+  c.innerHTML = '<p style="padding:16px;color:#8696a0">Chargement...</p>';
+  o.classList.remove('hidden');
+  let g = {}; const adm = new Set();
+  try { await chargerAnnuaire(); } catch (e) {}
+  try { const r = await sb.from('groupe_general').select('nom,description,photo_url').limit(1); if (r.data && r.data[0]) g = r.data[0]; } catch (e) {}
+  try {
+    const r1 = await sb.from('groupe_general_admins').select('user_id'); (r1.data || []).forEach(x => adm.add(x.user_id));
+    const r2 = await sb.from('profiles').select('id').eq('is_supreme', true); (r2.data || []).forEach(x => adm.add(x.id));
+  } catch (e) {}
+  const lg = $('logo-app');
+  const logo = (lg && !lg.classList.contains('hidden') && lg.src) || '';
+  const photo = (g.photo_url && /^https?:/.test(g.photo_url)) ? g.photo_url : logo;
+  const l = Object.values(tels).sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
+  const badge = '<span style="font-size:.7rem;color:#00a884;border:1px solid #00a884;border-radius:6px;padding:1px 6px">Admin du groupe</span>';
+  const lignes = l.map(p =>
+    `<div class="ligne" style="cursor:pointer" onclick="$('infosgroupe').classList.add('hidden');ouvrirContact('${p.id}')">` +
+    `<div style="display:flex;align-items:center;gap:10px">${avatarDe(p.id, p.nom)}<div>${esc(p.nom)}${p.id === moi.id ? ' (toi)' : ''}<small>${esc(p.phone || 'Numéro non renseigné')}</small></div></div>` +
+    `<div>${adm.has(p.id) ? badge : ''}</div></div>`).join('') || '<p style="padding:16px">Aucun membre.</p>';
+  c.innerHTML =
+    `<div style="text-align:center;padding:20px 16px">` +
+    (photo ? `<img src="${esc(photo)}" style="width:110px;height:110px;border-radius:50%;object-fit:cover">` : `<div style="width:110px;height:110px;border-radius:50%;background:#2a3942;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:2.4rem"><i class="fa-solid fa-users"></i></div>`) +
+    `<h2 style="margin:12px 0 4px">${esc(g.nom || 'Groupe général')}</h2>` +
+    `<div style="color:#8696a0">Groupe · ${l.length} membres</div>` +
+    `<p style="color:#8696a0;margin-top:12px">${esc(g.description || 'Aucune description')}</p></div>` +
+    `<div style="padding:8px 16px;color:#00a884;font-weight:600">${l.length} membres</div>` + lignes;
+}
 
 async function ouvrirMembres(){
   await chargerAnnuaire();
