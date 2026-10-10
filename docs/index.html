@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261010-141109">
+<meta name="build" content="20261010-143153">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -1019,6 +1019,38 @@ async function chargerEnteteGroupe(){
   } catch (e) {}
 }
 
+function telDe(id){ return Object.values(tels).find(p => p.id === id) || {}; }
+function menuMembreGroupe(id){
+  const p = telDe(id);
+  const ancien = $('menu-membre-groupe');
+  if (ancien) ancien.remove();
+  const d = document.createElement('div');
+  d.id = 'menu-membre-groupe';
+  d.style.cssText = 'position:fixed;left:0;right:0;top:0;bottom:0;z-index:50;background:rgba(0,0,0,.6);display:flex;align-items:flex-end';
+  d.onclick = function(e){ if (e.target === d) d.remove(); };
+  const st = 'display:block;width:100%;text-align:left;padding:16px 20px;background:none;border:0;border-top:1px solid #222d34;color:#e9edef;font-size:1.05rem';
+  d.innerHTML = '<div style="width:100%;background:#202c33;border-radius:16px 16px 0 0;padding-bottom:12px">' +
+    '<div style="padding:16px 20px;font-weight:600">' + esc(p.nom || '') + '</div>' +
+    '<button style="' + st + '" onclick="document.getElementById(\'menu-membre-groupe\').remove();$(\'infosgroupe\').classList.add(\'hidden\');ouvrirContact(\'' + id + '\')">Voir le contact</button>' +
+    '<button style="' + st + ';color:#f15c6d" onclick="retirerMembreGroupe(\'' + id + '\')">Retirer du groupe</button>' +
+    '</div>';
+  document.body.appendChild(d);
+}
+async function retirerMembreGroupe(id){
+  const p = telDe(id);
+  const m = $('menu-membre-groupe'); if (m) m.remove();
+  if (!confirm('Retirer ' + (p.nom || 'ce membre') + ' du groupe ?')) return;
+  const r = await sb.rpc('retirer_du_groupe_general', { p_user: id });
+  if (r.error) { alert('Erreur : ' + r.error.message); return; }
+  ouvrirInfosGroupe();
+}
+async function remettreMembreGroupe(id){
+  const p = telDe(id);
+  if (!confirm('Remettre ' + (p.nom || 'ce membre') + ' dans le groupe ?')) return;
+  const r = await sb.rpc('reajouter_au_groupe_general', { p_user: id });
+  if (r.error) { alert('Erreur : ' + r.error.message); return; }
+  ouvrirInfosGroupe();
+}
 async function ouvrirInfosGroupe(){
   const o = $('infosgroupe'), c = $('infosgroupe-corps');
   if (!o || !c) return;
@@ -1037,10 +1069,14 @@ async function ouvrirInfosGroupe(){
   const lg = $('logo-app');
   const logo = (lg && !lg.classList.contains('hidden') && lg.src) || '';
   const photo = g.photo_url ? (/^https?:/.test(g.photo_url) ? g.photo_url : sb.storage.from('avatars').getPublicUrl(g.photo_url).data.publicUrl) : logo;
-  const l = Object.values(tels).sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
+  const ret = new Set();
+  try { const rr = await sb.from('groupe_general_retires').select('user_id'); (rr.data || []).forEach(x => ret.add(x.user_id)); } catch (e) {}
+  const estAdm = adm.has(moi.id);
+  const retiresHtml = (estAdm && ret.size) ? '<div style="padding:16px 16px 8px;color:#8696a0;font-weight:600">Retirés du groupe (' + ret.size + ')</div>' + Object.values(tels).filter(p => ret.has(p.id)).map(p => '<div class="ligne" style="cursor:pointer" onclick="remettreMembreGroupe(\'' + p.id + '\')"><div style="display:flex;align-items:center;gap:10px">' + avatarDe(p.id, p.nom) + '<div>' + esc(p.nom) + '<small>Touche pour remettre dans le groupe</small></div></div></div>').join('') : '';
+  const l = Object.values(tels).filter(p => !ret.has(p.id)).sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
   const badge = '<span style="font-size:.7rem;color:#00a884;border:1px solid #00a884;border-radius:6px;padding:1px 6px">Admin du groupe</span>';
   const lignes = l.map(p =>
-    `<div class="ligne" style="cursor:pointer" onclick="$('infosgroupe').classList.add('hidden');ouvrirContact('${p.id}')">` +
+    `<div class="ligne" style="cursor:pointer" onclick="${estAdm && p.id !== moi.id ? `menuMembreGroupe('${p.id}')` : `$('infosgroupe').classList.add('hidden');ouvrirContact('${p.id}')`}">` +
     `<div style="display:flex;align-items:center;gap:10px">${avatarDe(p.id, p.nom)}<div>${esc(p.nom)}${p.id === moi.id ? ' (toi)' : ''}<small>${esc(p.phone || 'Numéro non renseigné')}</small></div></div>` +
     `<div>${adm.has(p.id) ? badge : ''}</div></div>`).join('') || '<p style="padding:16px">Aucun membre.</p>';
   c.innerHTML =
@@ -1049,7 +1085,7 @@ async function ouvrirInfosGroupe(){
     `<h2 style="margin:12px 0 4px">${esc(g.nom || 'Groupe général')}</h2>` +
     `<div style="color:#8696a0">Groupe · ${l.length} membres</div>` +
     `<p style="color:#8696a0;margin-top:12px;white-space:pre-wrap;text-align:left;word-break:break-word">${esc(g.description || 'Aucune description')}</p>` + (adm.has(moi.id) ? `<button onclick="editerInfosGroupe()" style="margin-top:10px;background:#00a884;color:#fff;border:0;border-radius:20px;padding:9px 20px;font-size:1rem">✏️ Modifier</button>` : '') + `</div>` +
-    `<div style="padding:8px 16px;color:#00a884;font-weight:600">${l.length} membres</div>` + lignes;
+    `<div style="padding:8px 16px;color:#00a884;font-weight:600">${l.length} membres</div>` + lignes + retiresHtml;
 }
 
 async function ouvrirMembres(){
