@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261010-134507">
+<meta name="build" content="20261010-141109">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -113,6 +113,7 @@
   .jour { align-self: center; background: #182229; color: #8696a0; font-size: 0.75rem; padding: 4px 12px; border-radius: 8px; margin: 10px 0 6px; }
   .rang .av, .rang .ini { width: 32px; height: 32px; line-height: 32px; font-size: 0.9rem; margin: 0; flex: none; }
 #visio #visio-img{width:100%!important;max-width:800px!important;height:auto!important;max-height:90vh!important;object-fit:contain!important}
+#chat .entete #logo-app,#chat .entete #titre-app{display:none!important}
 </style>
 <style>/*fix-largeur*/html,body{max-width:100%;overflow-x:hidden}.barre{box-sizing:border-box;max-width:100%}#texte{min-width:0;flex:1 1 0}#saisie .ico,#saisie .envoi{flex:0 0 auto}</style><style>/*barre-wa*/
 #saisie{align-items:center}
@@ -170,7 +171,7 @@
 
 <div id="chat" class="ecran hidden">
   <div class="entete">
-    <span style="display:flex;align-items:center;gap:12px"><i class="fa-solid fa-arrow-left" style="cursor:pointer" onclick="retourAccueil()"></i><img id="logo-app" onclick="ouvrirInfosGroupe()" class="hidden" style="width:32px;height:32px;border-radius:8px;object-fit:cover"><strong id="titre-app" style="cursor:pointer" onclick="ouvrirInfosGroupe()">TÉLÉCOM RDC</strong></span>
+    <span style="display:flex;align-items:center;gap:12px"><i class="fa-solid fa-arrow-left" style="cursor:pointer" onclick="retourAccueil()"></i><img id="logo-app" onclick="ouvrirInfosGroupe()" class="hidden" style="width:32px;height:32px;border-radius:8px;object-fit:cover"><strong id="titre-app" style="cursor:pointer" onclick="ouvrirInfosGroupe()">TÉLÉCOM RDC</strong><img id="logo-grp" class="hidden" onclick="ouvrirInfosGroupe()" style="width:40px;height:40px;border-radius:50%;object-fit:cover;cursor:pointer"><strong id="titre-grp" style="cursor:pointer" onclick="ouvrirInfosGroupe()">Groupe général</strong></span>
     
   </div>
   <div id="zone" class="zone"></div>
@@ -988,6 +989,36 @@ async function enregistrerInfosGroupe(){
   ouvrirInfosGroupe();
 }
 
+function grpCache(){
+  try { return JSON.parse(localStorage.getItem('grpinfo') || '{}') || {}; } catch (e) { return {}; }
+}
+function urlPhotoGroupe(p){
+  if (!p) return '';
+  return /^https?:/.test(p) ? p : sb.storage.from('avatars').getPublicUrl(p).data.publicUrl;
+}
+function grpPhoto(){ return urlPhotoGroupe(grpCache().photo_url); }
+function appliquerEnteteGroupe(g){
+  const t = $('titre-grp'), l = $('logo-grp'), lg = $('logo-app');
+  if (t) t.textContent = (g && g.nom) || 'Groupe général';
+  const u = urlPhotoGroupe(g && g.photo_url) || (lg && lg.src) || '';
+  if (l && u) { l.src = u; l.classList.remove('hidden'); }
+}
+async function chargerEnteteGroupe(){
+  const ancien = grpCache();
+  appliquerEnteteGroupe(ancien);
+  try {
+    const r = await sb.from('groupe_general').select('nom,photo_url').limit(1);
+    const g = r.data && r.data[0];
+    if (!g) return;
+    try { localStorage.setItem('grpinfo', JSON.stringify({ nom: g.nom, photo_url: g.photo_url })); } catch (e) {}
+    appliquerEnteteGroupe(g);
+    if ((ancien.nom || '') !== (g.nom || '') || (ancien.photo_url || '') !== (g.photo_url || '')) {
+      const a = $('accueil');
+      if (a && !a.classList.contains('hidden')) chargerAccueil();
+    }
+  } catch (e) {}
+}
+
 async function ouvrirInfosGroupe(){
   const o = $('infosgroupe'), c = $('infosgroupe-corps');
   if (!o || !c) return;
@@ -1001,6 +1032,8 @@ async function ouvrirInfosGroupe(){
     const r2 = await sb.from('profiles').select('id').eq('is_supreme', true); (r2.data || []).forEach(x => adm.add(x.id));
   } catch (e) {}
   window.__ginfo = g;
+  try { localStorage.setItem('grpinfo', JSON.stringify({ nom: g.nom, photo_url: g.photo_url })); } catch (e) {}
+  appliquerEnteteGroupe(g);
   const lg = $('logo-app');
   const logo = (lg && !lg.classList.contains('hidden') && lg.src) || '';
   const photo = g.photo_url ? (/^https?:/.test(g.photo_url) ? g.photo_url : sb.storage.from('avatars').getPublicUrl(g.photo_url).data.publicUrl) : logo;
@@ -1272,6 +1305,7 @@ function apercuGroupe(m){
 }
 function marquerGroupeVu(){ try { localStorage.setItem(vuGroupe(), new Date().toISOString()); } catch (e) {} }
 function ouvrirGroupe(){
+  chargerEnteteGroupe();
   montrer('chat'); marquerGroupeVu();
   $('zone').scrollTop = $('zone').scrollHeight;
 }
@@ -1279,6 +1313,7 @@ function retourAccueil(){
   marquerGroupeVu(); montrer('accueil'); chargerAccueil();
 }
 async function rendreAccueil(){
+  chargerEnteteGroupe();
   $('titre-acc').textContent = $('titre-app').textContent;
   const lg = $('logo-app'), logo = (!lg.classList.contains('hidden') && lg.src) || '';
   if (logo) { $('logo-acc').src = logo; $('logo-acc').classList.remove('hidden'); }
@@ -1303,8 +1338,8 @@ async function rendreAccueil(){
   await chargerMasques(); Object.values(par).forEach(c => { var d = MASQUES[c.id]; if (d && new Date(c.t) <= new Date(d)) return; items.push(c); });
   items.sort((a, b) => new Date(b.t) - new Date(a.t));
   $('liste-conv').innerHTML = items.map(c => {
-    const av = c.groupe ? (logo ? `<img src="${esc(logo)}">` : '<i class="fa-solid fa-users"></i>') : avatarDe(c.id, nomDe(c.id));
-    const nom = c.groupe ? 'Groupe général' : nomDe(c.id);
+    const av = c.groupe ? (logo ? `<img src="${esc(grpPhoto() || logo)}">` : '<i class="fa-solid fa-users"></i>') : avatarDe(c.id, nomDe(c.id));
+    const nom = c.groupe ? (grpCache().nom || 'Groupe général') : nomDe(c.id);
     const clic = c.groupe ? 'ouvrirGroupe()' : `ouvrirPrive('${c.id}')`;
     const h = c.t > '1971' ? heureConv(c.t) : '';
     return `<div class="conv" onclick="${clic}"><div class="conv-av">${av}</div><div class="conv-mid">` +
