@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261010-193238">
+<meta name="build" content="20261010-195925">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -249,6 +249,15 @@
     <i class="fa-solid fa-xmark" style="cursor:pointer" onclick="$('infosgroupe').classList.add('hidden')"></i>
   </div>
   <div id="infosgroupe-corps"></div>
+</div>
+<div id="nvgroupe" class="admin hidden">
+  <div class="entete">
+    <strong>Nouveau groupe</strong>
+    <i class="fa-solid fa-xmark" style="cursor:pointer" onclick="$('nvgroupe').classList.add('hidden')"></i>
+  </div>
+  <div style="padding:12px 16px"><input id="nvg-nom" maxlength="40" placeholder="Nom du groupe" style="width:100%;box-sizing:border-box;padding:12px;border-radius:8px;border:0;background:#202c33;color:#e9edef;font-size:1rem"></div>
+  <div id="nvg-liste"></div>
+  <div style="padding:12px 16px"><button id="nvg-btn" onclick="creerNouveauGroupe()" style="display:block;width:100%;padding:14px;border:0;border-radius:8px;background:#00a884;color:#111b21;font-weight:600;font-size:1rem">Créer le groupe</button></div>
 </div>
 <div id="membres" class="admin hidden">
   <div class="entete">
@@ -1128,7 +1137,41 @@ async function ouvrirMembres(){
   $('membres').classList.remove('hidden');
 }
 
-function nouveauGroupe(){ alert('Nouveau groupe : étape 2 à venir'); }
+var nvgSel = new Set();
+async function nouveauGroupe(){
+  await chargerAnnuaire();
+  nvgSel = new Set();
+  $('nvg-nom').value = '';
+  const l = Object.values(tels).filter(p => p.id !== moi.id).sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
+  $('nvg-liste').innerHTML = l.map(p =>
+    `<div class="ligne" style="cursor:pointer" onclick="nvgBascule('${p.id}')"><div style="display:flex;align-items:center;gap:10px">${avatarDe(p.id, p.nom)}<div>${esc(p.nom)}<small>${esc(p.phone || '')}</small></div></div><span id="nvg-${p.id}" style="font-size:1.3rem;color:#00a884"></span></div>`
+  ).join('');
+  $('membres').classList.add('hidden');
+  $('nvgroupe').classList.remove('hidden');
+}
+function nvgBascule(id){
+  if (nvgSel.has(id)) nvgSel.delete(id); else nvgSel.add(id);
+  $('nvg-' + id).textContent = nvgSel.has(id) ? '✔' : '';
+}
+async function creerNouveauGroupe(){
+  const nom = $('nvg-nom').value.trim();
+  if (nom.length < 2) { alert('Écris le nom du groupe (2 lettres minimum).'); return; }
+  const btn = $('nvg-btn'); btn.disabled = true;
+  try {
+    const r = await sb.rpc('creer_groupe', { p_nom: nom });
+    if (r.error) throw r.error;
+    const gid = r.data;
+    let ajoutes = 0;
+    for (const uid of nvgSel) {
+      try { const x = await sb.rpc('ajouter_membre', { p_groupe: gid, p_user: uid }); if (!x.error) ajoutes++; } catch (e) {}
+    }
+    $('nvgroupe').classList.add('hidden');
+    alert('Groupe « ' + nom + ' » créé avec ' + ajoutes + ' membre(s).');
+  } catch (e) {
+    alert('Impossible de créer le groupe : ' + (e.message || e));
+  }
+  btn.disabled = false;
+}
 async function ouvrirContact(id){
   if (!id) return;
   if (!tels[id]) await chargerAnnuaire();
