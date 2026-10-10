@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261010-202336">
+<meta name="build" content="20261010-203450">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -497,7 +497,7 @@
   }
 
   async function chargerMessages() {
-    const { data } = await sb.from('messages').select('*').is('groupe_id', null)
+    const { data } = await (window.grpActif ? sb.from('messages').select('*').eq('groupe_id', window.grpActif) : sb.from('messages').select('*').is('groupe_id', null))
       .order('created_at', { ascending: false }).limit(100);
     $('zone').innerHTML = '';
     for (const k in msgs) delete msgs[k];
@@ -508,9 +508,9 @@
   function ecouter() {
     if (canal) sb.removeChannel(canal);
     canal = sb.channel('chat-general')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => { if (!p.new.groupe_id) recu(p.new); })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => { if ((p.new.groupe_id || null) === (window.grpActif || null)) recu(p.new); })
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, p => retirer(p.old.id))
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, p => { if (!p.new.groupe_id) majMessage(p.new); })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, p => { if ((p.new.groupe_id || null) === (window.grpActif || null)) majMessage(p.new); })
       .subscribe();
   }
 
@@ -567,7 +567,7 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
     const chemin = `${moi.id}/${Date.now()}.${ext}`;
     const { error } = await sb.storage.from('chat').upload(chemin, blob, { contentType });
     if (error) return alert('Envoi impossible : ' + error.message);
-    const r = await sb.from('messages').insert({ auteur: moi.id, type, contenu: chemin });
+    const r = await sb.from('messages').insert({ auteur: moi.id, type, contenu: chemin, groupe_id: window.grpActif || null });
     if (r.error) { alert('Message non envoyé : ' + r.error.message); demarrer(); }
   }
 
@@ -765,7 +765,7 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
       return;
     }
     $('texte').value = '';
-    const { error } = await sb.from('messages').insert({ auteur: moi.id, type: 'texte', contenu: t, reponse_a: repId() });
+    const { error } = await sb.from('messages').insert({ auteur: moi.id, type: 'texte', contenu: t, reponse_a: repId(), groupe_id: window.grpActif || null });
     if (error) { alert("Message non envoyé : " + error.message); demarrer(); }
   }
 
@@ -889,7 +889,7 @@ async function envoyerFichier(inp){
   var chemin = moi.id + '/' + Date.now() + '__' + nom;
   var up = await sb.storage.from('chat').upload(chemin, f, { contentType: f.type || 'application/octet-stream' });
   if(up.error){ alert('Envoi impossible : ' + up.error.message); return; }
-  var r = await sb.from('messages').insert({ auteur: moi.id, type: 'fichier', contenu: chemin });
+  var r = await sb.from('messages').insert({ auteur: moi.id, type: 'fichier', contenu: chemin, groupe_id: window.grpActif || null });
   if(r.error){ alert('Message non envoyé : ' + r.error.message); }
 }
 function lienFichier(m, url){
@@ -1412,12 +1412,23 @@ function apercuGroupe(m){
 }
 function marquerGroupeVu(){ try { localStorage.setItem(vuGroupe(), new Date().toISOString()); } catch (e) {} }
 function ouvrirGroupe(){
+  if (window.grpActif) { window.grpActif = null; chargerMessages(); }
   verifierRetraitGroupe();
   chargerEnteteGroupe();
   montrer('chat'); marquerGroupeVu();
   $('zone').scrollTop = $('zone').scrollHeight;
 }
-function ouvrirGroupeCree(id){ alert('Discussion du groupe : étape suivante'); }
+async function ouvrirGroupeCree(id){
+  window.grpActif = id;
+  let nom = 'Groupe';
+  try { const r = await sb.from('groupes').select('nom').eq('id', id).limit(1); nom = (r.data && r.data[0] && r.data[0].nom) || nom; } catch (e) {}
+  const t = $('titre-grp'), l = $('logo-grp');
+  if (t) t.textContent = nom;
+  if (l) l.classList.add('hidden');
+  montrer('chat');
+  await chargerMessages();
+  $('zone').scrollTop = $('zone').scrollHeight;
+}
 function retourAccueil(){
   marquerGroupeVu(); montrer('accueil'); chargerAccueil();
 }
@@ -1971,7 +1982,7 @@ function majCoche(id){
   function pret(){ try{ return !!(moi&&moi.id); }catch(e){ return false; } }
   function parDate(x,y){ return new Date(x.created_at)-new Date(y.created_at); }
 
-  function sauverMsgs(){
+  function sauverMsgs(){ if(window.grpActif) return;
     try{
       if(!pret()) return;
       var a=Object.keys(msgs).map(function(k){ return msgs[k]; }).sort(parDate).slice(-100);
@@ -1979,7 +1990,7 @@ function majCoche(id){
     }catch(e){}
   }
   var _cm=chargerMessages;
-  chargerMessages=async function(){
+  chargerMessages=async function(){ if(window.grpActif){ return await _cm.apply(this,arguments); }
     try{
       if(pret()&&!$('zone').children.length){
         var c=lire(cle('msg',moi.id));
