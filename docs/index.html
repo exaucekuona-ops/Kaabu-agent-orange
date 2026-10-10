@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261010-144945">
+<meta name="build" content="20261010-193238">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -252,7 +252,7 @@
 </div>
 <div id="membres" class="admin hidden">
   <div class="entete">
-    <strong>Membres</strong>
+    <strong>Sélectionner un contact</strong>
     <i class="fa-solid fa-xmark" style="cursor:pointer" onclick="$('membres').classList.add('hidden')"></i>
   </div>
   <div id="liste-membres"></div>
@@ -1120,7 +1120,7 @@ async function ouvrirMembres(){
   const adm = new Set();
   try { const r1 = await sb.from('groupe_general_admins').select('user_id'); (r1.data || []).forEach(x => adm.add(x.user_id)); const r2 = await sb.from('profiles').select('id').eq('is_supreme', true); (r2.data || []).forEach(x => adm.add(x.id)); } catch (e) {}
   const l = Object.values(tels).sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
-  $('liste-membres').innerHTML = l.map(p =>
+  $('liste-membres').innerHTML = '<div class="ligne" style="cursor:pointer" onclick="nouveauGroupe()"><div style="display:flex;align-items:center;gap:10px"><div style="width:44px;height:44px;border-radius:50%;background:#00a884;color:#111b21;display:flex;align-items:center;justify-content:center"><i class="fa-solid fa-user-group"></i></div><b>Nouveau groupe</b></div></div>' + l.map(p =>
     `<div class="ligne" style="cursor:pointer" onclick="$('membres').classList.add('hidden');ouvrirContact('${p.id}')">` +
     `<div style="display:flex;align-items:center;gap:10px">${avatarDe(p.id, p.nom)}<div>${esc(p.nom)}${p.id === moi.id ? ' (toi)' : ''}<small>${esc(p.phone || 'Numéro non renseigné')}</small></div></div>` +
     `<div>${adm.has(p.id) ? '<span style="font-size:.7rem;color:#00a884;border:1px solid #00a884;border-radius:6px;padding:1px 6px;margin-right:6px">Admin du groupe</span>' : ''}${nonLus.has(p.id) ? '<i class="fa-solid fa-circle" style="color:#00a884;font-size:.7rem"></i>' : ''}</div></div>`).join('')
@@ -1128,6 +1128,7 @@ async function ouvrirMembres(){
   $('membres').classList.remove('hidden');
 }
 
+function nouveauGroupe(){ alert('Nouveau groupe : étape 2 à venir'); }
 async function ouvrirContact(id){
   if (!id) return;
   if (!tels[id]) await chargerAnnuaire();
