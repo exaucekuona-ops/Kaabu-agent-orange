@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261010-131857">
+<meta name="build" content="20261010-134008">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -945,7 +945,7 @@ function editerInfosGroupe(){
   d.innerHTML = '<label style="color:#8696a0;font-size:.85rem">Nom du groupe</label>' +
     '<input id="eg-nom" maxlength="60" style="' + st + '">' +
     '<label style="color:#8696a0;font-size:.85rem">Description</label>' +
-    '<textarea id="eg-desc" rows="3" maxlength="500" style="' + st + '"></textarea>' +
+    '<textarea id="eg-desc" rows="8" maxlength="2000" style="' + st + '"></textarea>' +
     '<button onclick="enregistrerInfosGroupe()" style="background:#00a884;color:#fff;border:0;border-radius:20px;padding:10px 24px;font-size:1rem">Enregistrer</button>';
   c.insertBefore(d, c.children[1] || null);
   $('eg-nom').value = g.nom || 'Groupe général';
@@ -987,7 +987,7 @@ async function ouvrirInfosGroupe(){
     (photo ? `<img src="${esc(photo)}" style="width:110px;height:110px;border-radius:50%;object-fit:cover">` : `<div style="width:110px;height:110px;border-radius:50%;background:#2a3942;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:2.4rem"><i class="fa-solid fa-users"></i></div>`) +
     `<h2 style="margin:12px 0 4px">${esc(g.nom || 'Groupe général')}</h2>` +
     `<div style="color:#8696a0">Groupe · ${l.length} membres</div>` +
-    `<p style="color:#8696a0;margin-top:12px">${esc(g.description || 'Aucune description')}</p>` + (adm.has(moi.id) ? `<button onclick="editerInfosGroupe()" style="margin-top:10px;background:#00a884;color:#fff;border:0;border-radius:20px;padding:9px 20px;font-size:1rem">✏️ Modifier</button>` : '') + `</div>` +
+    `<p style="color:#8696a0;margin-top:12px;white-space:pre-wrap;text-align:left;word-break:break-word">${esc(g.description || 'Aucune description')}</p>` + (adm.has(moi.id) ? `<button onclick="editerInfosGroupe()" style="margin-top:10px;background:#00a884;color:#fff;border:0;border-radius:20px;padding:9px 20px;font-size:1rem">✏️ Modifier</button>` : '') + `</div>` +
     `<div style="padding:8px 16px;color:#00a884;font-weight:600">${l.length} membres</div>` + lignes;
 }
 
