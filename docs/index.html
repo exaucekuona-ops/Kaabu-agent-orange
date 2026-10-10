@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261010-195925">
+<meta name="build" content="20261010-202336">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -1166,7 +1166,7 @@ async function creerNouveauGroupe(){
       try { const x = await sb.rpc('ajouter_membre', { p_groupe: gid, p_user: uid }); if (!x.error) ajoutes++; } catch (e) {}
     }
     $('nvgroupe').classList.add('hidden');
-    alert('Groupe « ' + nom + ' » créé avec ' + ajoutes + ' membre(s).');
+    alert('Groupe « ' + nom + ' » créé avec ' + ajoutes + ' membre(s).'); try { chargerAccueil(); } catch (e) {}
   } catch (e) {
     alert('Impossible de créer le groupe : ' + (e.message || e));
   }
@@ -1417,6 +1417,7 @@ function ouvrirGroupe(){
   montrer('chat'); marquerGroupeVu();
   $('zone').scrollTop = $('zone').scrollHeight;
 }
+function ouvrirGroupeCree(id){ alert('Discussion du groupe : étape suivante'); }
 function retourAccueil(){
   marquerGroupeVu(); montrer('accueil'); chargerAccueil();
 }
@@ -1444,11 +1445,12 @@ async function rendreAccueil(){
     }
   });
   await chargerMasques(); Object.values(par).forEach(c => { var d = MASQUES[c.id]; if (d && new Date(c.t) <= new Date(d)) return; items.push(c); });
+  try { const mg = await sb.from('membres_groupe').select('groupe_id').eq('user_id', moi.id); const ids = (mg.data || []).map(x => x.groupe_id); if (ids.length) { const gg = await sb.from('groupes').select('id,nom,created_at').in('id', ids); (gg.data || []).forEach(x => items.push({ cg: true, id: x.id, nomg: x.nom, t: x.created_at, apercu: 'Nouveau groupe', n: 0 })); } } catch (e) {}
   items.sort((a, b) => new Date(b.t) - new Date(a.t));
   $('liste-conv').innerHTML = items.map(c => {
-    const av = c.groupe ? (logo ? `<img src="${esc(grpPhoto() || logo)}">` : '<i class="fa-solid fa-users"></i>') : avatarDe(c.id, nomDe(c.id));
-    const nom = c.groupe ? (grpCache().nom || 'Groupe général') : nomDe(c.id);
-    const clic = c.groupe ? 'ouvrirGroupe()' : `ouvrirPrive('${c.id}')`;
+    const av = c.cg ? '<i class="fa-solid fa-users"></i>' : c.groupe ? (logo ? `<img src="${esc(grpPhoto() || logo)}">` : '<i class="fa-solid fa-users"></i>') : avatarDe(c.id, nomDe(c.id));
+    const nom = c.cg ? c.nomg : c.groupe ? (grpCache().nom || 'Groupe général') : nomDe(c.id);
+    const clic = c.cg ? `ouvrirGroupeCree('${c.id}')` : c.groupe ? 'ouvrirGroupe()' : `ouvrirPrive('${c.id}')`;
     const h = c.t > '1971' ? heureConv(c.t) : '';
     return `<div class="conv" onclick="${clic}"><div class="conv-av">${av}</div><div class="conv-mid">` +
       `<div class="conv-top"><strong>${esc(nom)}</strong><small${c.n ? ' style="color:#00a884"' : ''}>${h}</small></div>` +
