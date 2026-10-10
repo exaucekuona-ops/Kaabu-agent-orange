@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261010-091344">
+<meta name="build" content="20261010-093617">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -1205,7 +1205,7 @@ async function rendreAccueil(){
       if (!v || new Date(x.created_at) > new Date(v)) par[autre].n++;
     }
   });
-  Object.values(par).forEach(c => items.push(c));
+  await chargerMasques(); Object.values(par).forEach(c => { var d = MASQUES[c.id]; if (d && new Date(c.t) <= new Date(d)) return; items.push(c); });
   items.sort((a, b) => new Date(b.t) - new Date(a.t));
   $('liste-conv').innerHTML = items.map(c => {
     const av = c.groupe ? (logo ? `<img src="${esc(logo)}">` : '<i class="fa-solid fa-users"></i>') : avatarDe(c.id, nomDe(c.id));
@@ -1236,6 +1236,59 @@ var _recu = recu;
 recu = function(m){ _recu(m); setTimeout(chargerAccueil, 300); };
 var _fermerPrive = fermerPrive;
 fermerPrive = function(){ _fermerPrive(); chargerAccueil(); };
+/* DEBUT-SUPPR */
+var MASQUES = {}, SEL = [], lpTimer = null, lpFait = false;
+document.head.insertAdjacentHTML("beforeend", '<style>#liste-conv{-webkit-user-select:none;user-select:none}#liste-conv .conv.sel{background:#2a3942}#liste-conv .conv.sel .conv-av{position:relative;overflow:visible}#liste-conv .conv.sel .conv-av img{border-radius:50%}#liste-conv .conv.sel .conv-av::after{content:"✓";position:absolute;right:-3px;bottom:-3px;width:22px;height:22px;border-radius:50%;background:#00a884;color:#111b21;font-size:13px;font-weight:bold;display:flex;align-items:center;justify-content:center;border:2px solid #0b141a}#sel-barre{position:absolute;left:0;right:0;top:0;bottom:0;background:#1f2c34;display:none;align-items:center;gap:22px;padding:0 18px;z-index:5;font-size:1.3rem;color:#e9edef}#sel-barre i{cursor:pointer;padding:8px}</style>');
+async function chargerMasques(){
+  try { const r = await sb.from("prives_masques").select("autre,depuis"); MASQUES = {}; (r.data || []).forEach(function(x){ MASQUES[x.autre] = x.depuis; }); } catch (e) {}
+}
+function idConv(el){ var m = /ouvrirPrive\('([^']+)'\)/.exec(el.getAttribute("onclick") || ""); return m ? m[1] : null; }
+function majSel(){
+  document.querySelectorAll("#liste-conv .conv").forEach(function(el){ var i = idConv(el); el.classList.toggle("sel", !!i && SEL.indexOf(i) !== -1); });
+  var b = document.getElementById("sel-barre"); if (!b) return;
+  b.style.display = SEL.length ? "flex" : "none";
+  document.getElementById("sel-nb").textContent = SEL.length;
+}
+function basculerSel(el){ var i = idConv(el); if (!i) return; var k = SEL.indexOf(i); if (k === -1) SEL.push(i); else SEL.splice(k, 1); majSel(); }
+function annulerSel(){ SEL = []; majSel(); }
+async function supprimerSel(){
+  if (!SEL.length) return;
+  if (!confirm("Supprimer " + SEL.length + " discussion(s) ? Elle(s) restera(ont) chez l'autre personne.")) return;
+  var ids = SEL.slice();
+  try {
+    await sb.from("prives_masques").delete().eq("user_id", moi.id).in("autre", ids);
+    const r = await sb.from("prives_masques").insert(ids.map(function(i){ return { user_id: moi.id, autre: i }; }));
+    if (r.error) throw r.error;
+    SEL = []; await chargerMasques(); majSel(); chargerAccueil();
+  } catch (e) { alert("Suppression impossible : " + e.message); }
+}
+function creerBarre(){
+  if (document.getElementById("sel-barre")) return;
+  var e = document.querySelector("#accueil .entete"); if (!e) return;
+  e.style.position = "relative";
+  var b = document.createElement("div"); b.id = "sel-barre";
+  b.innerHTML = '<i class="fa-solid fa-arrow-left" onclick="annulerSel()"></i><strong id="sel-nb">0</strong><span style="flex:1"></span><i class="fa-solid fa-trash" onclick="supprimerSel()"></i>';
+  e.appendChild(b);
+}
+var _filtrerConv = filtrerConv;
+filtrerConv = function(q){ _filtrerConv(q); creerBarre(); majSel(); };
+document.addEventListener("touchstart", function(e){
+  var el = e.target.closest && e.target.closest("#liste-conv .conv");
+  if (!el || !idConv(el)) return;
+  lpFait = false; clearTimeout(lpTimer);
+  lpTimer = setTimeout(function(){ lpFait = true; basculerSel(el); if (navigator.vibrate) navigator.vibrate(30); }, 500);
+}, { passive: true });
+document.addEventListener("touchmove", function(){ clearTimeout(lpTimer); }, { passive: true });
+document.addEventListener("touchend", function(){ clearTimeout(lpTimer); }, { passive: true });
+document.addEventListener("touchcancel", function(){ clearTimeout(lpTimer); }, { passive: true });
+document.addEventListener("contextmenu", function(e){ if (e.target.closest && e.target.closest("#liste-conv")) e.preventDefault(); });
+document.addEventListener("click", function(e){
+  var el = e.target.closest && e.target.closest("#liste-conv .conv"); if (!el) return;
+  if (lpFait) { lpFait = false; e.stopPropagation(); e.preventDefault(); return; }
+  if (SEL.length) { e.stopPropagation(); e.preventDefault(); if (idConv(el)) basculerSel(el); }
+}, true);
+/* FIN-SUPPR */
+
 document.addEventListener('visibilitychange', function(){ if (!document.hidden) chargerAccueil(); });
 </script>
 <style>
