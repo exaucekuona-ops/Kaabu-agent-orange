@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261010-134008">
+<meta name="build" content="20261010-134507">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -946,11 +946,39 @@ function editerInfosGroupe(){
     '<input id="eg-nom" maxlength="60" style="' + st + '">' +
     '<label style="color:#8696a0;font-size:.85rem">Description</label>' +
     '<textarea id="eg-desc" rows="8" maxlength="2000" style="' + st + '"></textarea>' +
-    '<button onclick="enregistrerInfosGroupe()" style="background:#00a884;color:#fff;border:0;border-radius:20px;padding:10px 24px;font-size:1rem">Enregistrer</button>';
+    '<label style="display:inline-block;background:#2a3942;color:#e9edef;border-radius:20px;padding:10px 20px;margin:0 8px 8px 0;cursor:pointer">📷 Changer la photo du groupe<input id="eg-photo" type="file" accept="image/*" class="hidden" onchange="changerPhotoGroupe(this)"></label><button onclick="enregistrerInfosGroupe()" style="background:#00a884;color:#fff;border:0;border-radius:20px;padding:10px 24px;font-size:1rem">Enregistrer</button>';
   c.insertBefore(d, c.children[1] || null);
   $('eg-nom').value = g.nom || 'Groupe général';
   $('eg-desc').value = g.description || '';
 }
+function carreGroupe(f, t){
+  return new Promise((ok, ko) => {
+    const im = new Image(), u = URL.createObjectURL(f);
+    im.onload = () => {
+      const m = Math.min(im.width, im.height), c = document.createElement('canvas');
+      c.width = c.height = t;
+      c.getContext('2d').drawImage(im, (im.width - m) / 2, (im.height - m) / 2, m, m, 0, 0, t, t);
+      URL.revokeObjectURL(u);
+      c.toBlob(b => b ? ok(b) : ko(new Error('Image illisible')), 'image/jpeg', 0.85);
+    };
+    im.onerror = () => ko(new Error('Image illisible'));
+    im.src = u;
+  });
+}
+async function changerPhotoGroupe(input){
+  const f = input.files[0];
+  input.value = '';
+  if (!f) return;
+  try {
+    const chemin = moi.id + '/groupe-' + Date.now() + '.jpg';
+    const up = await sb.storage.from('avatars').upload(chemin, await carreGroupe(f, 800), { contentType: 'image/jpeg' });
+    if (up.error) throw up.error;
+    const r = await sb.rpc('modifier_groupe_general', { p_nom: null, p_description: null, p_photo: chemin });
+    if (r.error) throw r.error;
+    ouvrirInfosGroupe();
+  } catch (e) { alert('Erreur photo : ' + (e.message || e)); }
+}
+
 async function enregistrerInfosGroupe(){
   const nom = ($('eg-nom').value || '').trim();
   const desc = ($('eg-desc').value || '').trim();
@@ -975,7 +1003,7 @@ async function ouvrirInfosGroupe(){
   window.__ginfo = g;
   const lg = $('logo-app');
   const logo = (lg && !lg.classList.contains('hidden') && lg.src) || '';
-  const photo = (g.photo_url && /^https?:/.test(g.photo_url)) ? g.photo_url : logo;
+  const photo = g.photo_url ? (/^https?:/.test(g.photo_url) ? g.photo_url : sb.storage.from('avatars').getPublicUrl(g.photo_url).data.publicUrl) : logo;
   const l = Object.values(tels).sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
   const badge = '<span style="font-size:.7rem;color:#00a884;border:1px solid #00a884;border-radius:6px;padding:1px 6px">Admin du groupe</span>';
   const lignes = l.map(p =>
