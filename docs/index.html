@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261010-143153">
+<meta name="build" content="20261010-144945">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -1042,6 +1042,7 @@ async function retirerMembreGroupe(id){
   if (!confirm('Retirer ' + (p.nom || 'ce membre') + ' du groupe ?')) return;
   const r = await sb.rpc('retirer_du_groupe_general', { p_user: id });
   if (r.error) { alert('Erreur : ' + r.error.message); return; }
+  await messageSystemeGroupe((p.nom || 'Un membre') + ' a été retiré du groupe par ' + (telDe(moi.id).nom || 'un admin'));
   ouvrirInfosGroupe();
 }
 async function remettreMembreGroupe(id){
@@ -1049,7 +1050,33 @@ async function remettreMembreGroupe(id){
   if (!confirm('Remettre ' + (p.nom || 'ce membre') + ' dans le groupe ?')) return;
   const r = await sb.rpc('reajouter_au_groupe_general', { p_user: id });
   if (r.error) { alert('Erreur : ' + r.error.message); return; }
+  await messageSystemeGroupe((p.nom || 'Un membre') + ' a été remis dans le groupe');
   ouvrirInfosGroupe();
+}
+async function messageSystemeGroupe(texte){
+  try { await sb.from('messages').insert({ auteur: moi.id, type: 'texte', contenu: '§SYS§ ' + texte }); } catch (e) {}
+}
+async function verifierRetraitGroupe(){
+  let retire = false;
+  try {
+    const r = await sb.from('groupe_general_retires').select('user_id').eq('user_id', moi.id);
+    retire = !!(r.data && r.data.length);
+  } catch (e) { return; }
+  const s = $('saisie');
+  let b = $('avis-retire');
+  if (retire) {
+    if (s) s.classList.add('hidden');
+    if (!b && s && s.parentNode) {
+      b = document.createElement('div');
+      b.id = 'avis-retire';
+      b.style.cssText = 'padding:16px;text-align:center;background:#202c33;color:#8696a0';
+      b.textContent = 'Vous ne pouvez plus envoyer de messages dans ce groupe : un administrateur vous a retiré du groupe.';
+      s.parentNode.insertBefore(b, s);
+    }
+  } else if (b) {
+    b.remove();
+    if (s) s.classList.remove('hidden');
+  }
 }
 async function ouvrirInfosGroupe(){
   const o = $('infosgroupe'), c = $('infosgroupe-corps');
@@ -1341,6 +1368,7 @@ function apercuGroupe(m){
 }
 function marquerGroupeVu(){ try { localStorage.setItem(vuGroupe(), new Date().toISOString()); } catch (e) {} }
 function ouvrirGroupe(){
+  verifierRetraitGroupe();
   chargerEnteteGroupe();
   montrer('chat'); marquerGroupeVu();
   $('zone').scrollTop = $('zone').scrollHeight;
