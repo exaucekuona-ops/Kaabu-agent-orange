@@ -16,7 +16,10 @@
     "@capacitor/browser": "^8.0.4",
     "@capacitor/cli": "^8.5.2",
     "@capacitor/core": "^8.5.2",
+    "@capacitor/filesystem": "^8.1.4",
     "@capacitor/push-notifications": "^8.1.2",
+    "@capacitor/share": "^8.0.3",
+    "@capgo/capacitor-share-target": "^8.0.59",
     "@supabase/supabase-js": "^2.112.2",
     "dotenv": "^17.4.2",
     "express": "^5.2.1"
