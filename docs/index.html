@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261013-004908">
+<meta name="build" content="20261013-005633">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -164,7 +164,7 @@
     <i class="fa-solid fa-ellipsis-vertical" style="cursor:pointer;padding:6px 12px;font-size:1.3rem" onclick="ouvrirMenuPlus()"></i>
   </div>
   <div style="padding:8px 12px"><div style="display:flex;align-items:center;gap:10px;background:#202c33;border-radius:24px;padding:0 16px;min-height:44px"><i class="fa-solid fa-magnifying-glass" style="color:#8696a0"></i><input id="rech-conv" type="search" placeholder="Rechercher une discussion" oninput="filtrerConv(this.value)" style="flex:1;background:transparent;border:0;color:inherit;font-size:16px;outline:0;padding:0"></div></div>
-  <div id="zone-pub" class="hidden" style="height:56px;flex:none"></div><div id="liste-conv" style="flex:1;overflow-y:auto;padding-bottom:160px"></div>
+  <div id="zone-pub" class="hidden" style="height:92px;flex:none;box-sizing:border-box;padding:4px 16px 0;font-size:11px;letter-spacing:1px;color:#8696a0;text-align:center;border-bottom:1px solid #202c33">PUBLICITÉ</div><div id="liste-conv" style="flex:1;overflow-y:auto;padding-bottom:160px"></div>
   <div id="barre-bas" style="position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:#111b21;border-top:1px solid #202c33;padding-bottom:env(safe-area-inset-bottom,0px)"><div  style="flex:1;text-align:center;padding:8px 0;color:#00a884;cursor:pointer"><i class="fa-solid fa-comments" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Discussions</div></div><div onclick="toast('Appels : bientôt disponible')" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-phone" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Appels</div></div><div onclick="toast('Services : bientôt disponible')" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-table-cells-large" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Services</div></div></div>
   <button onclick="ouvrirMembres()" style="position:fixed;right:18px;bottom:84px;z-index:5;width:56px;height:56px;border-radius:16px;background:#00a884;color:#111b21;font-size:1.3rem;padding:0;box-shadow:0 4px 12px rgba(0,0,0,.5)"><i class="fa-solid fa-message"></i></button>
 </div>
@@ -845,7 +845,7 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
         await AdMob.initialize({ initializeForTesting: TEST });
         zone.classList.remove('hidden');
         await new Promise(function(r){ setTimeout(r, 150); });
-        var haut = Math.round(zone.getBoundingClientRect().top);
+        var haut = Math.round(zone.getBoundingClientRect().top) + 20;
         await AdMob.showBanner({
           adId: TEST ? ID_TEST : ID_REEL,
           adSize: 'ADAPTIVE_BANNER',
