@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261013-003747">
+<meta name="build" content="20261013-004908">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -866,11 +866,20 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
     if (zone) zone.classList.add('hidden');
     try { await AdMob.hideBanner(); etat = 2; } catch (e) {}
   }
+  function accueilVisible(acc){
+    if (acc.classList.contains('hidden')) return false;
+    var l = document.getElementById('liste-conv');
+    if (!l) return false;
+    var r = l.getBoundingClientRect();
+    if (r.width < 50) return false;
+    var el = document.elementFromPoint(r.left + r.width / 2, r.top + 20);
+    return !!el && l.contains(el);
+  }
   setInterval(function(){
     var AdMob = plugin(), acc = document.getElementById('accueil');
     if (!AdMob || !acc) return;
-    if (acc.classList.contains('hidden')) cacher(AdMob); else afficher(AdMob);
-  }, 1000);
+    if (accueilVisible(acc)) afficher(AdMob); else cacher(AdMob);
+  }, 300);
 })();
 </script>
 </html>
