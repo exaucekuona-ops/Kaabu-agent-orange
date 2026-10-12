@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261010-203450">
+<meta name="build" content="20261012-082518">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -884,7 +884,7 @@ document.addEventListener('visibilitychange', function(){ if(!document.hidden) c
 
 async function envoyerFichier(inp){
   var f = inp.files[0]; inp.value = ''; if(!f) return;
-  if(f.size > 20*1024*1024){ alert('Fichier trop lourd (20 Mo maximum).'); return; }
+  if(f.size > 50*1024*1024){ alert('Fichier trop lourd (50 Mo maximum).'); return; }
   var nom = f.name.replace(/[^A-Za-z0-9._-]+/g,'_').slice(-80);
   var chemin = moi.id + '/' + Date.now() + '__' + nom;
   var up = await sb.storage.from('chat').upload(chemin, f, { contentType: f.type || 'application/octet-stream' });
@@ -904,6 +904,91 @@ afficherMedia = async function(m){
   $('m' + m.id).innerHTML = url ? lienFichier(m, url) : '(fichier indisponible)';
 };
 </script>
+<script>
+/* CARTE-FICHIER-DEBUT */
+(function(){
+  var prev = afficherMedia, reg = {};
+  function taille(o){
+    if(typeof o !== 'number') return '';
+    if(o < 1024) return o + ' o';
+    if(o < 1048576) return (o / 1024).toFixed(1).replace('.', ',') + ' ko';
+    return (o / 1048576).toFixed(1).replace('.', ',') + ' Mo';
+  }
+  function extDe(n){
+    var i = n.lastIndexOf('.'), e = i > 0 ? n.slice(i + 1).toUpperCase() : '';
+    return e && e.length <= 4 ? e : 'FICHIER';
+  }
+  function nomFic(m){ return m.contenu.split('__').slice(1).join('__') || 'fichier'; }
+  function carte(m, nom, fait){
+    return '<div style="display:flex;align-items:center;gap:10px;min-width:220px;max-width:280px">'
+      + '<div style="width:44px;height:52px;border-radius:6px;background:#5f6b73;color:#fff;font-weight:700;font-size:12px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;flex:none">' + esc(extDe(nom)) + '</div>'
+      + '<div style="flex:1;min-width:0"><div style="font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(nom) + '</div>'
+      + '<div id="fs' + m.id + '" style="font-size:12px;opacity:.7">' + (fait ? '✓ Enregistré' : esc(extDe(nom))) + '</div></div>'
+      + (fait ? '' : '<button id="fb' + m.id + '" onclick="telFichier(\'' + m.id + '\')" style="flex:none;width:36px;height:36px;border-radius:50%;border:2px solid currentColor;background:none;color:inherit;font-size:18px">⬇</button>')
+      + '</div>';
+  }
+  async function enregistrer(blob, nom){
+    var FS = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.Filesystem;
+    if(FS){
+      var data = await new Promise(function(ok, ko){
+        var fr = new FileReader();
+        fr.onload = function(){ ok(String(fr.result).split(',')[1]); };
+        fr.onerror = function(){ ko(new Error('Lecture impossible')); };
+        fr.readAsDataURL(blob);
+      });
+      await FS.writeFile({ path: 'Telecom RDC/' + nom, data: data, directory: 'DOCUMENTS', recursive: true });
+    } else {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = nom;
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+  }
+  window.telFichier = async function(id){
+    var f = reg[id]; if(!f) return;
+    var b = document.getElementById('fb' + id), s = document.getElementById('fs' + id);
+    if(b) b.disabled = true;
+    try{
+      s.textContent = 'Téléchargement…';
+      var r = await sb.storage.from('chat').createSignedUrl(f.m.contenu, 600);
+      if(r.error || !r.data) throw new Error('fichier indisponible');
+      var resp = await fetch(r.data.signedUrl);
+      if(!resp.ok) throw new Error('erreur ' + resp.status);
+      var total = +resp.headers.get('content-length') || 0, lu = 0, morceaux = [];
+      if(resp.body && resp.body.getReader){
+        var rd = resp.body.getReader();
+        for(;;){
+          var x = await rd.read(); if(x.done) break;
+          morceaux.push(x.value); lu += x.value.length;
+          if(total) s.textContent = 'Téléchargement… ' + Math.round(lu * 100 / total) + ' %';
+        }
+      } else { morceaux.push(new Uint8Array(await resp.arrayBuffer())); }
+      await enregistrer(new Blob(morceaux, { type: f.type || 'application/octet-stream' }), f.nom);
+      try{ localStorage.setItem('dl:' + id, '1'); }catch(e){}
+      s.textContent = '✓ Enregistré dans Documents/Telecom RDC';
+      if(b) b.remove();
+    }catch(e){
+      s.textContent = 'Échec : ' + e.message;
+      if(b) b.disabled = false;
+    }
+  };
+  afficherMedia = async function(m){
+    if(m.type !== 'fichier') return prev(m);
+    var el = $('m' + m.id); if(!el) return;
+    var nom = nomFic(m), fait = false;
+    try{ fait = localStorage.getItem('dl:' + m.id) === '1'; }catch(e){}
+    reg[m.id] = { m: m, nom: nom, type: '' };
+    el.innerHTML = carte(m, nom, fait);
+    var inf = await sb.storage.from('chat').info(m.contenu);
+    if(inf && inf.data){
+      reg[m.id].type = inf.data.contentType || '';
+      var s = document.getElementById('fs' + m.id);
+      if(s && !fait) s.textContent = taille(inf.data.size) + ' • ' + extDe(nom);
+    }
+  };
+})();
+/* CARTE-FICHIER-FIN */
+</script>
+
 <script>
 async function initPush(){
   var d = document.createElement('div');
