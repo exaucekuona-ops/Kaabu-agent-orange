@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261013-005633">
+<meta name="build" content="20261014-200448">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -213,6 +213,7 @@
 
 <div id="menu" class="admin hidden" style="display:flex;align-items:flex-end;background:rgba(0,0,0,.6)" onclick="fermerMenu()">
   <div style="background:#202c33;width:100%;padding:8px 16px 24px;border-radius:16px 16px 0 0" onclick="event.stopPropagation()">
+    <button id="menu-copier" class="secondaire" style="width:100%;margin-top:8px" onclick="copierChoisi()">Copier</button>
     <button id="menu-modif" class="secondaire" style="width:100%;margin-top:8px" onclick="commencerEdition()">Modifier</button>
     <button id="menu-suppr" class="danger" style="width:100%;margin-top:8px" onclick="supprimerChoisi()">Supprimer</button>
     <button class="secondaire" style="width:100%;margin-top:8px" onclick="fermerMenu()">Annuler</button>
@@ -707,11 +708,22 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
     const m = msgs[id];
     if (!m || m.supprime) return;
     const perso = m.auteur === moi.id;
-    if (!perso && !moi.is_admin) return;
+    if (m.type !== 'texte' && !perso && !moi.is_admin) return;
+    $('menu-copier').classList.toggle('hidden', m.type !== 'texte');
     $('menu-modif').classList.toggle('hidden', !(perso && m.type === 'texte'));
     $('menu-suppr').classList.toggle('hidden', !(perso || moi.is_admin));
     choisi = id;
     $('menu').classList.remove('hidden');
+  }
+
+  function copierChoisi() {
+    fermerMenu();
+    const m = msgs[choisi];
+    if (!m || m.type !== 'texte') return;
+    const t = m.contenu || '';
+    const fin = () => { const d = document.createElement('div'); d.textContent = 'Message copié'; d.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#202c33;color:#fff;padding:8px 16px;border-radius:16px;z-index:99999;font-size:14px'; document.body.appendChild(d); setTimeout(() => d.remove(), 1500); };
+    const repli = () => { const a = document.createElement('textarea'); a.value = t; a.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); } catch (e) {} a.remove(); fin(); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(fin, repli); else repli();
   }
 
   function fermerMenu() { $('menu').classList.add('hidden'); }
