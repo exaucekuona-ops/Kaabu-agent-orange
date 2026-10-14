@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261014-200448">
+<meta name="build" content="20261014-201359">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -211,8 +211,13 @@
   </div>
 </div>
 
+<div id="transf" class="admin hidden">
+  <div class="entete"><strong>Transférer à…</strong><i class="fa-solid fa-xmark" style="cursor:pointer" onclick="$('transf').classList.add('hidden')"></i></div>
+  <div id="transf-liste"></div>
+</div>
 <div id="menu" class="admin hidden" style="display:flex;align-items:flex-end;background:rgba(0,0,0,.6)" onclick="fermerMenu()">
   <div style="background:#202c33;width:100%;padding:8px 16px 24px;border-radius:16px 16px 0 0" onclick="event.stopPropagation()">
+    <button id="menu-transf" class="secondaire" style="width:100%;margin-top:8px" onclick="transfererChoisi()">Transférer</button>
     <button id="menu-copier" class="secondaire" style="width:100%;margin-top:8px" onclick="copierChoisi()">Copier</button>
     <button id="menu-modif" class="secondaire" style="width:100%;margin-top:8px" onclick="commencerEdition()">Modifier</button>
     <button id="menu-suppr" class="danger" style="width:100%;margin-top:8px" onclick="supprimerChoisi()">Supprimer</button>
@@ -710,10 +715,30 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
     const perso = m.auteur === moi.id;
     if (m.type !== 'texte' && !perso && !moi.is_admin) return;
     $('menu-copier').classList.toggle('hidden', m.type !== 'texte');
+    $('menu-transf').classList.toggle('hidden', m.type !== 'texte' || String(m.contenu || '').startsWith('§'));
     $('menu-modif').classList.toggle('hidden', !(perso && m.type === 'texte'));
     $('menu-suppr').classList.toggle('hidden', !(perso || moi.is_admin));
     choisi = id;
     $('menu').classList.remove('hidden');
+  }
+
+  let transfTexte = '';
+  function msgFlash(t) { const d = document.createElement('div'); d.textContent = t; d.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#202c33;color:#fff;padding:8px 16px;border-radius:16px;z-index:99999;font-size:14px'; document.body.appendChild(d); setTimeout(() => d.remove(), 1800); }
+  async function transfererChoisi() {
+    fermerMenu();
+    const m = msgs[choisi];
+    if (!m || m.type !== 'texte') return;
+    transfTexte = m.contenu || '';
+    await chargerAnnuaire();
+    const l = Object.values(tels).filter(p => p.id !== moi.id).sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
+    $('transf-liste').innerHTML = l.map(p => '<div class="ligne" style="cursor:pointer" data-id="' + p.id + '" onclick="envoyerTransfert(this.dataset.id)"><div style="display:flex;align-items:center;gap:10px">' + avatarDe(p.id, p.nom) + '<div>' + esc(p.nom) + '</div></div></div>').join('') || '<p style="padding:16px">Aucun contact.</p>';
+    $('transf').classList.remove('hidden');
+  }
+  async function envoyerTransfert(id) {
+    $('transf').classList.add('hidden');
+    if (!transfTexte) return;
+    const { error } = await sb.from('prives').insert({ de: moi.id, a: id, contenu: transfTexte });
+    msgFlash(error ? 'Erreur : ' + error.message : 'Message transféré');
   }
 
   function copierChoisi() {
