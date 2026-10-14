@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261014-201359">
+<meta name="build" content="20261014-203048">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -732,6 +732,7 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
     await chargerAnnuaire();
     const l = Object.values(tels).filter(p => p.id !== moi.id).sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
     $('transf-liste').innerHTML = l.map(p => '<div class="ligne" style="cursor:pointer" data-id="' + p.id + '" onclick="envoyerTransfert(this.dataset.id)"><div style="display:flex;align-items:center;gap:10px">' + avatarDe(p.id, p.nom) + '<div>' + esc(p.nom) + '</div></div></div>').join('') || '<p style="padding:16px">Aucun contact.</p>';
+    $('transf').style.zIndex = 10000;
     $('transf').classList.remove('hidden');
   }
   async function envoyerTransfert(id) {
@@ -789,6 +790,38 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
   }, { passive: true });
   ['touchend', 'touchmove', 'touchcancel'].forEach(t =>
     $('zone').addEventListener(t, () => clearTimeout(minuteur), { passive: true }));
+
+  var msgsP = {};
+  let minP = null;
+  function ouvrirMenuP(id) {
+    const m = msgsP[id];
+    if (!m || (m.type && m.type !== 'texte')) return;
+    const k = 'P' + id;
+    msgs[k] = Object.assign({}, m, { auteur: m.de, type: 'texte' });
+    appuiLong = true;
+    $('menu-copier').classList.remove('hidden');
+    $('menu-transf').classList.toggle('hidden', String(m.contenu || '').startsWith('§'));
+    $('menu-modif').classList.add('hidden');
+    $('menu-suppr').classList.add('hidden');
+    choisi = k;
+    $('menu').style.zIndex = 9999;
+    $('menu').classList.remove('hidden');
+  }
+  (function () {
+    const st = document.createElement('style');
+    st.textContent = '#prive-zone .bulle{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}';
+    document.head.appendChild(st);
+    const pz = $('prive-zone');
+    pz.addEventListener('touchstart', e => {
+      const b = e.target.closest('.bulle');
+      if (!b || !b.id || b.id[0] !== 'p') return;
+      appuiLong = false;
+      clearTimeout(minP);
+      minP = setTimeout(() => ouvrirMenuP(b.id.slice(1)), 600);
+    }, { passive: true });
+    ['touchend', 'touchmove', 'touchcancel'].forEach(t => pz.addEventListener(t, () => clearTimeout(minP), { passive: true }));
+    pz.addEventListener('contextmenu', e => { if (e.target.closest('.bulle')) e.preventDefault(); });
+  })();
 
   async function envoyer() {
     const t = $('texte').value.trim();
@@ -1366,6 +1399,7 @@ async function ouvrirContact(id){
 function fermerContact(){ $('contact').classList.add('hidden'); }
 
 function ajouterPrive(m){
+  if (typeof msgsP !== 'undefined') msgsP[m.id] = m;
   if (!priveId || !((m.de === moi.id && m.a === priveId) || (m.de === priveId && m.a === moi.id))) return;
   if ($('p' + m.id)) return;
   const estMoi = m.de === moi.id, d = new Date(m.created_at || Date.now());
