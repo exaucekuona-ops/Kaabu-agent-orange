@@ -2462,3 +2462,74 @@ function majCoche(id){
   document.addEventListener("visibilitychange",function(){ if(!document.hidden) verifier(); });
 })();
 </script>
+<script id="barre-unie-js">
+(function(){
+  if(window.__wa2) return; window.__wa2=1;
+  var st=document.createElement('style');
+  st.textContent=[
+    '.barre.wa2{align-items:center}',
+    '#saisie.wa2 .pilule,#prive-saisie.wa2 .pilule{flex:1 1 0;min-width:0;display:flex;align-items:center;background:#202c33;border-radius:28px;padding:0 6px 0 8px;min-height:48px}',
+    '.barre.wa2 .pilule input[type=text]{flex:1 1 0;min-width:0;background:transparent;border:0;outline:0;box-shadow:none;border-radius:0;padding:10px 4px;color:#e9edef;font-size:17px}',
+    '.barre.wa2 .wbtn{flex:none;width:40px;height:40px;border-radius:50%;border:0;background:transparent;color:#8696a0;font-size:19px;padding:0;cursor:pointer}',
+    '.barre.wa2 .wmic{flex:none;width:48px;height:48px;border-radius:50%;border:0;background:#fff;color:#111b21;font-size:20px;padding:0;cursor:pointer}',
+    '#prive-saisie.wa2 .envoi{display:none;width:48px;height:48px}',
+    '#prive-saisie.wa2.ecrit .envoi{display:inline-flex;align-items:center;justify-content:center}',
+    '#prive-saisie.wa2.ecrit .wmic{display:none}'
+  ].join('');
+  document.head.appendChild(st);
+
+  function btn(ic,fn,cls){
+    var b=document.createElement('button'); b.type='button'; b.className=cls||'wbtn';
+    b.innerHTML='<i class="fa-solid '+ic+'"></i>'; b.onclick=fn; return b;
+  }
+  function hid(accept,cap,fn){
+    var i=document.createElement('input'); i.type='file';
+    if(accept) i.accept=accept;
+    if(cap) i.setAttribute('capture',cap);
+    i.style.display='none'; i.onchange=function(){ fn(i); }; return i;
+  }
+  var menu=null;
+  function fermer(){ if(menu){ menu.remove(); menu=null; } }
+  function ouvrir(bar,items){
+    fermer();
+    var m=document.createElement('div');
+    m.style.cssText='position:fixed;right:12px;z-index:9999;background:#233138;border-radius:16px;padding:6px;box-shadow:0 4px 16px rgba(0,0,0,.5);min-width:190px';
+    m.style.bottom=(window.innerHeight-bar.getBoundingClientRect().top+8)+'px';
+    items.forEach(function(it){
+      var b=document.createElement('button'); b.type='button';
+      b.style.cssText='display:flex;align-items:center;gap:14px;width:100%;background:none;border:0;color:#e9edef;font-size:16px;padding:12px 14px;text-align:left';
+      b.innerHTML='<i class="fa-solid '+it[0]+'" style="width:22px;text-align:center;color:#00a884"></i><span>'+it[1]+'</span>';
+      b.onclick=function(e){ e.stopPropagation(); fermer(); it[2](); };
+      m.appendChild(b);
+    });
+    document.body.appendChild(m); menu=m;
+  }
+  document.addEventListener('click',fermer);
+
+  function monter(c){
+    var bar=document.getElementById(c.bar), t=document.getElementById(c.texte);
+    if(!bar||!t||bar.getAttribute('data-wa2')) return;
+    var pil=t.parentNode;
+    if(!pil.classList.contains('pilule')) return;
+    bar.setAttribute('data-wa2','1'); bar.classList.add('wa2');
+    [].slice.call(pil.querySelectorAll('button,input[type=file]')).forEach(function(n){ n.remove(); });
+    var g=hid('image/*',null,c.photo), d=hid(null,null,c.fichier), k=hid('image/*','environment',c.photo);
+    var emo=btn('fa-face-smile',function(){ t.focus(); });
+    var clip=btn('fa-paperclip',function(e){
+      e.stopPropagation();
+      ouvrir(bar,[['fa-file','Document',function(){ d.click(); }],['fa-image','Galerie',function(){ g.click(); }]]);
+    });
+    var cam=btn('fa-camera',function(){ k.click(); });
+    pil.insertBefore(emo,t);
+    pil.appendChild(clip); pil.appendChild(cam); pil.appendChild(g); pil.appendChild(d); pil.appendChild(k);
+    if(c.vocal){
+      var m=btn('fa-microphone',function(){ c.vocal(m); },'wmic');
+      bar.insertBefore(m,bar.querySelector('.envoi'));
+    }
+    function sync(){ if(t.value.trim()!=='') bar.classList.add('ecrit'); else bar.classList.remove('ecrit'); }
+    t.addEventListener('input',sync); setInterval(sync,300); sync();
+  }
+  monter({bar:'saisie',texte:'texte',photo:function(i){ envoyerPhoto(i); },fichier:function(i){ envoyerFichier(i); },vocal:null});
+  monter({bar:'prive-saisie',texte:'prive-texte',photo:function(i){ photoP(i); },fichier:function(i){ fichierP(i); },vocal:function(b){ vocalP(b); }});
+})();
+</script>
