@@ -2453,7 +2453,7 @@ function majCoche(id){
       var mien=parseInt(info.build,10);
       if(!mien) return;
       var r=await sb.from("config").select("version_min").eq("id",1).single();
-      var min=r&&r.data?r.data.version_min:0;
+      var min=r&&r.data?r.data.version_min:0; try{ var gr=await fetch("https://api.github.com/repos/exaucekuona-ops/Kaabu-agent-orange/releases/latest"); var gj=await gr.json(); var mm=/versionCode\s+(\d+)/.exec(gj.body||""); if(mm) min=Math.max(min||0,parseInt(mm[1],10)); }catch(e){}
       if(min&&mien<min) afficher();
     }catch(e){}
   }
