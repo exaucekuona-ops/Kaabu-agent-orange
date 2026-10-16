@@ -2429,3 +2429,36 @@ function majCoche(id){
   };
 })();
 </script>
+<script id="bloc-version-js">
+(function(){
+  var LIEN="https://github.com/exaucekuona-ops/Kaabu-agent-orange/releases/latest/download/telecom-rdc.apk";
+  function afficher(){
+    if(document.getElementById("bloc-version")) return;
+    var d=document.createElement("div");
+    d.id="bloc-version";
+    d.style.cssText="position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483647;background:#fff;color:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:sans-serif";
+    d.innerHTML="<div style='font-size:56px'>⬆️</div><h2 style='margin:12px 0'>Mise à jour obligatoire</h2><p style='margin:0 0 24px'>Cette version n'est plus acceptée. Installe la nouvelle version pour continuer.</p><button id='bv-dl' style='padding:14px 32px;font-size:18px;border:0;border-radius:24px;background:#0a7cff;color:#fff'>Télécharger</button><button id='bv-no' style='margin-top:14px;padding:10px 24px;font-size:16px;border:0;background:none;color:#666'>Annuler</button>";
+    document.body.appendChild(d);
+    document.getElementById("bv-dl").onclick=function(){
+      try{ Capacitor.Plugins.Browser.open({url:LIEN}); }catch(e){ window.open(LIEN,"_system"); }
+    };
+    document.getElementById("bv-no").onclick=function(){
+      try{ Capacitor.Plugins.App.exitApp(); }catch(e){}
+    };
+  }
+  async function verifier(){
+    try{
+      if(typeof sb==="undefined"||!window.Capacitor||!Capacitor.Plugins||!Capacitor.Plugins.App) return;
+      var info=await Capacitor.Plugins.App.getInfo();
+      var mien=parseInt(info.build,10);
+      if(!mien) return;
+      var r=await sb.from("config").select("version_min").eq("id",1).single();
+      var min=r&&r.data?r.data.version_min:0;
+      if(min&&mien<min) afficher();
+    }catch(e){}
+  }
+  verifier();
+  setInterval(verifier,300000);
+  document.addEventListener("visibilitychange",function(){ if(!document.hidden) verifier(); });
+})();
+</script>
