@@ -1,8 +1,5 @@
 {
   "appId": "com.kaabu.agent",
   "appName": "KaabuAgent",
-  "webDir": "docs",
-  "server": {
-    "url": "https://exaucekuona-ops.github.io/Kaabu-agent-orange/"
-  }
+  "webDir": "docs"
 }
