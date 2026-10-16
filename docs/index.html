@@ -2519,7 +2519,7 @@ function majCoche(id){
       e.stopPropagation();
       ouvrir(bar,[['fa-file','Document',function(){ d.click(); }],['fa-image','Galerie',function(){ g.click(); }]]);
     });
-    var cam=btn('fa-camera',function(){ k.click(); });
+    var cam=btn('fa-camera',function(){ if(window.__camWA) window.__camWA(c.photo); else k.click(); });
     pil.insertBefore(emo,t);
     pil.appendChild(clip); pil.appendChild(cam); pil.appendChild(g); pil.appendChild(d); pil.appendChild(k);
     if(c.vocal){
@@ -2532,4 +2532,43 @@ function majCoche(id){
   monter({bar:'saisie',texte:'texte',photo:function(i){ envoyerPhoto(i); },fichier:function(i){ envoyerFichier(i); },vocal:null});
   monter({bar:'prive-saisie',texte:'prive-texte',photo:function(i){ photoP(i); },fichier:function(i){ fichierP(i); },vocal:function(b){ vocalP(b); }});
 })();
+</script>
+
+<script id="camera-wa-js">
+window.__camWA=function(envoyerFn){
+  if(document.getElementById('cam-wa')) return;
+  var face='environment', flux=null;
+  var ov=document.createElement('div'); ov.id='cam-wa';
+  ov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483000;background:#000;display:flex;flex-direction:column';
+  var v=document.createElement('video'); v.setAttribute('playsinline',''); v.autoplay=true; v.muted=true;
+  v.style.cssText='flex:1;min-height:0;width:100%;object-fit:cover;background:#000';
+  var bas=document.createElement('div');
+  bas.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:18px 28px 30px;background:#000';
+  function mk(html,css,fn){ var b=document.createElement('button'); b.type='button'; b.innerHTML=html; b.style.cssText=css; b.onclick=fn; return b; }
+  function stop(){ if(flux){ flux.getTracks().forEach(function(t){ t.stop(); }); flux=null; } }
+  function fermer(){ stop(); ov.remove(); }
+  async function demarrer(){
+    stop();
+    try{
+      flux=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:face},width:{ideal:1280}},audio:false});
+      v.srcObject=flux;
+    }catch(e){ alert('Caméra indisponible : '+e.message); fermer(); }
+  }
+  var ann=mk('Annuler','background:none;border:0;color:#fff;font-size:17px;padding:10px',fermer);
+  var snap=mk('','width:70px;height:70px;border-radius:50%;border:5px solid #ccc;background:#fff;padding:0',function(){
+    if(!v.videoWidth) return;
+    var c=document.createElement('canvas'); c.width=v.videoWidth; c.height=v.videoHeight;
+    c.getContext('2d').drawImage(v,0,0);
+    c.toBlob(function(b){
+      if(!b) return;
+      var f=new File([b],'photo.jpg',{type:'image/jpeg'});
+      fermer(); envoyerFn({files:[f],value:''});
+    },'image/jpeg',0.9);
+  });
+  var flip=mk('<i class="fa-solid fa-rotate"></i>','background:none;border:0;color:#fff;font-size:26px;padding:10px',function(){ face=(face==='environment')?'user':'environment'; demarrer(); });
+  bas.appendChild(ann); bas.appendChild(snap); bas.appendChild(flip);
+  ov.appendChild(v); ov.appendChild(bas); document.body.appendChild(ov);
+  demarrer();
+};
+
 </script>
