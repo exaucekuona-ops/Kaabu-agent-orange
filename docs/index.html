@@ -2514,12 +2514,22 @@ function majCoche(id){
     bar.setAttribute('data-wa2','1'); bar.classList.add('wa2');
     [].slice.call(pil.querySelectorAll('button,input[type=file]')).forEach(function(n){ n.remove(); });
     var g=hid('image/*',null,c.photo), d=hid(null,null,c.fichier), k=hid('image/*','environment',c.photo);
-    var emo=btn('fa-face-smile',function(){ t.focus(); });
+    var pan=null;
+var emo=btn('fa-face-smile',function(e){
+if(e&&e.stopPropagation) e.stopPropagation();
+if(pan){ pan.remove(); pan=null; t.focus(); return; }
+var L=[]; [[128512,128591],[129296,129327]].forEach(function(r){ for(var i=r[0];i<=r[1];i++) L.push(String.fromCodePoint(i)); });
+[128077,128078,128079,128170,10084,128153,128154,128293,127881,128176,9989,10060].forEach(function(i){ L.push(String.fromCodePoint(i)); });
+pan=document.createElement('div');
+pan.style.cssText='display:grid;grid-template-columns:repeat(8,1fr);gap:2px;max-height:210px;overflow-y:auto;background:#202c33;padding:8px;font-size:26px;text-align:center';
+L.forEach(function(x){ var p=document.createElement('span'); p.textContent=x; p.style.cssText='padding:6px 0;cursor:pointer'; p.onclick=function(ev){ ev.stopPropagation(); var a=t.selectionStart; if(a==null) a=t.value.length; var z=t.selectionEnd; if(z==null) z=a; t.value=t.value.slice(0,a)+x+t.value.slice(z); t.setSelectionRange(a+x.length,a+x.length); t.dispatchEvent(new Event('input')); }; pan.appendChild(p); });
+bar.parentNode.insertBefore(pan,bar); t.blur();
+});
     var clip=btn('fa-paperclip',function(e){
       e.stopPropagation();
       ouvrir(bar,[['fa-file','Document',function(){ d.click(); }],['fa-image','Galerie',function(){ g.click(); }]]);
     });
-    var cam=btn('fa-camera',function(){ if(window.__camWA) window.__camWA(c.photo); else k.click(); });
+    var cam=btn('fa-camera',function(){ try{ if(window.__camWA) window.__camWA(c.photo); else alert('Camera: module absent'); }catch(e){ alert('Camera erreur: '+e.message); } });
     pil.insertBefore(emo,t);
     pil.appendChild(clip); pil.appendChild(cam); pil.appendChild(g); pil.appendChild(d); pil.appendChild(k);
     if(c.vocal){
