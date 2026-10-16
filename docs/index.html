@@ -2440,7 +2440,7 @@ function majCoche(id){
     d.innerHTML="<div style='font-size:56px'>⬆️</div><h2 style='margin:12px 0'>Mise à jour obligatoire</h2><p style='margin:0 0 24px'>Cette version n'est plus acceptée. Installe la nouvelle version pour continuer.</p><button id='bv-dl' style='padding:14px 32px;font-size:18px;border:0;border-radius:24px;background:#0a7cff;color:#fff'>Télécharger</button><button id='bv-no' style='margin-top:14px;padding:10px 24px;font-size:16px;border:0;background:none;color:#666'>Annuler</button>";
     document.body.appendChild(d);
     document.getElementById("bv-dl").onclick=function(){
-      try{ Capacitor.Plugins.Browser.open({url:LIEN}); }catch(e){ window.open(LIEN,"_system"); }
+      (async function(){var b=document.getElementById("bv-dl");b.disabled=true;b.textContent="Téléchargement…";try{var P=Capacitor.Plugins;var r=await P.Filesystem.downloadFile({url:LIEN,path:"telecom-rdc.apk",directory:"CACHE"});b.textContent="Installation…";await P.FileOpener.openFile({path:String(r.path).replace("file://",""),mimeType:"application/vnd.android.package-archive"});b.disabled=false;b.textContent="Installer";}catch(e){b.disabled=false;b.textContent="Réessayer";var m=document.getElementById("bv-err");if(!m){m=document.createElement("p");m.id="bv-err";m.style.cssText="color:#c00;font-size:13px;margin-top:12px";b.parentNode.appendChild(m);}m.textContent=String(e&&e.message||e);}})();
     };
     document.getElementById("bv-no").onclick=function(){
       try{ Capacitor.Plugins.App.exitApp(); }catch(e){}
