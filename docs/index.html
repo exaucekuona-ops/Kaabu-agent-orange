@@ -981,6 +981,173 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
 });
 })();
 </script>
+<!-- DEBUT-APPELS -->
+<script>
+(function(){
+  var ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+  var pc = null, flux = null, appelId = null, canalA = null, minuteur = null, role = null, nomAppel = '';
+  function $a(i){ return document.getElementById(i); }
+
+  function ecran(titre, sous, boutons){
+    var e = $a('appel-ecran');
+    if (!e){
+      e = document.createElement('div');
+      e.id = 'appel-ecran';
+      e.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#0b141a;color:#e9edef;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px';
+      document.body.appendChild(e);
+    }
+    e.innerHTML = '';
+    var t = document.createElement('div'); t.style.cssText = 'font-size:1.5rem;font-weight:600'; t.textContent = titre; e.appendChild(t);
+    var s = document.createElement('div'); s.style.opacity = '.7'; s.textContent = sous; e.appendChild(s);
+    var r = document.createElement('div'); r.style.cssText = 'display:flex;gap:28px;margin-top:30px'; e.appendChild(r);
+    boutons.forEach(function(x){
+      var b = document.createElement('button');
+      b.textContent = x.t;
+      b.style.cssText = 'border:0;border-radius:50%;width:76px;height:76px;font-size:.8rem;font-weight:600;color:#fff;background:' + x.c;
+      b.onclick = x.f;
+      r.appendChild(b);
+    });
+  }
+  function fermerEcran(){ var e = $a('appel-ecran'); if (e) e.remove(); }
+
+  function nettoyer(){
+    clearTimeout(minuteur); minuteur = null;
+    if (flux){ flux.getTracks().forEach(function(t){ t.stop(); }); flux = null; }
+    if (pc){ try{ pc.close(); }catch(e){} pc = null; }
+    if (canalA){ try{ sb.removeChannel(canalA); }catch(e){} canalA = null; }
+    var au = $a('appel-audio'); if (au) au.srcObject = null;
+    appelId = null; role = null;
+  }
+  function attendreIce(p){
+    return new Promise(function(ok){
+      if (p.iceGatheringState === 'complete') return ok();
+      var ch = function(){ if (p.iceGatheringState === 'complete'){ p.removeEventListener('icegatheringstatechange', ch); ok(); } };
+      p.addEventListener('icegatheringstatechange', ch);
+      setTimeout(ok, 5000);
+    });
+  }
+  function finDistante(msg){
+    nettoyer();
+    ecran(msg, '', []);
+    setTimeout(fermerEcran, 2000);
+  }
+  async function raccrocher(msg){
+    var id = appelId;
+    nettoyer();
+    if (id){ try{ await sb.from('appels').update({ etat: 'fini' }).eq('id', id); }catch(e){} }
+    if (msg){ ecran(msg, '', []); setTimeout(fermerEcran, 2500); } else fermerEcran();
+  }
+
+  async function preparer(){
+    flux = await navigator.mediaDevices.getUserMedia({ audio: true });
+    pc = new RTCPeerConnection(ICE);
+    flux.getTracks().forEach(function(t){ pc.addTrack(t, flux); });
+    pc.ontrack = function(ev){
+      var au = $a('appel-audio');
+      if (!au){ au = document.createElement('audio'); au.id = 'appel-audio'; au.autoplay = true; au.setAttribute('playsinline', ''); document.body.appendChild(au); }
+      au.srcObject = ev.streams[0];
+      au.play().catch(function(){});
+    };
+    pc.onconnectionstatechange = function(){
+      if (!pc) return;
+      if (pc.connectionState === 'connected') ecran(nomAppel, 'En communication', [{ t: 'Raccrocher', c: '#e53935', f: function(){ raccrocher(); } }]);
+      if (pc.connectionState === 'failed') raccrocher('Connexion impossible');
+    };
+  }
+
+  function ecoute(id){
+    canalA = sb.channel('appel-' + id)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'appels', filter: 'id=eq.' + id }, async function(p){
+        var n = p.new;
+        if (n.etat === 'decroche' && n.reponse && role === 'appelant' && pc && !pc.currentRemoteDescription){
+          clearTimeout(minuteur);
+          try{ await pc.setRemoteDescription(n.reponse); }catch(e){}
+          ecran(nomAppel, 'Connexion…', [{ t: 'Raccrocher', c: '#e53935', f: function(){ raccrocher(); } }]);
+        }
+        if (n.etat === 'fini'){
+          var msg = role === 'appelant' ? ((pc && !pc.currentRemoteDescription) ? 'Appel refusé' : 'Appel terminé') : (pc ? 'Appel terminé' : 'Appel manqué');
+          finDistante(msg);
+        }
+      })
+      .subscribe();
+  }
+
+  window.appeler = async function(id){
+    try{
+      if (appelId || pc) return;
+      if (!navigator.mediaDevices || !window.RTCPeerConnection){ alert('Appel non disponible sur cet appareil'); return; }
+      nomAppel = nomDe(id);
+      role = 'appelant';
+      ecran(nomAppel, 'Appel en cours…', [{ t: 'Annuler', c: '#e53935', f: function(){ raccrocher(); } }]);
+      await preparer();
+      if (role !== 'appelant'){ nettoyer(); return; }
+      var o = await pc.createOffer();
+      await pc.setLocalDescription(o);
+      await attendreIce(pc);
+      if (!pc) return;
+      var r = await sb.from('appels').insert({ de: moi.id, vers: id, etat: 'sonne', offre: pc.localDescription.toJSON() }).select('id').single();
+      if (r.error) throw r.error;
+      appelId = r.data.id;
+      ecoute(appelId);
+      minuteur = setTimeout(function(){ raccrocher('Pas de réponse'); }, 45000);
+    }catch(e){
+      nettoyer();
+      ecran('Appel impossible', String((e && e.message) || e), [{ t: 'OK', c: '#2a3942', f: fermerEcran }]);
+    }
+  };
+
+  async function repondre(){
+    var id = appelId;
+    try{
+      ecran(nomAppel, 'Connexion…', [{ t: 'Raccrocher', c: '#e53935', f: function(){ raccrocher(); } }]);
+      var r = await sb.from('appels').select('offre').eq('id', id).single();
+      if (r.error) throw r.error;
+      await preparer();
+      if (appelId !== id){ nettoyer(); return; }
+      await pc.setRemoteDescription(r.data.offre);
+      var a = await pc.createAnswer();
+      await pc.setLocalDescription(a);
+      await attendreIce(pc);
+      if (!pc) return;
+      var u = await sb.from('appels').update({ etat: 'decroche', reponse: pc.localDescription.toJSON() }).eq('id', id);
+      if (u.error) throw u.error;
+    }catch(e){
+      raccrocher('Échec : ' + ((e && e.message) || e));
+    }
+  }
+
+  function ecouteEntrants(){
+    sb.channel('appels-entrants-' + moi.id)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'appels', filter: 'vers=eq.' + moi.id }, function(p){
+        var n = p.new;
+        if (n.etat !== 'sonne') return;
+        if (appelId || pc){ sb.from('appels').update({ etat: 'fini' }).eq('id', n.id).then(function(){}); return; }
+        appelId = n.id;
+        role = 'appele';
+        nomAppel = nomDe(n.de);
+        try{ if (navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 400]); }catch(e){}
+        ecoute(n.id);
+        ecran(nomAppel, 'Appel vocal entrant', [
+          { t: 'Refuser', c: '#e53935', f: function(){ raccrocher(); } },
+          { t: 'Répondre', c: '#00a884', f: function(){ repondre(); } }
+        ]);
+      })
+      .subscribe();
+  }
+
+  var essais = 0;
+  var t0 = setInterval(function(){
+    essais++;
+    if (typeof sb !== 'undefined' && typeof moi !== 'undefined' && moi && moi.id && typeof nomDe === 'function'){
+      clearInterval(t0);
+      ecouteEntrants();
+      console.log('appels: prêt');
+    } else if (essais > 120){ clearInterval(t0); console.log('appels: sb/moi introuvables'); }
+  }, 1000);
+})();
+</script>
+<!-- FIN-APPELS -->
+
 </html>
 <script>
 async function chargerConfig(){
@@ -1421,7 +1588,7 @@ async function ouvrirContact(id){
   $('contact-tel').textContent = tel || 'Numéro non renseigné';
   const bt = 'display:block;width:100%;box-sizing:border-box;padding:12px;margin-top:8px;border-radius:8px;font-weight:600;font-size:1rem;text-decoration:none;text-align:center;border:0;';
   $('contact-actions').innerHTML = id === moi.id ? '' :
-    (tel ? `<a href="tel:${esc(tel)}" style="${bt}background:#00a884;color:#111b21"><i class="fa-solid fa-phone"></i>&nbsp; Appeler</a>` : '') +
+    (tel ? `<a href="#" onclick="fermerContact();appeler('${id}');return false" style="${bt}background:#00a884;color:#111b21"><i class="fa-solid fa-phone"></i>&nbsp; Appeler</a>` : '') +
     `<button style="${bt}background:#2a3942;color:#e9edef" onclick="ouvrirPrive('${id}')"><i class="fa-solid fa-comment"></i>&nbsp; Discuter en privé</button>`;
   $('contact').classList.remove('hidden');
 }
@@ -1443,7 +1610,7 @@ async function ouvrirPrive(id){
   priveId = id;
   $('prive-nom').textContent = nomDe(id); try{ $('prive-av').innerHTML = avatarDe(id, nomDe(id)); }catch(e){} try{ var pa=$('prive-av'); pa.onclick=null; pa.style.cursor=''; if(id==='00000000-0000-4000-8000-0000000000a1' && moi.is_supreme){ pa.style.cursor='pointer'; pa.onclick=function(){ $('ia-photo-input').click(); }; } }catch(e){}
   const tel = tels[id] && tels[id].phone;
-  $('prive-appel').innerHTML = tel ? `<a href="tel:${esc(tel)}" style="color:inherit"><i class="fa-solid fa-phone"></i></a>` : '';
+  $('prive-appel').innerHTML = tel ? `<a href="#" onclick="appeler('${id}');return false" style="color:inherit"><i class="fa-solid fa-phone"></i></a>` : '';
   $('prive-zone').innerHTML = '';
   $('prive').classList.remove('hidden');
   const { data, error } = await sb.from('prives').select('*')
