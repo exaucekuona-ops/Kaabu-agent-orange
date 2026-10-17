@@ -985,33 +985,83 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
 <script>
 (function(){
   var ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
-  var pc = null, flux = null, appelId = null, canalA = null, minuteur = null, role = null, nomAppel = '';
+  var pc = null, flux = null, appelId = null, canalA = null, minuteur = null, role = null;
+  var nomAppel = '', avId = null, debutAppel = null, tic = null, micOff = false, jeton = 0;
   function $a(i){ return document.getElementById(i); }
 
-  function ecran(titre, sous, boutons){
+  function chrono(){
+    var s = Math.floor((Date.now() - debutAppel) / 1000), m = Math.floor(s / 60);
+    s = s % 60;
+    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+  function avatar(){
+    var a = document.createElement('div');
+    a.style.cssText = 'width:190px;height:190px;border-radius:50%;overflow:hidden;background:#2a3942;display:flex;align-items:center;justify-content:center;font-size:5rem;font-weight:600;color:#e9edef';
+    var ok = false;
+    try{
+      a.innerHTML = avatarDe(avId, nomAppel);
+      var im = a.querySelector('img');
+      if (im){ im.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:0;margin:0'; ok = true; }
+    }catch(e){}
+    if (!ok){ a.innerHTML = ''; a.textContent = (nomAppel || '?').charAt(0).toUpperCase(); }
+    return a;
+  }
+  function ecran(sous, boutons){
+    jeton++;
     var e = $a('appel-ecran');
     if (!e){
       e = document.createElement('div');
       e.id = 'appel-ecran';
-      e.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#0b141a;color:#e9edef;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px';
+      e.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#0b141a;color:#e9edef;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;box-sizing:border-box;padding:calc(env(safe-area-inset-top,0px) + 56px) 16px calc(env(safe-area-inset-bottom,0px) + 24px)';
       document.body.appendChild(e);
     }
     e.innerHTML = '';
-    var t = document.createElement('div'); t.style.cssText = 'font-size:1.5rem;font-weight:600'; t.textContent = titre; e.appendChild(t);
-    var s = document.createElement('div'); s.style.opacity = '.7'; s.textContent = sous; e.appendChild(s);
-    var r = document.createElement('div'); r.style.cssText = 'display:flex;gap:28px;margin-top:30px'; e.appendChild(r);
+    var haut = document.createElement('div');
+    var t = document.createElement('div'); t.style.cssText = 'font-size:1.7rem;font-weight:600'; t.textContent = nomAppel; haut.appendChild(t);
+    var s = document.createElement('div'); s.id = 'appel-sous'; s.style.cssText = 'opacity:.75;margin-top:6px;font-size:1.05rem'; s.textContent = sous; haut.appendChild(s);
+    e.appendChild(haut);
+    e.appendChild(avatar());
+    var bas = document.createElement('div');
+    bas.style.cssText = 'width:100%;max-width:420px;box-sizing:border-box;background:#111b21;border-radius:32px;padding:26px 12px;display:flex;justify-content:space-around;align-items:flex-start;gap:8px';
     boutons.forEach(function(x){
+      var col = document.createElement('div'); col.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:8px;min-width:84px';
       var b = document.createElement('button');
-      b.textContent = x.t;
-      b.style.cssText = 'border:0;border-radius:50%;width:76px;height:76px;font-size:.8rem;font-weight:600;color:#fff;background:' + x.c;
+      b.style.cssText = 'border:0;border-radius:50%;width:68px;height:68px;font-size:1.5rem;color:#fff;background:' + x.c;
+      b.innerHTML = '<i class="fa-solid ' + x.i + '"></i>';
       b.onclick = x.f;
-      r.appendChild(b);
+      col.appendChild(b);
+      var l = document.createElement('div'); l.style.cssText = 'font-size:.85rem'; l.textContent = x.t; col.appendChild(l);
+      bas.appendChild(col);
     });
+    e.appendChild(boutons.length ? bas : document.createElement('div'));
   }
   function fermerEcran(){ var e = $a('appel-ecran'); if (e) e.remove(); }
+  function message(msg, ms){
+    ecran(msg, []);
+    var j = jeton;
+    setTimeout(function(){ if (j === jeton) fermerEcran(); }, ms);
+  }
+  function btnTerminer(label){
+    return { t: label || 'Terminer', c: '#e53935', i: 'fa-phone-slash', f: function(){ raccrocher(); } };
+  }
+  function montrerActif(){
+    if (!debutAppel) debutAppel = Date.now();
+    ecran(chrono(), [
+      { t: micOff ? 'Micro coupé' : 'Micro', c: micOff ? '#667781' : '#2a3942', i: micOff ? 'fa-microphone-slash' : 'fa-microphone', f: basculerMicro },
+      btnTerminer()
+    ]);
+    if (!tic) tic = setInterval(function(){ var s = $a('appel-sous'); if (s && debutAppel) s.textContent = chrono(); }, 1000);
+  }
+  function basculerMicro(){
+    if (!flux) return;
+    micOff = !micOff;
+    flux.getAudioTracks().forEach(function(t){ t.enabled = !micOff; });
+    montrerActif();
+  }
 
   function nettoyer(){
     clearTimeout(minuteur); minuteur = null;
+    clearInterval(tic); tic = null; debutAppel = null; micOff = false;
     if (flux){ flux.getTracks().forEach(function(t){ t.stop(); }); flux = null; }
     if (pc){ try{ pc.close(); }catch(e){} pc = null; }
     if (canalA){ try{ sb.removeChannel(canalA); }catch(e){} canalA = null; }
@@ -1028,14 +1078,13 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
   }
   function finDistante(msg){
     nettoyer();
-    ecran(msg, '', []);
-    setTimeout(fermerEcran, 2000);
+    message(msg, 2000);
   }
   async function raccrocher(msg){
     var id = appelId;
     nettoyer();
+    if (msg) message(msg, 2500); else fermerEcran();
     if (id){ try{ await sb.from('appels').update({ etat: 'fini' }).eq('id', id); }catch(e){} }
-    if (msg){ ecran(msg, '', []); setTimeout(fermerEcran, 2500); } else fermerEcran();
   }
 
   async function preparer(){
@@ -1050,7 +1099,7 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
     };
     pc.onconnectionstatechange = function(){
       if (!pc) return;
-      if (pc.connectionState === 'connected') ecran(nomAppel, 'En communication', [{ t: 'Raccrocher', c: '#e53935', f: function(){ raccrocher(); } }]);
+      if (pc.connectionState === 'connected') montrerActif();
       if (pc.connectionState === 'failed') raccrocher('Connexion impossible');
     };
   }
@@ -1062,7 +1111,7 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
         if (n.etat === 'decroche' && n.reponse && role === 'appelant' && pc && !pc.currentRemoteDescription){
           clearTimeout(minuteur);
           try{ await pc.setRemoteDescription(n.reponse); }catch(e){}
-          ecran(nomAppel, 'Connexion…', [{ t: 'Raccrocher', c: '#e53935', f: function(){ raccrocher(); } }]);
+          ecran('Connexion…', [btnTerminer()]);
         }
         if (n.etat === 'fini'){
           var msg = role === 'appelant' ? ((pc && !pc.currentRemoteDescription) ? 'Appel refusé' : 'Appel terminé') : (pc ? 'Appel terminé' : 'Appel manqué');
@@ -1076,9 +1125,10 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
     try{
       if (appelId || pc) return;
       if (!navigator.mediaDevices || !window.RTCPeerConnection){ alert('Appel non disponible sur cet appareil'); return; }
+      avId = id;
       nomAppel = nomDe(id);
       role = 'appelant';
-      ecran(nomAppel, 'Appel en cours…', [{ t: 'Annuler', c: '#e53935', f: function(){ raccrocher(); } }]);
+      ecran('Appel en cours…', [btnTerminer('Annuler')]);
       await preparer();
       if (role !== 'appelant'){ nettoyer(); return; }
       var o = await pc.createOffer();
@@ -1087,19 +1137,21 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
       if (!pc) return;
       var r = await sb.from('appels').insert({ de: moi.id, vers: id, etat: 'sonne', offre: pc.localDescription.toJSON() }).select('id').single();
       if (r.error) throw r.error;
+      if (role !== 'appelant'){ sb.from('appels').update({ etat: 'fini' }).eq('id', r.data.id).then(function(){}); return; }
       appelId = r.data.id;
       ecoute(appelId);
+      ecran('Sonnerie…', [btnTerminer('Annuler')]);
       minuteur = setTimeout(function(){ raccrocher('Pas de réponse'); }, 45000);
     }catch(e){
       nettoyer();
-      ecran('Appel impossible', String((e && e.message) || e), [{ t: 'OK', c: '#2a3942', f: fermerEcran }]);
+      ecran('Appel impossible : ' + String((e && e.message) || e), [{ t: 'OK', c: '#2a3942', i: 'fa-xmark', f: fermerEcran }]);
     }
   };
 
   async function repondre(){
     var id = appelId;
     try{
-      ecran(nomAppel, 'Connexion…', [{ t: 'Raccrocher', c: '#e53935', f: function(){ raccrocher(); } }]);
+      ecran('Connexion…', [btnTerminer()]);
       var r = await sb.from('appels').select('offre').eq('id', id).single();
       if (r.error) throw r.error;
       await preparer();
@@ -1124,12 +1176,13 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
         if (appelId || pc){ sb.from('appels').update({ etat: 'fini' }).eq('id', n.id).then(function(){}); return; }
         appelId = n.id;
         role = 'appele';
+        avId = n.de;
         nomAppel = nomDe(n.de);
         try{ if (navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 400]); }catch(e){}
         ecoute(n.id);
-        ecran(nomAppel, 'Appel vocal entrant', [
-          { t: 'Refuser', c: '#e53935', f: function(){ raccrocher(); } },
-          { t: 'Répondre', c: '#00a884', f: function(){ repondre(); } }
+        ecran('Appel vocal entrant', [
+          { t: 'Refuser', c: '#e53935', i: 'fa-phone-slash', f: function(){ raccrocher(); } },
+          { t: 'Répondre', c: '#00a884', i: 'fa-phone', f: function(){ repondre(); } }
         ]);
       })
       .subscribe();
@@ -1147,6 +1200,114 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
 })();
 </script>
 <!-- FIN-APPELS -->
+<!-- DEBUT-ONGLET-APPELS -->
+<script>
+(function(){
+  function $b(i){ return document.getElementById(i); }
+  function jolie(iso){
+    var d = new Date(iso), n = new Date();
+    var h = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    if (d.toDateString() === n.toDateString()) return "Aujourd'hui, " + h;
+    var hier = new Date(n.getTime() - 86400000);
+    if (d.toDateString() === hier.toDateString()) return 'Hier, ' + h;
+    return d.toLocaleDateString('fr-FR') + ' ' + h;
+  }
+  function liste(){
+    var l = $b('liste-appels');
+    if (l) return l;
+    var base = $b('liste-conv');
+    if (!base) return null;
+    l = document.createElement('div');
+    l.id = 'liste-appels';
+    l.className = base.className;
+    l.style.cssText = base.style.cssText;
+    try{
+      var cs = getComputedStyle(base);
+      ['flex', 'overflowY', 'height', 'maxHeight', 'minHeight', 'padding', 'margin', 'position', 'top', 'bottom', 'left', 'right', 'width'].forEach(function(p){
+        if (cs[p]) l.style[p] = cs[p];
+      });
+    }catch(e){}
+    l.style.paddingBottom = '90px';
+    l.style.display = 'none';
+    base.parentNode.insertBefore(l, base.nextSibling);
+    return l;
+  }
+  function vide(l, texte){
+    l.innerHTML = '';
+    var d = document.createElement('div');
+    d.style.cssText = 'padding:32px 16px;text-align:center;opacity:.7';
+    d.textContent = texte;
+    l.appendChild(d);
+  }
+  async function charger(){
+    var l = liste(); if (!l) return;
+    if (!l.firstChild) vide(l, 'Chargement…');
+    var r = await sb.from('appels').select('id,de,vers,etat,created_at,rep:reponse->>type')
+      .or('de.eq.' + moi.id + ',vers.eq.' + moi.id)
+      .order('created_at', { ascending: false }).limit(50);
+    if (r.error){ vide(l, 'Erreur : ' + r.error.message); return; }
+    var rows = r.data || [];
+    if (!rows.length){ vide(l, 'Aucun appel pour le moment'); return; }
+    l.innerHTML = '';
+    rows.forEach(function(a){
+      var sortant = a.de === moi.id, autre = sortant ? a.vers : a.de;
+      var repondu = !!a.rep, manque = !sortant && !repondu;
+      var nom = nomDe(autre);
+      var ligne = document.createElement('div');
+      ligne.style.cssText = 'display:flex;align-items:center;gap:14px;padding:10px 16px;cursor:pointer';
+      var av = document.createElement('div');
+      av.style.cssText = 'width:52px;height:52px;border-radius:50%;overflow:hidden;flex:none;background:#2a3942;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:600;color:#e9edef';
+      var ok = false;
+      try{
+        av.innerHTML = avatarDe(autre, nom);
+        var im = av.querySelector('img');
+        if (im){ im.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:0;margin:0'; ok = true; }
+      }catch(e){}
+      if (!ok){ av.innerHTML = ''; av.textContent = (nom || '?').charAt(0).toUpperCase(); }
+      ligne.appendChild(av);
+      var mid = document.createElement('div');
+      mid.style.cssText = 'flex:1;min-width:0';
+      var n = document.createElement('div');
+      n.style.cssText = 'font-weight:600;font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:' + (manque ? '#f15c6d' : '#e9edef');
+      n.textContent = nom;
+      var s = document.createElement('div');
+      s.style.cssText = 'font-size:.85rem;opacity:.7;margin-top:2px';
+      var type = sortant ? (repondu ? 'Sortant' : 'Sans réponse') : (repondu ? 'Entrant' : 'Manqué');
+      s.textContent = (sortant ? '↗ ' : '↙ ') + type + ' · ' + jolie(a.created_at);
+      mid.appendChild(n); mid.appendChild(s);
+      ligne.appendChild(mid);
+      var ic = document.createElement('div');
+      ic.style.cssText = 'color:#00a884;font-size:1.2rem;padding:8px';
+      ic.innerHTML = '<i class="fa-solid fa-phone"></i>';
+      ligne.appendChild(ic);
+      ligne.onclick = function(){ if (window.appeler) window.appeler(autre); };
+      l.appendChild(ligne);
+    });
+  }
+  function colorer(i){
+    var bar = $b('barre-bas'); if (!bar) return;
+    for (var k = 0; k < bar.children.length; k++) bar.children[k].style.color = (k === i ? '#00a884' : '#8696a0');
+  }
+  window.ouvrirAppels = function(){
+    var l = liste(); if (!l) return;
+    var base = $b('liste-conv'); if (base) base.style.display = 'none';
+    l.style.display = '';
+    colorer(1);
+    charger();
+  };
+  window.ouvrirDiscussions = function(){
+    var l = $b('liste-appels'); if (l) l.style.display = 'none';
+    var base = $b('liste-conv'); if (base) base.style.display = '';
+    colorer(0);
+  };
+  var bar = $b('barre-bas');
+  if (bar && bar.children.length >= 2){
+    bar.children[0].onclick = window.ouvrirDiscussions;
+    bar.children[1].onclick = window.ouvrirAppels;
+  }
+})();
+</script>
+<!-- FIN-ONGLET-APPELS -->
 
 </html>
 <script>
