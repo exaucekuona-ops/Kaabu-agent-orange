@@ -35,6 +35,11 @@ jobs:
           mkdir -p ~/.android
           echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > ~/.android/debug.keystore
 
+      - name: Check signing key
+        run: |
+          keytool -list -v -keystore ~/.android/debug.keystore -storepass android | grep SHA256
+          keytool -list -v -keystore ~/.android/debug.keystore -storepass android | grep -q "27:55:AE:3D:B4:04:1E:17" || { echo "MAUVAISE CLE"; exit 1; }
+
       - name: Set version
         run: |
           sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/" android/app/build.gradle
