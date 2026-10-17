@@ -1059,7 +1059,7 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
     montrerActif();
   }
 
-  function nettoyer(){
+  function nettoyer(){ stopSonner();
     clearTimeout(minuteur); minuteur = null;
     clearInterval(tic); tic = null; debutAppel = null; micOff = false;
     if (flux){ flux.getTracks().forEach(function(t){ t.stop(); }); flux = null; }
@@ -1148,7 +1148,7 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
     }
   };
 
-  async function repondre(){
+  async function repondre(){ stopSonner();
     var id = appelId;
     try{
       ecran('Connexion…', [btnTerminer()]);
@@ -1168,17 +1168,63 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
     }
   }
 
+    /* DEBUT-SONNERIE */
+  var ctxSon=null, bouclSon=null, finSon=null;
+  function bip(){
+    try{
+      if(!ctxSon) ctxSon=new (window.AudioContext||window.webkitAudioContext)();
+      if(ctxSon.state==='suspended') ctxSon.resume();
+      var o=ctxSon.createOscillator(), g=ctxSon.createGain();
+      o.type='sine'; o.frequency.value=480; g.gain.value=0.5;
+      o.connect(g); g.connect(ctxSon.destination);
+      o.start(); o.stop(ctxSon.currentTime+0.35);
+    }catch(e){}
+  }
+  function stopSonner(){
+    if(bouclSon){ clearInterval(bouclSon); bouclSon=null; }
+    if(finSon){ clearTimeout(finSon); finSon=null; }
+    try{ if(navigator.vibrate) navigator.vibrate(0); }catch(e){}
+  }
+  function sonner(){
+    stopSonner();
+    var tour=function(){
+      bip(); setTimeout(bip,450);
+      try{ if(navigator.vibrate) navigator.vibrate([400,200,400]); }catch(e){}
+    };
+    tour(); bouclSon=setInterval(tour,2500);
+    finSon=setTimeout(stopSonner,45000);
+  }
+  /* FIN-SONNERIE */
+    /* DEBUT-APPEL-PUSH */
+  window.appelDepuisPush = async function(id){
+    try{
+      for (var i=0; i<40 && !(typeof moi !== 'undefined' && moi && moi.id && typeof nomDe === 'function'); i++) await new Promise(function(r){ setTimeout(r,500); });
+      if (typeof moi === 'undefined' || !moi || !moi.id) return;
+      var r = await sb.from('appels').select('id,de,vers,etat,created_at').eq('id', id).single();
+      var n = r.data;
+      if (!n || n.etat !== 'sonne' || n.vers !== moi.id) return;
+      if (Date.now() - new Date(n.created_at).getTime() > 45000) return;
+      if (appelId || pc) return;
+      appelId = n.id; role = 'appele'; avId = n.de; nomAppel = nomDe(n.de);
+      ecoute(n.id);
+      ecran('Appel vocal entrant', [
+        { t: 'Refuser', c: '#e53935', i: 'fa-phone-slash', f: function(){ raccrocher(); } },
+        { t: 'Répondre', c: '#00a884', i: 'fa-phone', f: function(){ repondre(); } }
+      ]);
+    }catch(e){}
+  };
+  /* FIN-APPEL-PUSH */
   function ecouteEntrants(){
     sb.channel('appels-entrants-' + moi.id)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'appels', filter: 'vers=eq.' + moi.id }, function(p){
         var n = p.new;
-        if (n.etat !== 'sonne') return;
+        if (n.etat !== 'sonne') return; if (appelId === n.id) return;
         if (appelId || pc){ sb.from('appels').update({ etat: 'fini' }).eq('id', n.id).then(function(){}); return; }
         appelId = n.id;
         role = 'appele';
         avId = n.de;
         nomAppel = nomDe(n.de);
-        try{ if (navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 400]); }catch(e){}
+        try{ sonner(); }catch(e){}
         ecoute(n.id);
         ecran('Appel vocal entrant', [
           { t: 'Refuser', c: '#e53935', i: 'fa-phone-slash', f: function(){ raccrocher(); } },
@@ -1492,11 +1538,15 @@ async function initPush(){
       log('perm demandee: ' + JSON.stringify(req));
       if (req.receive !== 'granted') { log('arret: refuse'); return; }
     }
+    try{ await P.createChannel({ id: 'appels', name: 'Appels', description: 'Appels vocaux entrants', importance: 5, visibility: 1, vibration: true, lights: true }); }catch(e){ log('canal: ' + e.message); }
     await P.register();
     log('register() appele');
     P.addListener('registration', async (t) => {
       log('jeton recu, longueur ' + t.value.length);
       try{ const r = await (async()=>{ for(let i=0;i<300;i++){ const s=await sb.auth.getSession(); if(s.data&&s.data.session) break; await new Promise(z=>setTimeout(z,1000)); } return sb.rpc('enregistrer_jeton',{t:t.value}); })(); log('rpc: ' + JSON.stringify(r.error || 'ok')); }catch(e){ log('rpc erreur: ' + e.message); }
+    });
+    P.addListener('pushNotificationActionPerformed', (a) => {
+      try{ const dt = a && a.notification && a.notification.data; if (dt && dt.type === 'appel' && window.appelDepuisPush) window.appelDepuisPush(dt.appel_id); }catch(e){}
     });
     P.addListener('registrationError', (e) => log('erreur registration: ' + JSON.stringify(e)));
   }catch(e){ log('exception: ' + e.message); }
