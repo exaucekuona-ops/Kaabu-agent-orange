@@ -952,6 +952,35 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
   }, 300);
 })();
 </script>
+
+<script id="presence-js">
+(function(){
+var ch=null,pret=false;
+function ids(){ try{ return ch?ch.presenceState():{}; }catch(e){ return {}; } }
+window.__enLigne=function(id){ var s=ids(); return !!(id&&s[id]&&s[id].length); };
+function maj(){
+var el=document.getElementById("prive-statut");
+if(!el||typeof priveId==="undefined"||!priveId||!pret) return;
+if(window.__enLigne(priveId)) el.textContent="en ligne";
+else if(el.textContent==="en ligne") el.textContent="vu il y a un instant";
+}
+function track(){ if(ch&&pret&&typeof moi!=="undefined"&&moi) ch.track({t:Date.now()}); }
+function joindre(){
+if(typeof sb==="undefined"||typeof moi==="undefined"||!moi||ch) return;
+ch=sb.channel("en-ligne",{config:{presence:{key:moi.id}}});
+ch.on("presence",{event:"sync"},function(){ pret=true; maj(); }).subscribe(function(st){ if(st==="SUBSCRIBED"){ pret=true; if(!document.hidden) track(); } });
+}
+function quitter(){ if(ch){ try{ sb.removeChannel(ch); }catch(e){} ch=null; pret=false; } }
+setInterval(function(){
+var ok=(typeof moi!=="undefined"&&moi);
+if(ok&&!ch) joindre(); else if(!ok&&ch) quitter(); else maj();
+},2000);
+document.addEventListener("visibilitychange",function(){
+if(!ch) return;
+if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
+});
+})();
+</script>
 </html>
 <script>
 async function chargerConfig(){
@@ -2416,7 +2445,7 @@ function majCoche(id){
     var r = await sb.from('profiles').select('vu_le').eq('id', priveId).maybeSingle();
     if (!r.data || !r.data.vu_le) { el.textContent = ''; return; }
     var d = new Date(r.data.vu_le);
-    el.textContent = (Date.now() - d.getTime() < 180000) ? 'en ligne' : fmt(d);
+    el.textContent = ((window.__enLigne && window.__enLigne(priveId)) || (Date.now() - d.getTime() < 180000)) ? 'en ligne' : fmt(d);
   }
   ouvrirPrive = function(id){
     var el = document.getElementById('prive-statut');
