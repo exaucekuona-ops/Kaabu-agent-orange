@@ -51,6 +51,13 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
+      - name: Check APK signature
+        run: |
+          AS=$(ls -d $ANDROID_HOME/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
+          if [ -z "$AS" ]; then echo "APKSIGNER ABSENT: verification ignoree"; exit 0; fi
+          $AS verify --print-certs android/app/build/outputs/apk/debug/app-debug.apk | grep "SHA-256"
+          $AS verify --print-certs android/app/build/outputs/apk/debug/app-debug.apk | grep -qi "2755ae3db4041e17" || { echo "MAUVAISE SIGNATURE"; exit 1; }
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
