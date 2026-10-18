@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261018-201428">
+<meta name="build" content="20261018-203054">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -344,6 +344,10 @@
   async function demarrer() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return montrer('login');
+    try {
+      const c0 = JSON.parse(localStorage.getItem('kc_msg_' + session.user.id) || 'null');
+      if (c0 && c0.length && !$('zone').children.length) { moi = { id: session.user.id }; dernierJour = ''; c0.forEach(ajouter); }
+    } catch (e) {}
     const { data: p } = await sb.from('profiles').select('nom,statut,is_admin,is_supreme,phone').eq('id', session.user.id).single();
     moi = { id: session.user.id, ...p };
     if (p && p.statut !== 'banni' && !p.phone) {
