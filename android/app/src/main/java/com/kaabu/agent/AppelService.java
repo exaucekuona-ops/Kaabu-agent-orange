@@ -18,7 +18,7 @@ import com.google.firebase.messaging.RemoteMessage;
 import java.util.Map;
 
 public class AppelService extends MessagingService {
-  static final String CANAL = "appels_v2";
+  static final String CANAL = "appels_v3";
   static final String CANAL_MANQUE = "appels_manques";
   static final int ID_APPEL = 7001;
   static final int ID_MANQUE = 7002;
@@ -39,13 +39,19 @@ public class AppelService extends MessagingService {
     super.onMessageReceived(message);
   }
 
+  private Uri sonnerie() {
+    int id = getResources().getIdentifier("sonnerie_appel", "raw", getPackageName());
+    if (id != 0) return Uri.parse("android.resource://" + getPackageName() + "/" + id);
+    return RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+  }
+
   private void canaux(NotificationManager nm) {
     if (Build.VERSION.SDK_INT < 26) return;
     if (nm.getNotificationChannel(CANAL) == null) {
       NotificationChannel c = new NotificationChannel(CANAL, "Appels entrants", NotificationManager.IMPORTANCE_HIGH);
       c.setDescription("Sonnerie des appels vocaux");
       c.setSound(
-          RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE),
+          sonnerie(),
           new AudioAttributes.Builder()
               .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
               .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
@@ -85,7 +91,7 @@ public class AppelService extends MessagingService {
         .setPriority(NotificationCompat.PRIORITY_MAX)
         .setCategory(NotificationCompat.CATEGORY_CALL)
         .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-        .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE))
+        .setSound(sonnerie())
         .setVibrate(VIBRE)
         .setOngoing(true)
         .setAutoCancel(true)

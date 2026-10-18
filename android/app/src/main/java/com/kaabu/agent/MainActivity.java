@@ -4,6 +4,9 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.media.AudioAttributes;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
@@ -14,9 +17,51 @@ public class MainActivity extends BridgeActivity {
 
   public class Pont {
     @JavascriptInterface
+    public void sonner() {
+      jouer();
+    }
+
+    @JavascriptInterface
     public void stop() {
+      couper();
       arreter();
     }
+  }
+
+  private MediaPlayer lecteur = null;
+
+  void jouer() {
+    runOnUiThread(new Runnable() {
+      public void run() {
+        try {
+          couper();
+          int id = getResources().getIdentifier("sonnerie_appel", "raw", getPackageName());
+          if (id == 0) return;
+          AudioAttributes a = new AudioAttributes.Builder()
+              .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+              .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+              .build();
+          lecteur = MediaPlayer.create(MainActivity.this, id, a, AudioManager.AUDIO_SESSION_ID_GENERATE);
+          if (lecteur == null) return;
+          lecteur.setLooping(true);
+          lecteur.setVolume(1f, 1f);
+          lecteur.start();
+          final MediaPlayer p = lecteur;
+          new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
+            public void run() { if (lecteur == p) couper(); }
+          }, 45000);
+        } catch (Exception e) { }
+      }
+    });
+  }
+
+  void couper() {
+    runOnUiThread(new Runnable() {
+      public void run() {
+        try { if (lecteur != null) { lecteur.stop(); lecteur.release(); } } catch (Exception e) { }
+        lecteur = null;
+      }
+    });
   }
 
   void arreter() {

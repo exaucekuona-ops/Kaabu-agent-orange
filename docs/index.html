@@ -1189,9 +1189,10 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
   function sonner(){
     stopSonner();
     var tour=function(){
-      bip(); setTimeout(bip,450);
+      if(!window.AppelNatif){ bip(); setTimeout(bip,450); }
       try{ if(navigator.vibrate) navigator.vibrate([400,200,400]); }catch(e){}
     };
+    try{ if(window.AppelNatif && window.AppelNatif.sonner) window.AppelNatif.sonner(); }catch(e){}
     tour(); bouclSon=setInterval(tour,2500);
     finSon=setTimeout(stopSonner,45000);
   }
@@ -1217,6 +1218,7 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
   window.appelDepuisPush = async function(id, act){
     await appelDepuisPush0(id);
     if (appelId !== id) return;
+    if (act !== 'repondre' && act !== 'refuser') { try{ sonner(); }catch(e){} }
     if (act === 'repondre') repondre();
     else if (act === 'refuser') raccrocher();
   };
