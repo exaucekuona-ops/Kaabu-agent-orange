@@ -1184,6 +1184,7 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
     if(bouclSon){ clearInterval(bouclSon); bouclSon=null; }
     if(finSon){ clearTimeout(finSon); finSon=null; }
     try{ if(navigator.vibrate) navigator.vibrate(0); }catch(e){}
+    try{ if(window.AppelNatif) window.AppelNatif.stop(); }catch(e){}
   }
   function sonner(){
     stopSonner();
@@ -1196,7 +1197,7 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
   }
   /* FIN-SONNERIE */
     /* DEBUT-APPEL-PUSH */
-  window.appelDepuisPush = async function(id){
+  var appelDepuisPush0 = async function(id){
     try{
       for (var i=0; i<40 && !(typeof moi !== 'undefined' && moi && moi.id && typeof nomDe === 'function'); i++) await new Promise(function(r){ setTimeout(r,500); });
       if (typeof moi === 'undefined' || !moi || !moi.id) return;
@@ -1212,6 +1213,12 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
         { t: 'Répondre', c: '#00a884', i: 'fa-phone', f: function(){ repondre(); } }
       ]);
     }catch(e){}
+  };
+  window.appelDepuisPush = async function(id, act){
+    await appelDepuisPush0(id);
+    if (appelId !== id) return;
+    if (act === 'repondre') repondre();
+    else if (act === 'refuser') raccrocher();
   };
   /* FIN-APPEL-PUSH */
   function ecouteEntrants(){
@@ -1246,6 +1253,33 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
 })();
 </script>
 <!-- FIN-APPELS -->
+<script>
+/* DEBUT-APPEL-URL */
+(function(){
+  var dernier = '';
+  function traiter(url){
+    try{
+      if (!url || url.indexOf('com.kaabu.agent://appel') !== 0) return;
+      var mi = /[?&]id=([^&]+)/.exec(url), ma = /[?&]act=([^&]+)/.exec(url);
+      if (!mi) return;
+      var id = decodeURIComponent(mi[1]), act = ma ? ma[1] : 'ouvrir';
+      if (dernier === id + act) return;
+      dernier = id + act;
+      setTimeout(function(){ dernier = ''; }, 5000);
+      if (window.appelDepuisPush) window.appelDepuisPush(id, act);
+    }catch(e){}
+  }
+  try{
+    var A = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+    if (A){
+      A.addListener('appUrlOpen', function(ev){ traiter(ev && ev.url); });
+      if (A.getLaunchUrl) A.getLaunchUrl().then(function(r){ if (r && r.url) traiter(r.url); }).catch(function(){});
+    }
+  }catch(e){}
+})();
+/* FIN-APPEL-URL */
+</script>
+
 <!-- DEBUT-ONGLET-APPELS -->
 <script>
 (function(){
