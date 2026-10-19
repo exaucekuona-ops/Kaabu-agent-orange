@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261018-203054">
+<meta name="build" content="20261019-134626">
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -342,20 +342,33 @@
   }
 
   async function demarrer() {
-    const { data: { session } } = await sb.auth.getSession();
+    let { data: { session } } = await sb.auth.getSession();
+    if (!session && navigator.onLine === false) {
+      try {
+        Object.keys(localStorage).forEach(function (k) {
+          if (/^sb-.*-auth-token$/.test(k)) { const st = JSON.parse(localStorage.getItem(k) || 'null'); if (st && st.user && st.user.id) session = st; }
+        });
+      } catch (e) {}
+    }
     if (!session) return montrer('login');
     try {
       const c0 = JSON.parse(localStorage.getItem('kc_msg_' + session.user.id) || 'null');
       if (c0 && c0.length && !$('zone').children.length) { moi = { id: session.user.id }; dernierJour = ''; c0.forEach(ajouter); }
     } catch (e) {}
-    const { data: p } = await sb.from('profiles').select('nom,statut,is_admin,is_supreme,phone').eq('id', session.user.id).single();
+    let { data: p, error: pErr } = await sb.from('profiles').select('nom,statut,is_admin,is_supreme,phone').eq('id', session.user.id).single();
+    let horsLigne = false;
+    try {
+      const kp = 'kc_prof_' + session.user.id;
+      if (p) localStorage.setItem(kp, JSON.stringify(p));
+      else if (pErr) { const pc = JSON.parse(localStorage.getItem(kp) || 'null'); if (pc) { p = pc; horsLigne = true; } }
+    } catch (e) {}
     moi = { id: session.user.id, ...p };
     if (p && p.statut !== 'banni' && !p.phone) {
       const ph = await askPhone();
       if (!ph) return;
       p.phone = ph; moi.phone = ph;
     }
-    if (p && p.statut !== 'banni' && !p.is_admin && !(await visageEnregistre())) {
+    if (p && p.statut !== 'banni' && !p.is_admin && !horsLigne && !(await visageEnregistre())) {
       if (!(await askVisage())) return;
     }
     if (!p || p.statut !== 'admis') {
@@ -509,6 +522,7 @@
   async function chargerMessages() {
     const { data } = await (window.grpActif ? sb.from('messages').select('*').eq('groupe_id', window.grpActif) : sb.from('messages').select('*').is('groupe_id', null))
       .order('created_at', { ascending: false }).limit(100);
+    if (!data) return;
     $('zone').innerHTML = '';
     for (const k in msgs) delete msgs[k];
     dernierJour = '';
@@ -2887,7 +2901,9 @@ function majCoche(id){
     d.innerHTML="<div style='font-size:56px'>⬆️</div><h2 style='margin:12px 0'>Mise à jour obligatoire</h2><p style='margin:0 0 24px'>Cette version n'est plus acceptée. Installe la nouvelle version pour continuer.</p><button id='bv-dl' style='padding:14px 32px;font-size:18px;border:0;border-radius:24px;background:#0a7cff;color:#fff'>Télécharger</button><button id='bv-no' style='margin-top:14px;padding:10px 24px;font-size:16px;border:0;background:none;color:#666'>Annuler</button>";
     document.body.appendChild(d);
     document.getElementById("bv-dl").onclick=function(){
-      (async function(){var b=document.getElementById("bv-dl");b.disabled=true;b.textContent="Téléchargement…";try{var P=Capacitor.Plugins;var r=await P.Filesystem.downloadFile({url:LIEN,path:"telecom-rdc.apk",directory:"CACHE"});b.textContent="Installation…";await P.FileOpener.openFile({path:String(r.path).replace("file://",""),mimeType:"application/vnd.android.package-archive"});b.disabled=false;b.textContent="Installer";}catch(e){b.disabled=false;b.textContent="Réessayer";var m=document.getElementById("bv-err");if(!m){m=document.createElement("p");m.id="bv-err";m.style.cssText="color:#c00;font-size:13px;margin-top:12px";b.parentNode.appendChild(m);}m.textContent=String(e&&e.message||e);}})();
+      (async function(){var b=document.getElementById("bv-dl");b.disabled=true;b.textContent="Téléchargement…";try{var P=Capacitor.Plugins;var box=document.getElementById("bv-box");if(!box){box=document.createElement("div");box.id="bv-box";box.style.cssText="width:100%;max-width:340px;margin:0 0 18px;padding:14px;border-radius:18px;background:#eef5ff;display:flex;align-items:center;gap:14px;text-align:left";box.innerHTML="<div id='bv-ring' style='width:76px;height:76px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;background:conic-gradient(#0a7cff 0%,#d5e3f7 0)'><div id='bv-pct' style='width:58px;height:58px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px'>0%</div></div><div style='flex:1;min-width:0'><div style='font-weight:600;font-size:15px'>Téléchargement en cours…</div><div style='height:8px;border-radius:4px;background:#d5e3f7;margin:8px 0'><div id='bv-bar' style='height:8px;border-radius:4px;background:#0a7cff;width:0%'></div></div><div id='bv-mo' style='font-size:13px;color:#555'>…</div><div id='bv-vit' style='font-size:13px;color:#555'></div></div>";b.parentNode.insertBefore(box,b);}
+var t0=Date.now();var hp=await P.Filesystem.addListener("progress",function(st){try{if(!st||!st.contentLength)return;var pc=Math.min(100,Math.round(st.bytes*100/st.contentLength));var el=(Date.now()-t0)/1000;var v=el>0?st.bytes/el/1048576:0;document.getElementById("bv-ring").style.background="conic-gradient(#0a7cff "+pc+"%,#d5e3f7 0)";document.getElementById("bv-pct").textContent=pc+"%";document.getElementById("bv-bar").style.width=pc+"%";document.getElementById("bv-mo").textContent=(st.bytes/1048576).toFixed(1)+" Mo / "+(st.contentLength/1048576).toFixed(1)+" Mo";document.getElementById("bv-vit").textContent=v.toFixed(2).replace(".",",")+" Mo/s";b.textContent="Téléchargement… "+pc+"%";}catch(e){}});
+var r;try{r=await P.Filesystem.downloadFile({url:LIEN,path:"telecom-rdc.apk",directory:"CACHE",progress:true});}finally{try{hp.remove();}catch(e){}}b.textContent="Installation…";await P.FileOpener.openFile({path:String(r.path).replace("file://",""),mimeType:"application/vnd.android.package-archive"});b.disabled=false;b.textContent="Installer";}catch(e){b.disabled=false;b.textContent="Réessayer";var m=document.getElementById("bv-err");if(!m){m=document.createElement("p");m.id="bv-err";m.style.cssText="color:#c00;font-size:13px;margin-top:12px";b.parentNode.appendChild(m);}m.textContent=String(e&&e.message||e);}})();
     };
     document.getElementById("bv-no").onclick=function(){
       try{ Capacitor.Plugins.App.exitApp(); }catch(e){}
