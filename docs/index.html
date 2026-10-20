@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261020-140250">
+<meta name="build" content="20261020-142859">
+<!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
   var affiche=false, enCours=false;
@@ -1410,6 +1411,7 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
 <!-- FIN-ONGLET-APPELS -->
 
 </html>
+<!-- BLOC : CONFIG-APP -->
 <script>
 async function chargerConfig(){
   try{
@@ -1487,6 +1489,7 @@ afficherMedia = async function(m){
   $('m' + m.id).innerHTML = url ? lienFichier(m, url) : '(fichier indisponible)';
 };
 </script>
+<!-- BLOC : FICHIERS -->
 <script>
 /* CARTE-FICHIER-DEBUT */
 (function(){
@@ -1572,6 +1575,7 @@ afficherMedia = async function(m){
 /* CARTE-FICHIER-FIN */
 </script>
 
+<!-- BLOC : NOTIFICATIONS -->
 <script>
 async function initPush(){
   var d = document.createElement('div');
@@ -1608,6 +1612,7 @@ async function initPush(){
 window.addEventListener('load', () => setTimeout(initPush, 1500));
 </script>
 
+<!-- BLOC : NOYAU-CHAT -->
 <script>
 let canalP = null, priveId = null, nonLus = new Set();
 const vuCle = id => 'prive_vu_' + moi.id + '_' + id;
@@ -1959,6 +1964,7 @@ if (natif() && Capacitor.Plugins && Capacitor.Plugins.App) {
 }
 </script>
 
+<!-- BLOC : VISAGE -->
 <script>
 let modelesOk = false;
 const FA = 'https://cdn.jsdelivr.net/gh/vladmandic/face-api@1.7.12/';
@@ -2066,6 +2072,7 @@ async function reinitVisage(id){
 }
 </script>
 
+<!-- BLOC : ACCUEIL-ET-MENU -->
 <script>
 const vuGroupe = () => 'groupe_vu_' + moi.id;
 let accEnCours = false, accRefaire = false;
@@ -2229,6 +2236,7 @@ document.addEventListener('visibilitychange', function(){ if (!document.hidden) 
 .bulle .vx-av img{display:block;width:44px;height:44px;margin:0;border-radius:50%;object-fit:cover}
 .vx-mic{position:absolute;right:-4px;bottom:-2px;font-size:14px;color:#53bdeb}
 </style>
+<!-- BLOC : MESSAGES-VOCAUX -->
 <script>
 function vxFmt(s){ if(!isFinite(s)) s=0; s=Math.round(s); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
 function lecteurVocal(url, m){
@@ -2286,6 +2294,7 @@ document.addEventListener('ended',function(e){ var a=e.target; if(a.closest&&a.c
 #repbar span{display:block;opacity:.85;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:30px}
 #repbar i{position:absolute;right:12px;top:10px;font-size:18px;cursor:pointer}
 </style>
+<!-- BLOC : APERCUS-MESSAGES -->
 <script>
 function txtApercu(o){
   if(!o) return 'Message';
@@ -2631,8 +2640,8 @@ function majCoche(id){
   (async function(){
     try{
       if(pret()) return;
-      var r=await sb.auth.getSession();
-      var s=r&&r.data&&r.data.session;
+      var s=null;
+      try{ Object.keys(localStorage).forEach(function(k){ if(/^sb-.*-auth-token$/.test(k)){ var st=JSON.parse(localStorage.getItem(k)||'null'); if(!s&&st&&st.user&&st.user.id) s={user:{id:st.user.id}}; } }); }catch(e){}
       if(!s||pret()) return;
       var a=lire(cle('ann',s.user.id));
       if(a&&Object.keys(annuaire).length===0){ annuaire=a.a||{}; tels=a.t||{}; }
