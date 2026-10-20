@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261020-144540">
+<meta name="build" content="20261020-150313">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -2639,10 +2639,10 @@ function majCoche(id){
 
   (async function(){
     try{
-      if(pret()) return;
+      /*cache3*/
       var s=null;
       try{ Object.keys(localStorage).forEach(function(k){ if(/^sb-.*-auth-token$/.test(k)){ var st=JSON.parse(localStorage.getItem(k)||'null'); if(!s&&st&&st.user&&st.user.id) s={user:{id:st.user.id}}; } }); }catch(e){}
-      if(!s||pret()) return;
+      if(!s) return;
       var a=lire(cle('ann',s.user.id));
       if(a&&Object.keys(annuaire).length===0){ annuaire=a.a||{}; tels=a.t||{}; }
       var c=lire(cle('acc',s.user.id));
