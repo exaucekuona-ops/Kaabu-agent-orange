@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261020-150313">
+<meta name="build" content="20261023-122012">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -124,7 +124,7 @@
 #saisie #micro:not(.rec){width:48px;height:48px;background:#fff;color:#111b21;font-size:20px}
 #saisie .envoi{display:none;width:48px;height:48px}
 #saisie.ecrit .envoi{display:inline-flex;align-items:center;justify-content:center}
-#saisie.ecrit #micro{display:none}#prive-saisie .pilule{flex:1 1 0;min-width:0;display:flex;align-items:center;background:#202c33;border-radius:28px;padding:0 16px;min-height:48px}#prive-saisie .pilule #prive-texte{flex:1 1 0;min-width:0;background:transparent;border:0;outline:0;box-shadow:none;border-radius:0;padding:10px 4px;color:#e9edef;font-size:17px}.sys{width:fit-content;max-width:85%;margin:8px auto;background:#182229;color:#8696a0;padding:6px 12px;border-radius:8px;font-size:13px;text-align:center}.sys b{color:#53bdeb}#visio{z-index:100000 !important}</style></head>
+#saisie.ecrit #micro{display:none}#prive-saisie .pilule{flex:1 1 0;min-width:0;display:flex;align-items:center;background:#202c33;border-radius:28px;padding:0 16px;min-height:48px}#prive-saisie .pilule #prive-texte{resize:none;font-family:inherit;line-height:1.35;max-height:120px;overflow-y:auto;flex:1 1 0;min-width:0;background:transparent;border:0;outline:0;box-shadow:none;border-radius:0;padding:10px 4px;color:#e9edef;font-size:17px}.sys{width:fit-content;max-width:85%;margin:8px auto;background:#182229;color:#8696a0;padding:6px 12px;border-radius:8px;font-size:13px;text-align:center}.sys b{color:#53bdeb}#visio{z-index:100000 !important}</style></head>
 <body>
 
 <div id="login" class="ecran centre hidden">
@@ -290,7 +290,7 @@
   </div>
   <div id="prive-zone" class="zone"></div>
   <div class="barre" id="prive-saisie">
-    <div class="pilule"><input id="prive-texte" type="text" placeholder="Message privé" onkeydown="if(event.key==='Enter')envoyerPrive()"></div>
+    <div class="pilule"><textarea id="prive-texte" rows="1" placeholder="Message privé" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea></div>
     <button class="envoi" onclick="envoyerPrive()"><i class="fa-solid fa-paper-plane"></i></button>
   </div>
 </div>
@@ -1479,7 +1479,7 @@ async function envoyerFichier(inp){
 }
 function lienFichier(m, url){
   var n = m.contenu.split('__').slice(1).join('__') || 'fichier';
-  return '<a href="' + url + '" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;color:inherit;text-decoration:none"><i class="fa-solid fa-file"></i><span style="word-break:break-all">' + esc(n) + '</span></a>';
+  return '<a class="pfic" href="' + url + '" target="_blank" rel="noopener"><i class="fa-solid fa-file pf-i"></i><span class="pf-t"><b>' + esc(n) + '</b><small>' + (n.lastIndexOf('.')>0?n.slice(n.lastIndexOf('.')+1).toUpperCase().slice(0,6):'FICHIER') + '</small></span></a>';
 }
 var _afficherMediaOrig = afficherMedia;
 afficherMedia = async function(m){
@@ -1900,7 +1900,7 @@ function fermerPrive(){
 async function envoyerPrive(){
   const t = $('prive-texte').value.trim();
   if (!t || !priveId) return;
-  $('prive-texte').value = '';
+  $('prive-texte').value = ''; $('prive-texte').style.height = '';
   const { data, error } = await sb.from('prives').insert({ de: moi.id, a: priveId, contenu: t }).select();
   if (error) { alert('Message non envoyé : ' + error.message); return; }
   if (data && data[0]) ajouterPrive(data[0]);
@@ -1953,6 +1953,7 @@ deconnexion = async function(){
 // Bouton retour d'Android
 if (natif() && Capacitor.Plugins && Capacitor.Plugins.App) {
   Capacitor.Plugins.App.addListener('backButton', () => {
+    var pe=document.getElementById('panneau-emoji'); if (pe) { pe.remove(); return; }
     if (!$('prive').classList.contains('hidden')) return fermerPrive();
     const tel = $('ov-tel'); if (tel) return $('phback').click();
     if ($('ov-visage')) return $('vback').click();
@@ -2356,7 +2357,7 @@ function repId(){ var r=window.repA?String(window.repA.id):null; annulerReponse(
 .coches{margin-left:4px;font-size:.7rem;opacity:.75}
 .coches.lu{color:#53bdeb;opacity:1}
 .pbtn{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:#202c33;color:#aebac1;font-size:18px;cursor:pointer}
-.pfic{display:flex;align-items:center;gap:8px;color:inherit;text-decoration:none}
+.pfic{display:flex;align-items:center;gap:10px;color:inherit;text-decoration:none;background:rgba(0,0,0,.2);border-radius:10px;padding:10px 12px;min-width:190px;max-width:100%}.pfic .pf-i{flex:none;font-size:26px;color:#8696a0;width:34px;text-align:center}.pfic .pf-t{display:flex;flex-direction:column;min-width:0}.pfic .pf-t b{font-weight:500;word-break:break-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.pfic .pf-t small{opacity:.65;font-size:.75rem;margin-top:2px}
 </style>
 <script>
 function cochesP(m){
@@ -2382,7 +2383,7 @@ async function afficherMediaP(m){
   else if(m.type==='vocal') e.innerHTML=lecteurVocal(url,{id:m.id,auteur:m.de});
   else {
     var nom=decodeURIComponent(m.contenu.split('/').pop().replace(/^\d+_/,''));
-    e.innerHTML='<a class="pfic" href="'+url+'" target="_blank"><i class="fa-solid fa-file"></i><span>'+esc(nom)+'</span></a>';
+    e.innerHTML='<a class="pfic" href="'+url+'" target="_blank"><i class="fa-solid fa-file pf-i"></i><span class="pf-t"><b>'+esc(nom)+'</b><small>'+(nom.lastIndexOf('.')>0?nom.slice(nom.lastIndexOf('.')+1).toUpperCase().slice(0,6):'FICHIER')+'</small></span></a>';
   }
 }
 async function envoyerMediaP(blob,type,fin,ct,cible){
@@ -2626,7 +2627,7 @@ function majCoche(id){
     try{
       if(pret()){
         var lg=$('logo-acc');
-        ecrire(cle('acc',moi.id),{html:$('liste-conv').innerHTML,titre:$('titre-acc').textContent,logo:(lg&&!lg.classList.contains('hidden')&&lg.src)||''});
+        if($('liste-conv').children.length>0) ecrire(cle('acc',moi.id),{html:$('liste-conv').innerHTML,titre:$('titre-acc').textContent,logo:(lg&&!lg.classList.contains('hidden')&&lg.src)||''});
       }
     }catch(e){}
     return r;
@@ -2990,11 +2991,11 @@ var r;try{r=await P.Filesystem.downloadFile({url:LIEN,path:"telecom-rdc.apk",dir
     var pan=null;
 var emo=btn('fa-face-smile',function(e){
 if(e&&e.stopPropagation) e.stopPropagation();
-if(pan){ pan.remove(); pan=null; t.focus(); return; }
+if(pan&&pan.isConnected){ pan.remove(); pan=null; t.focus(); return; }
 var L=[]; [[128512,128591],[129296,129327]].forEach(function(r){ for(var i=r[0];i<=r[1];i++) L.push(String.fromCodePoint(i)); });
 [128077,128078,128079,128170,10084,128153,128154,128293,127881,128176,9989,10060].forEach(function(i){ L.push(String.fromCodePoint(i)); });
-pan=document.createElement('div');
-pan.style.cssText='display:grid;grid-template-columns:repeat(8,1fr);gap:2px;max-height:210px;overflow-y:auto;background:#202c33;padding:8px;font-size:26px;text-align:center';
+pan=document.createElement('div'); pan.id='panneau-emoji';
+pan.style.cssText='display:grid;flex:none;min-height:120px;grid-template-columns:repeat(8,1fr);gap:2px;max-height:210px;overflow-y:auto;background:#202c33;padding:8px;font-size:26px;text-align:center';
 L.forEach(function(x){ var p=document.createElement('span'); p.textContent=x; p.style.cssText='padding:6px 0;cursor:pointer'; p.onclick=function(ev){ ev.stopPropagation(); var a=t.selectionStart; if(a==null) a=t.value.length; var z=t.selectionEnd; if(z==null) z=a; t.value=t.value.slice(0,a)+x+t.value.slice(z); t.setSelectionRange(a+x.length,a+x.length); t.dispatchEvent(new Event('input')); }; pan.appendChild(p); });
 bar.parentNode.insertBefore(pan,bar); t.blur();
 });
@@ -3067,3 +3068,27 @@ window.__camWA=function(envoyerFn){
 })();
 </script>
 <!-- FIN-BANDEAU -->
+
+<!-- DEBUT-ESPACE -->
+<style>#liste-conv{padding-bottom:96px}</style>
+<!-- FIN-ESPACE -->
+
+<!-- DEBUT-ANIM -->
+<style>.conv{transition:background .15s ease,transform .1s ease}.conv:active{background:#1f2f38;transform:scale(.98)}</style>
+<!-- FIN-ANIM -->
+
+<!-- DEBUT-VUE -->
+<script id="vue-js">
+(function(){
+function ecrireVu(){
+try{
+if(typeof sb==="undefined"||typeof moi==="undefined"||!moi||!moi.id||navigator.onLine===false) return;
+sb.from("profiles").update({vu_le:new Date().toISOString()}).eq("id",moi.id).then(function(){},function(){});
+}catch(e){}
+}
+setInterval(function(){ if(!document.hidden) ecrireVu(); },60000);
+document.addEventListener("visibilitychange",ecrireVu);
+setTimeout(ecrireVu,5000);
+})();
+</script>
+<!-- FIN-VUE -->
