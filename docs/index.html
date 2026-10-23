@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261023-122012">
+<meta name="build" content="20261023-162607">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -185,7 +185,7 @@
     <button class="ico" onclick="$('fichier').click()"><i class="fa-solid fa-image"></i></button>
     <input id="fichier-doc" type="file" class="hidden" onchange="envoyerFichier(this)">
     <button class="ico" onclick="$('fichier-doc').click()"><i class="fa-solid fa-paperclip"></i></button>
-    <input id="texte" type="text" placeholder="Message" onkeydown="if(event.key==='Enter')envoyer()">
+    <textarea id="texte" rows="1" placeholder="Message" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'" style="resize:none;font-family:inherit"></textarea>
     <button id="micro" class="ico" onclick="demarrerVocal()"><i class="fa-solid fa-microphone"></i></button>
     <button class="envoi" onclick="envoyer()"><i class="fa-solid fa-paper-plane"></i></button>
   </div>
@@ -787,7 +787,7 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
 
   function annulerEdition() {
     edition = null;
-    $('texte').value = '';
+    $('texte').value = ''; $('texte').style.height = '';
     $('bandeau').classList.add('hidden');
   }
 
@@ -853,7 +853,7 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
       else majMessage(data[0]);
       return;
     }
-    $('texte').value = '';
+    $('texte').value = ''; $('texte').style.height = '';
     const { error } = await sb.from('messages').insert({ auteur: moi.id, type: 'texte', contenu: t, reponse_a: repId(), groupe_id: window.grpActif || null });
     if (error) { alert("Message non envoyé : " + error.message); demarrer(); }
   }
