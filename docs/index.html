@@ -166,10 +166,15 @@
   </div>
   <div style="padding:8px 12px"><div style="display:flex;align-items:center;gap:10px;background:#202c33;border-radius:24px;padding:0 16px;min-height:44px"><i class="fa-solid fa-magnifying-glass" style="color:#8696a0"></i><input id="rech-conv" type="search" placeholder="Rechercher une discussion" oninput="filtrerConv(this.value)" style="flex:1;background:transparent;border:0;color:inherit;font-size:16px;outline:0;padding:0"></div></div>
   <div id="zone-pub" class="hidden" style="height:92px;flex:none;box-sizing:border-box;padding:4px 16px 0;font-size:11px;letter-spacing:1px;color:#8696a0;text-align:center;border-bottom:1px solid #202c33">PUBLICITÉ</div><div id="liste-conv" style="flex:1;overflow-y:auto;padding-bottom:160px"></div>
-  <div id="barre-bas" style="position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:#111b21;border-top:1px solid #202c33;padding-bottom:env(safe-area-inset-bottom,0px)"><div  style="flex:1;text-align:center;padding:8px 0;color:#00a884;cursor:pointer"><i class="fa-solid fa-comments" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Discussions</div></div><div onclick="toast('Appels : bientôt disponible')" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-phone" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Appels</div></div><div onclick="toast('Services : bientôt disponible')" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-table-cells-large" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Services</div></div></div>
+  <div id="barre-bas" style="position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:#111b21;border-top:1px solid #202c33;padding-bottom:env(safe-area-inset-bottom,0px)"><div  style="flex:1;text-align:center;padding:8px 0;color:#00a884;cursor:pointer"><i class="fa-solid fa-comments" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Discussions</div></div><div onclick="toast('Appels : bientôt disponible')" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-phone" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Appels</div></div><div onclick="montrer('services')" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-table-cells-large" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Services</div></div></div>
   <button onclick="ouvrirMembres()" style="position:fixed;right:18px;bottom:84px;z-index:5;width:56px;height:56px;border-radius:16px;background:#00a884;color:#111b21;font-size:1.3rem;padding:0;box-shadow:0 4px 12px rgba(0,0,0,.5)"><i class="fa-solid fa-message"></i></button>
 </div>
 
+<div id="services" class="ecran hidden">
+  <div style="padding:14px 16px;background:#111b21;border-bottom:1px solid #202c33;font-size:1.2rem;font-weight:700;color:#e9edef">Services</div>
+  <div id="services-liste" style="padding:12px 12px 90px"></div>
+  <div style="position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:#111b21;border-top:1px solid #202c33;padding-bottom:env(safe-area-inset-bottom,0px)"><div onclick="retourAccueil()" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-comments" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Discussions</div></div><div onclick="toast('Appels : bientôt disponible')" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-phone" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Appels</div></div><div style="flex:1;text-align:center;padding:8px 0;color:#00a884;cursor:pointer"><i class="fa-solid fa-table-cells-large" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Services</div></div></div>
+</div>
 <div id="chat" class="ecran hidden">
   <div class="entete">
     <span style="display:flex;align-items:center;gap:12px"><i class="fa-solid fa-arrow-left" style="cursor:pointer" onclick="retourAccueil()"></i><img id="logo-app" onclick="ouvrirInfosGroupe()" class="hidden" style="width:32px;height:32px;border-radius:8px;object-fit:cover"><strong id="titre-app" style="cursor:pointer" onclick="ouvrirInfosGroupe()">TÉLÉCOM RDC</strong><img id="logo-grp" class="hidden" onclick="ouvrirInfosGroupe()" style="width:40px;height:40px;border-radius:50%;object-fit:cover;cursor:pointer"><strong id="titre-grp" style="cursor:pointer" onclick="ouvrirInfosGroupe()">Groupe général</strong></span>
@@ -338,8 +343,69 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g,
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+  var RESEAUX=[
+  {id:'orange',nom:'Orange',couleur:'#ff7900',icone:'fa-solid fa-signal',apps:[
+    {nom:'Orange Money Client',desc:'Menu Orange Money des clients',code:'*144#'},
+    {nom:'Orange Money Agent',desc:'Menu Orange Money des agents',code:'*145#'}
+  ]}
+];
+function rendreServices(){
+  var h='';
+  RESEAUX.forEach(function(r){
+    var tous=r.apps.concat(mesCodes(r.id).map(function(c,i){ return {nom:c.nom,desc:'Mon code',code:c.code,perso:i}; }));
+    h+='<div style="margin-bottom:14px;border-radius:16px;overflow:hidden;background:#111b21;border:1px solid #202c33">'
+     +'<div onclick="basculerReseau(\''+r.id+'\')" style="display:flex;align-items:center;gap:10px;padding:14px;background:'+r.couleur+';color:#fff;cursor:pointer"><i class="'+r.icone+'" style="font-size:1.3rem"></i><strong style="flex:1;font-size:1.1rem">'+r.nom+'</strong><span style="font-size:.8rem;opacity:.9">'+tous.length+' services</span><i id="fl-'+r.id+'" class="fa-solid fa-chevron-up"></i></div>'
+     +'<div id="corps-'+r.id+'" style="padding:2px 12px 12px">';
+    tous.forEach(function(a){
+      h+='<div style="padding:12px 0;border-bottom:1px solid #202c33">'
+       +'<div style="display:flex;align-items:center;gap:12px"><div style="width:42px;height:42px;border-radius:12px;background:'+r.couleur+'22;color:'+r.couleur+';display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem">'+a.nom.charAt(0)+'</div>'
+       +'<div style="flex:1;min-width:0"><div style="color:#e9edef;font-weight:600">'+a.nom+'</div><div style="color:#8696a0;font-size:.8rem">'+a.desc+'</div></div>'
+       +'<div style="background:'+r.couleur+'22;color:'+r.couleur+';padding:4px 10px;border-radius:10px;font-weight:700;font-family:monospace">'+a.code+'</div></div>'
+       +'<div style="display:flex;gap:8px;margin-top:10px"><button onclick="composerUSSD(\''+a.code+'\')" style="flex:1;background:'+r.couleur+';color:#fff;border:0;border-radius:18px;padding:10px;font-weight:600"><i class="fa-solid fa-phone"></i> Composer</button><button onclick="copierCode(\''+a.code+'\')" style="flex:1;background:#202c33;color:#e9edef;border:0;border-radius:18px;padding:10px;font-weight:600"><i class="fa-solid fa-copy"></i> Copier</button>'+(a.perso!==undefined?'<button onclick="supprimerCode(\''+r.id+'\','+a.perso+')" style="background:#202c33;color:#f15c6d;border:0;border-radius:18px;padding:10px 14px"><i class="fa-solid fa-trash"></i></button>':'')+'</div></div>';
+    });
+    h+='<div id="ajout-'+r.id+'" onclick="ajouterCode(\''+r.id+'\')" style="margin-top:12px;text-align:center;padding:12px;border:1px dashed '+r.couleur+';border-radius:14px;color:'+r.couleur+';font-weight:600;cursor:pointer"><i class="fa-solid fa-plus"></i> Ajouter un code</div></div></div>';
+  });
+  $('services-liste').innerHTML=h;
+}
+function basculerReseau(id){
+  var c=$('corps-'+id), f=$('fl-'+id);
+  var ferme=c.classList.toggle('hidden');
+  f.className='fa-solid '+(ferme?'fa-chevron-down':'fa-chevron-up');
+}
+function mesCodes(id){
+  try{ return JSON.parse(localStorage.getItem('svc-'+id)||'[]'); }catch(e){ return []; }
+}
+function ajouterCode(id){
+  var z=$('ajout-'+id);
+  z.removeAttribute('onclick');
+  z.style.border='0';
+  var st='width:100%;box-sizing:border-box;background:#202c33;color:#e9edef;border:0;border-radius:10px;padding:11px;margin-bottom:8px;font-size:16px';
+  z.innerHTML='<input id="aj-nom-'+id+'" placeholder="Nom (ex : Solde)" style="'+st+'"><input id="aj-code-'+id+'" placeholder="Code (ex : *100#)" inputmode="tel" style="'+st+'"><button onclick="enregistrerCode(\''+id+'\')" style="width:100%;background:#00a884;color:#fff;border:0;border-radius:18px;padding:11px;font-weight:600">Enregistrer</button>';
+}
+function enregistrerCode(id){
+  var nom=$('aj-nom-'+id).value.replace(/[<>&"']/g,'').trim();
+  var code=$('aj-code-'+id).value.trim();
+  if(!nom){ toast('Écris un nom'); return; }
+  if(!/^\*[0-9*]+#$/.test(code)){ toast('Code invalide (ex : *100#)'); return; }
+  var l=mesCodes(id); l.push({nom:nom,code:code});
+  try{ localStorage.setItem('svc-'+id,JSON.stringify(l)); }catch(e){}
+  rendreServices();
+}
+function supprimerCode(id,i){
+  var l=mesCodes(id); l.splice(i,1);
+  try{ localStorage.setItem('svc-'+id,JSON.stringify(l)); }catch(e){}
+  rendreServices();
+}
+function composerUSSD(code){
+  window.location.href='tel:'+encodeURIComponent(code);
+}
+function copierCode(code){
+  try{ navigator.clipboard.writeText(code).then(function(){ toast('Code copié : '+code); },function(){ toast(code); }); }
+  catch(e){ toast(code); }
+}
+
   function montrer(id) {
-    ['login', 'attente', 'accueil', 'chat'].forEach(x => $(x).classList.toggle('hidden', x !== id));
+    ['login', 'attente', 'accueil', 'services', 'chat'].forEach(x => $(x).classList.toggle('hidden', x !== id)); if (id === 'services') rendreServices();
   }
 
   async function demarrer() {
