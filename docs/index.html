@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261023-162607">
+<meta name="build" content="20261026-125630">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -286,7 +286,7 @@
 <style>#prive-av{width:40px;height:40px;font-size:18px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#2a3942;flex:none;font-weight:bold}#prive-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}</style><input type='file' id='ia-photo-input' accept='image/*' hidden onchange='changerPhotoIA(this)'><div id="prive" class="ecran hidden" style="position:fixed;inset:0;z-index:20;background:#0b141a">
   <div class="entete">
     <span style="display:flex;align-items:center;gap:14px"><i class="fa-solid fa-arrow-left" style="cursor:pointer" onclick="fermerPrive()"></i><span id="prive-av"></span><span style="display:flex;flex-direction:column"><strong id="prive-nom"></strong><small id="prive-statut" style="font-size:12px;opacity:.7"></small></span></span>
-    <span id="prive-appel"></span>
+    <span style="display:flex;align-items:center;gap:22px"><i class="fa-solid fa-video" style="cursor:pointer" onclick="alert('Appel vidéo bientôt disponible')"></i><span id="prive-appel"></span><i class="fa-solid fa-ellipsis-vertical" style="cursor:pointer;padding:0 4px" onclick="menuPrive()"></i></span>
   </div>
   <div id="prive-zone" class="zone"></div>
   <div class="barre" id="prive-saisie">
@@ -1481,6 +1481,27 @@ function lienFichier(m, url){
   var n = m.contenu.split('__').slice(1).join('__') || 'fichier';
   return '<a class="pfic" href="' + url + '" target="_blank" rel="noopener"><i class="fa-solid fa-file pf-i"></i><span class="pf-t"><b>' + esc(n) + '</b><small>' + (n.lastIndexOf('.')>0?n.slice(n.lastIndexOf('.')+1).toUpperCase().slice(0,6):'FICHIER') + '</small></span></a>';
 }
+/*DEBUT-OUVRIR*/
+document.addEventListener('click', async function(ev){
+  var a = ev.target.closest && ev.target.closest('a.pfic');
+  if(!a) return;
+  var P = window.Capacitor && window.Capacitor.Plugins;
+  if(!P || !P.Filesystem || !P.FileOpener) return;
+  ev.preventDefault();
+  var url = a.href;
+  var nom = decodeURIComponent(url.split('?')[0].split('/').pop().replace(/^\d+_/, '')) || 'fichier';
+  var ext = nom.indexOf('.') > 0 ? nom.split('.').pop().toLowerCase() : '';
+  var petit = a.querySelector('small'), ancien = petit ? petit.textContent : '';
+  try {
+    if(petit) petit.textContent = 'Ouverture…';
+    var r = await P.Filesystem.downloadFile({ url: url, path: nom, directory: 'CACHE' });
+    var opt = { path: String(r.path).replace('file://', '') };
+    if(ext === 'apk') opt.mimeType = 'application/vnd.android.package-archive';
+    await P.FileOpener.openFile(opt);
+  } catch(e) { alert('Fichier non ouvert : ' + (e && e.message || e)); }
+  if(petit) petit.textContent = ancien;
+}, true);
+/*FIN-OUVRIR*/
 var _afficherMediaOrig = afficherMedia;
 afficherMedia = async function(m){
   if(m.type !== 'fichier') return _afficherMediaOrig(m);
@@ -1906,6 +1927,174 @@ async function envoyerPrive(){
   if (data && data[0]) ajouterPrive(data[0]);
 }
 
+/* DEBUT-PARTAGE */
+var partageEnAttente = null;
+function fermerPartage(){
+  var o = document.getElementById('partage-ov');
+  if (o) o.remove();
+  partageEnAttente = null;
+}
+function nomSur(n){
+  return (n || 'fichier').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9._-]+/g,'_');
+}
+async function blobPartage(fi){
+  var u = fi.uri;
+  try {
+    var r = await fetch(Capacitor.convertFileSrc(u));
+    if (r.ok) return await r.blob();
+  } catch(e) {}
+  var d = await Capacitor.Plugins.Filesystem.readFile({ path: u });
+  var bin = atob(d.data), ar = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) ar[i] = bin.charCodeAt(i);
+  return new Blob([ar], { type: fi.mimeType || 'application/octet-stream' });
+}
+async function envoyerPartage(id, fichiers){
+  for (var i = 0; i < fichiers.length; i++) {
+    var fi = fichiers[i];
+    try {
+      var b = await blobPartage(fi);
+      if (b.size > 20*1024*1024) { alert('Fichier trop lourd (20 Mo max) : ' + (fi.name || '')); continue; }
+      var mt = fi.mimeType || b.type || 'application/octet-stream';
+      if (/^image\//.test(mt)) {
+        try { var j = await reduire(b); await envoyerMediaP(j,'image','.jpg','image/jpeg', id); }
+        catch(e2) { await envoyerMediaP(b,'image','.jpg', mt, id); }
+      } else {
+        await envoyerMediaP(b,'fichier','_' + nomSur(fi.name), mt, id);
+      }
+    } catch(e) { alert('Partage : ' + e.message); }
+  }
+}
+async function choisirPartage(id){
+  var p = partageEnAttente;
+  fermerPartage();
+  if (!p) return;
+  await ouvrirPrive(id);
+  var z = $('prive-texte');
+  if (z && p.texte) { z.value = p.texte; z.dispatchEvent(new Event('input')); z.focus(); }
+  if (p.fichiers && p.fichiers.length) {
+    if (confirm('Envoyer ' + p.fichiers.length + ' fichier(s) à ' + nomDe(id) + ' ?')) await envoyerPartage(id, p.fichiers);
+  }
+}
+async function montrerPartage(){
+  for (var i = 0; i < 40; i++) {
+    if (typeof moi !== 'undefined' && moi && document.querySelectorAll('#liste-conv .conv').length) break;
+    await new Promise(function(r){ setTimeout(r, 500); });
+  }
+  var ov = document.getElementById('partage-ov');
+  if (ov) ov.remove();
+  ov = document.createElement('div');
+  ov.id = 'partage-ov';
+  ov.style.cssText = 'position:fixed;left:0;right:0;top:0;bottom:0;z-index:99999;background:#0b141a;color:#e9edef;overflow:auto;font:16px sans-serif';
+  var t = document.createElement('div');
+  t.style.cssText = 'display:flex;justify-content:space-between;padding:16px;font-weight:600;font-size:18px;background:#1f2c34';
+  var tt = document.createElement('span'); tt.textContent = 'Partager avec…';
+  var ta = document.createElement('span'); ta.textContent = 'Annuler'; ta.style.color = '#00a884'; ta.onclick = fermerPartage;
+  t.appendChild(tt); t.appendChild(ta);
+  ov.appendChild(t);
+  var n = 0;
+  document.querySelectorAll('#liste-conv .conv').forEach(function(el){
+    var m = /ouvrirPrive\('([^']+)'\)/.exec(el.getAttribute('onclick') || '');
+    if (!m) return;
+    var id = m[1];
+    var av = el.querySelector('.conv-av'), nom = el.querySelector('strong');
+    var l = document.createElement('div');
+    l.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #1f2c34';
+    var a = document.createElement('div');
+    a.className = 'conv-av';
+    a.innerHTML = av ? av.innerHTML : '';
+    var s = document.createElement('span');
+    s.textContent = nom ? nom.textContent : id;
+    l.appendChild(a); l.appendChild(s);
+    l.onclick = function(){ choisirPartage(id); };
+    ov.appendChild(l);
+    n++;
+  });
+  if (!n) {
+    var v = document.createElement('p');
+    v.style.cssText = 'padding:24px 16px;text-align:center;color:#8696a0';
+    v.textContent = 'Aucune discussion pour le moment.';
+    ov.appendChild(v);
+  }
+  document.body.appendChild(ov);
+}
+if (natif() && window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.CapacitorShareTarget) {
+  Capacitor.Plugins.CapacitorShareTarget.addListener('shareReceived', function(ev){
+    partageEnAttente = { texte: (ev.texts || []).join('\n'), fichiers: ev.files || [] };
+    montrerPartage();
+  });
+}
+/* FIN-PARTAGE */
+/* DEBUT-MENUP */
+function fermerMenuPrive(){
+  var o = document.getElementById('menup-ov');
+  if (o) o.remove();
+}
+function menuPrive(){
+  fermerMenuPrive();
+  var o = document.createElement('div');
+  o.id = 'menup-ov';
+  o.style.cssText = 'position:fixed;left:0;right:0;top:0;bottom:0;z-index:99999';
+  o.onclick = fermerMenuPrive;
+  var m = document.createElement('div');
+  m.style.cssText = 'position:absolute;right:8px;top:52px;min-width:220px;background:#233138;color:#e9edef;border-radius:10px;overflow:hidden;font:16px sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.5)';
+  [['Voir la photo du contact', photoContactPrive], ['Rechercher dans la discussion', rechercherPrive], ['Supprimer la discussion', supprimerDiscussionPrive]].forEach(function(x){
+    var l = document.createElement('div');
+    l.textContent = x[0];
+    l.style.cssText = 'padding:14px 20px';
+    l.onclick = function(e){ e.stopPropagation(); fermerMenuPrive(); x[1](); };
+    m.appendChild(l);
+  });
+  o.appendChild(m);
+  document.body.appendChild(o);
+}
+function photoContactPrive(){
+  var im = $('prive-av').querySelector('img');
+  if (im && im.src) voirPhoto(im.src); else alert('Ce contact n’a pas de photo.');
+}
+function fermerRecherchePrive(){
+  var b = document.getElementById('psearch');
+  if (b) b.remove();
+  document.querySelectorAll('#prive-zone .rang').forEach(function(r){ r.style.display = ''; });
+}
+function rechercherPrive(){
+  fermerRecherchePrive();
+  var b = document.createElement('div');
+  b.id = 'psearch';
+  b.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 12px;background:#1f2c34';
+  var inp = document.createElement('input');
+  inp.type = 'text';
+  inp.placeholder = 'Rechercher…';
+  inp.style.cssText = 'flex:1;min-width:0;padding:10px 14px;border:none;border-radius:20px;background:#2a3942;color:#e9edef;font-size:16px;outline:none';
+  inp.oninput = function(){
+    var q = inp.value.toLowerCase().trim();
+    document.querySelectorAll('#prive-zone .rang').forEach(function(r){
+      r.style.display = (!q || r.textContent.toLowerCase().indexOf(q) !== -1) ? '' : 'none';
+    });
+  };
+  var x = document.createElement('span');
+  x.textContent = '✕';
+  x.style.cssText = 'color:#8696a0;font-size:20px;padding:4px 8px;cursor:pointer';
+  x.onclick = fermerRecherchePrive;
+  b.appendChild(inp);
+  b.appendChild(x);
+  $('prive').querySelector('.entete').insertAdjacentElement('afterend', b);
+  inp.focus();
+}
+async function supprimerDiscussionPrive(){
+  var id = priveId;
+  if (!id) return;
+  if (!confirm('Supprimer cette discussion ? Elle restera chez l’autre personne.')) return;
+  try {
+    await sb.from('prives_masques').delete().eq('user_id', moi.id).eq('autre', id);
+    var r = await sb.from('prives_masques').insert({ user_id: moi.id, autre: id });
+    if (r.error) throw r.error;
+    await chargerMasques();
+    fermerPrive();
+  } catch(e) { alert('Suppression impossible : ' + e.message); }
+}
+var _fermerPriveR = fermerPrive;
+fermerPrive = function(){ fermerRecherchePrive(); _fermerPriveR(); };
+/* FIN-MENUP */
 function toastPrive(id){
   const d = document.createElement('div');
   d.textContent = '💬 Message privé de ' + nomDe(id);
