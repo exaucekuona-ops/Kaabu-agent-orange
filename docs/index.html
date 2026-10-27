@@ -80,8 +80,8 @@
   .secondaire { background: #202c33; color: #e9edef; }
   .entete { background: #111b21; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222e35; }
   .zone { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
-  .bulle { max-width: 75%; padding: 8px 12px; border-radius: 8px; word-wrap: break-word; }
-  .bulle.moi { background: #005c4b; align-self: flex-end; }
+  .bulle { max-width: 75%; padding: 8px 12px; border-radius: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.35); word-wrap: break-word; }
+  .bulle.moi { background: linear-gradient(135deg,#00705c,#005c4b); align-self: flex-end; }
   .bulle.autre { background: #202c33; align-self: flex-start; }
   .bulle strong { font-size: 0.8rem; color: #8696a0; }
   .barre { background: #111b21; padding: 10px; display: flex; gap: 8px; }
@@ -106,9 +106,15 @@
   .rang { display: flex; align-items: flex-end; gap: 6px; max-width: 85%; }
   .rang.moi { align-self: flex-end; }
   .rang.autre { align-self: flex-start; }
-  .bulle { max-width: 100%; padding: 6px 10px 4px; align-self: auto; }
-  .bulle.moi { align-self: auto; border-top-right-radius: 0; }
-  .bulle.autre { align-self: auto; border-top-left-radius: 0; }
+  .bulle { max-width: 100%; padding: 7px 12px 5px; align-self: auto; }
+  .bulle.moi { align-self: auto; }
+  .bulle.autre { align-self: auto; }
+  #prive-zone .rang.moi:not(.rang.moi + .rang.moi) .bulle.moi { position: relative; border-top-right-radius: 4px; }
+  #prive-zone .rang.moi:not(.rang.moi + .rang.moi) .bulle.moi::after { content: ""; position: absolute; top: 0; right: -8px; width: 0; height: 0; border-left: 8px solid #00685a; border-bottom: 8px solid transparent; }
+  #prive-zone .rang.autre:not(.rang.autre + .rang.autre) .bulle.autre { position: relative; border-top-left-radius: 4px; }
+  #prive-zone .rang.autre:not(.rang.autre + .rang.autre) .bulle.autre::before { content: ""; position: absolute; top: 0; left: -8px; width: 0; height: 0; border-right: 8px solid #202c33; border-bottom: 8px solid transparent; }
+  :root { --fond: url(fond.webp); }
+  #prive-zone, #zone { background: linear-gradient(rgba(11,20,26,.55), rgba(11,20,26,.55)), var(--fond) center / cover no-repeat; }
   .nom { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 2px; }
   .heure { float: right; margin: 8px 0 0 12px; font-size: 0.68rem; color: #8696a0; }
   .jour { align-self: center; background: #182229; color: #8696a0; font-size: 0.75rem; padding: 4px 12px; border-radius: 8px; margin: 10px 0 6px; }
@@ -166,14 +172,14 @@
   </div>
   <div style="padding:8px 12px"><div style="display:flex;align-items:center;gap:10px;background:#202c33;border-radius:24px;padding:0 16px;min-height:44px"><i class="fa-solid fa-magnifying-glass" style="color:#8696a0"></i><input id="rech-conv" type="search" placeholder="Rechercher une discussion" oninput="filtrerConv(this.value)" style="flex:1;background:transparent;border:0;color:inherit;font-size:16px;outline:0;padding:0"></div></div>
   <div id="zone-pub" class="hidden" style="height:92px;flex:none;box-sizing:border-box;padding:4px 16px 0;font-size:11px;letter-spacing:1px;color:#8696a0;text-align:center;border-bottom:1px solid #202c33">PUBLICITÉ</div><div id="liste-conv" style="flex:1;overflow-y:auto;padding-bottom:160px"></div>
-  <div id="barre-bas" style="position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:#111b21;border-top:1px solid #202c33;padding-bottom:env(safe-area-inset-bottom,0px)"><div  style="flex:1;text-align:center;padding:8px 0;color:#00a884;cursor:pointer"><i class="fa-solid fa-comments" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Discussions</div></div><div onclick="toast('Appels : bientôt disponible')" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-phone" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Appels</div></div><div onclick="montrer('services')" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-table-cells-large" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Services</div></div></div>
+  <div id="barre-bas" style="position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:#111b21;border-top:1px solid #202c33;padding-bottom:env(safe-area-inset-bottom,0px)"><div  style="flex:1;text-align:center;padding:8px 0;color:#00a884;cursor:pointer"><i class="fa-solid fa-comments" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Discussions</div></div><div onclick="toast('Appels : bientôt disponible')" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-phone" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Appels</div></div><div onclick="montrer('services')" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-table-cells-large" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Services</div></div><div onclick="ouvrirParametres()" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-gear" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Paramètres</div></div></div>
   <button onclick="ouvrirMembres()" style="position:fixed;right:18px;bottom:84px;z-index:5;width:56px;height:56px;border-radius:16px;background:#00a884;color:#111b21;font-size:1.3rem;padding:0;box-shadow:0 4px 12px rgba(0,0,0,.5)"><i class="fa-solid fa-message"></i></button>
 </div>
 
 <div id="services" class="ecran hidden">
   <div style="padding:14px 16px;background:#111b21;border-bottom:1px solid #202c33;font-size:1.2rem;font-weight:700;color:#e9edef">Services</div>
   <div id="services-liste" style="padding:12px 12px 90px"></div>
-  <div style="position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:#111b21;border-top:1px solid #202c33;padding-bottom:env(safe-area-inset-bottom,0px)"><div onclick="retourAccueil()" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-comments" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Discussions</div></div><div onclick="toast('Appels : bientôt disponible')" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-phone" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Appels</div></div><div style="flex:1;text-align:center;padding:8px 0;color:#00a884;cursor:pointer"><i class="fa-solid fa-table-cells-large" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Services</div></div></div>
+  <div style="position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:#111b21;border-top:1px solid #202c33;padding-bottom:env(safe-area-inset-bottom,0px)"><div onclick="retourAccueil()" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-comments" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Discussions</div></div><div onclick="toast('Appels : bientôt disponible')" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-phone" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Appels</div></div><div style="flex:1;text-align:center;padding:8px 0;color:#00a884;cursor:pointer"><i class="fa-solid fa-table-cells-large" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Services</div></div><div onclick="ouvrirParametres()" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-gear" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Paramètres</div></div></div>
 </div>
 <div id="chat" class="ecran hidden">
   <div class="entete">
@@ -247,7 +253,6 @@
 <div id="menuplus" class="admin hidden" style="background:transparent;z-index:30" onclick="fermerMenuPlus()">
   <div style="position:absolute;right:10px;top:60px;background:#233138;border-radius:10px;min-width:220px;padding:6px 0;box-shadow:0 6px 20px rgba(0,0,0,.55)" onclick="event.stopPropagation()">
     <div class="mi" onclick="fermerMenuPlus();ouvrirProfil()"><i class="fa-solid fa-circle-user"></i>Mon profil</div>
-    <div class="mi" onclick="fermerMenuPlus();ouvrirMembres()"><i class="fa-solid fa-users"></i>Membres</div>
     <div id="mi-reglages" class="mi hidden" onclick="fermerMenuPlus();ouvrirReglages()"><i class="fa-solid fa-gear"></i>Réglages de l'app</div>
     <div id="mi-admin" class="mi hidden" onclick="fermerMenuPlus();ouvrirAdmin()"><i class="fa-solid fa-user-shield"></i>Comptes</div>
     <div class="mi" onclick="fermerMenuPlus();rechercherMaj()"><i class="fa-solid fa-rotate"></i>Rechercher une mise à jour</div>
@@ -293,7 +298,8 @@
     <span style="display:flex;align-items:center;gap:14px"><i class="fa-solid fa-arrow-left" style="cursor:pointer" onclick="fermerPrive()"></i><span id="prive-av"></span><span style="display:flex;flex-direction:column"><strong id="prive-nom"></strong><small id="prive-statut" style="font-size:12px;opacity:.7"></small></span></span>
     <span style="display:flex;align-items:center;gap:22px"><i class="fa-solid fa-video" style="cursor:pointer" onclick="alert('Appel vidéo bientôt disponible')"></i><span id="prive-appel"></span><i class="fa-solid fa-ellipsis-vertical" style="cursor:pointer;padding:0 4px" onclick="menuPrive()"></i></span>
   </div>
-  <div id="prive-zone" class="zone"></div>
+  <div id="prive-zone" class="zone" onscroll="var b=document.getElementById('prive-bas');b.style.display=(this.scrollHeight-this.scrollTop-this.clientHeight>300)?'flex':'none'"></div>
+  <button id="prive-bas" onclick="var z=document.getElementById('prive-zone');z.scrollTo({top:z.scrollHeight,behavior:'smooth'})" style="display:none;position:absolute;right:14px;bottom:84px;z-index:6;width:42px;height:42px;border-radius:50%;border:0;background:#202c33;color:#00a884;font-size:1rem;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.5)"><i class="fa-solid fa-chevron-down"></i></button>
   <div class="barre" id="prive-saisie">
     <div class="pilule"><textarea id="prive-texte" rows="1" placeholder="Message privé" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea></div>
     <button class="envoi" onclick="envoyerPrive()"><i class="fa-solid fa-paper-plane"></i></button>
@@ -1500,6 +1506,55 @@ function logoEnDataUrl(file, t){
     img.onerror = ko; img.src = u;
   });
 }
+function fondEnDataUrl(f){
+  return new Promise(function(ok, ko){
+    var r = new FileReader(); r.onerror = ko;
+    r.onload = function(){
+      var img = new Image(); img.onerror = ko;
+      img.onload = function(){
+        var w = Math.min(720, img.width), h = Math.round(img.height * w / img.width);
+        var c = document.createElement('canvas'); c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        ok(c.toDataURL('image/jpeg', 0.8));
+      };
+      img.src = r.result;
+    };
+    r.readAsDataURL(f);
+  });
+}
+function appliquerFond(){
+  var u = 'url(fond.webp)';
+  try { var d = localStorage.getItem('fondPerso'); if (d) u = 'url("' + d + '")'; } catch (e) {}
+  document.documentElement.style.setProperty('--fond', u);
+}
+appliquerFond();
+function ouvrirParametres(){
+  var o = document.createElement('div');
+  o.style.cssText = 'position:fixed;inset:0;background:#0b141a;z-index:9999;overflow:auto;color:#e9edef';
+  var bt = 'padding:12px;font-size:16px;border:0;border-radius:8px;color:#fff;';
+  var admin = (typeof moi !== 'undefined' && moi && moi.is_supreme);
+  o.innerHTML = '<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:#111b21;border-bottom:1px solid #202c33;font-size:1.2rem;font-weight:700"><i id="pm-retour" class="fa-solid fa-arrow-left" style="cursor:pointer"></i>Paramètres</div>' +
+    '<div style="padding:16px;display:flex;flex-direction:column;gap:12px">' +
+    '<div style="color:#00a884;font-size:.8rem;font-weight:700">ARRIÈRE-PLAN DES DISCUSSIONS</div>' +
+    '<div id="pm-apercu" style="height:180px;border-radius:12px;border:1px solid #202c33;background:var(--fond) center / cover no-repeat"></div>' +
+    '<button id="pm-choisir" style="' + bt + 'background:#00a884">Choisir mon image</button>' +
+    '<button id="pm-defaut" style="' + bt + 'background:#2a3942">Remettre le fond par défaut</button>' +
+    '<input id="pm-fichier" type="file" accept="image/*" hidden>' +
+    '<div id="pm-err" style="color:#ff6b6b"></div>' +
+    (admin ? '<div style="color:#00a884;font-size:.8rem;font-weight:700;margin-top:12px">ADMINISTRATION</div><button id="pm-admin" style="' + bt + 'background:#2a3942">Nom et logo de l\'app</button>' : '') +
+    '</div>';
+  document.body.appendChild(o);
+  var fi = o.querySelector('#pm-fichier'), err = o.querySelector('#pm-err');
+  o.querySelector('#pm-retour').onclick = function(){ o.remove(); };
+  o.querySelector('#pm-choisir').onclick = function(){ fi.click(); };
+  o.querySelector('#pm-defaut').onclick = function(){ try { localStorage.removeItem('fondPerso'); } catch (e) {} appliquerFond(); err.textContent = ''; };
+  fi.onchange = async function(){
+    if (!fi.files[0]) return;
+    try { var d = await fondEnDataUrl(fi.files[0]); localStorage.setItem('fondPerso', d); appliquerFond(); err.textContent = ''; }
+    catch (e) { err.textContent = 'Image illisible ou trop lourde.'; }
+  };
+  if (admin) o.querySelector('#pm-admin').onclick = function(){ o.remove(); ouvrirReglages(); };
+}
 function ouvrirReglages(){
   var o = document.createElement('div');
   o.style.cssText = 'position:fixed;inset:0;background:#111b21;z-index:9999;display:flex;flex-direction:column;justify-content:center;padding:24px;gap:12px;color:#fff';
@@ -1957,6 +2012,13 @@ function ajouterPrive(m){
   if ($('p' + m.id)) return;
   const estMoi = m.de === moi.id, d = new Date(m.created_at || Date.now());
   const h = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const jk = d.toDateString();
+  const zj = $('prive-zone').querySelectorAll('.jour-sep');
+  if (!zj.length || zj[zj.length-1].dataset.jour !== jk) {
+    const hier = new Date(Date.now() - 864e5);
+    const lib = jk === new Date().toDateString() ? "Aujourd'hui" : jk === hier.toDateString() ? 'Hier' : d.toLocaleDateString('fr-FR');
+    $('prive-zone').insertAdjacentHTML('beforeend', `<div class="jour-sep" data-jour="${jk}" style="align-self:center;margin:10px 0 6px;padding:4px 12px;border-radius:12px;background:#1b2730;color:#8696a0;font-size:.75rem;box-shadow:0 1px 2px rgba(0,0,0,.35)">${lib}</div>`);
+  }
   $('prive-zone').insertAdjacentHTML('beforeend',
     `<div class="rang ${estMoi ? 'moi' : 'autre'}"><div id="p${m.id}" class="bulle ${estMoi ? 'moi' : 'autre'}">${contenuP(m)}<span class="heure">${h}</span>${estMoi ? cochesP(m) : ''}</div></div>`);
   $('prive-zone').scrollTop = $('prive-zone').scrollHeight;
