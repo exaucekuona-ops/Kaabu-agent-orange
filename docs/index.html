@@ -132,6 +132,16 @@
 #saisie.ecrit .envoi{display:inline-flex;align-items:center;justify-content:center}
 #saisie.ecrit #micro{display:none}#prive-saisie .pilule{flex:1 1 0;min-width:0;display:flex;align-items:center;background:#202c33;border-radius:28px;padding:0 16px;min-height:48px}#prive-saisie .pilule #prive-texte{resize:none;font-family:inherit;line-height:1.35;max-height:120px;overflow-y:auto;flex:1 1 0;min-width:0;background:transparent;border:0;outline:0;box-shadow:none;border-radius:0;padding:10px 4px;color:#e9edef;font-size:17px}.sys{width:fit-content;max-width:85%;margin:8px auto;background:#182229;color:#8696a0;padding:6px 12px;border-radius:8px;font-size:13px;text-align:center}.sys b{color:#53bdeb}#visio{z-index:100000 !important}</style></head>
 <body>
+<div id="ecran-charge" style="position:fixed;inset:0;z-index:100000;background:#0b141a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity .3s">
+  <div style="color:#e9edef;font-size:1.5rem;font-weight:700;letter-spacing:1px">TÉLÉCOM RDC</div>
+  <div class="roue-charge"></div>
+</div>
+<style>.roue-charge{width:42px;height:42px;border:4px solid #202c33;border-top-color:#00a884;border-radius:50%;animation:roue-tourne .8s linear infinite}@keyframes roue-tourne{to{transform:rotate(360deg)}}</style>
+<script>
+function finChargement(){var e=document.getElementById('ecran-charge');if(!e)return;e.style.opacity='0';setTimeout(function(){if(e.parentNode)e.parentNode.removeChild(e);},300);}
+setTimeout(finChargement,5000);
+document.addEventListener('DOMContentLoaded',function(){var l=document.getElementById('liste-conv');if(!l)return;if(l.children.length){finChargement();return;}new MutationObserver(function(){if(l.children.length)finChargement();}).observe(l,{childList:true});});
+</script>
 
 <div id="login" class="ecran centre hidden">
   <h1>Kaabu Agent</h1>
