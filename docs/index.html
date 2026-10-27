@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261026-125630">
+<meta name="build" content="20261027-204411">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -138,9 +138,11 @@
 </div>
 <style>.roue-charge{width:42px;height:42px;border:4px solid #202c33;border-top-color:#00a884;border-radius:50%;animation:roue-tourne .8s linear infinite}@keyframes roue-tourne{to{transform:rotate(360deg)}}</style>
 <script>
-function finChargement(){var e=document.getElementById('ecran-charge');if(!e)return;e.style.opacity='0';setTimeout(function(){if(e.parentNode)e.parentNode.removeChild(e);},300);}
-setTimeout(finChargement,5000);
-document.addEventListener('DOMContentLoaded',function(){var l=document.getElementById('liste-conv');if(!l)return;if(l.children.length){finChargement();return;}new MutationObserver(function(){if(l.children.length)finChargement();}).observe(l,{childList:true});});
+var chMsgs=[['📡','Connexion en cours…','#3498db'],['💬','Chargement de vos messages…','#2ecc71'],['✨','Préparation de l’accueil…','#f1c40f'],['🚀','Presque prêt…','#e67e22']];
+(function(){var c=document.getElementById('ecran-charge');if(!c)return;document.head.insertAdjacentHTML('beforeend','<style>@keyframes chBarre{0%{left:-40%}100%{left:100%}}#ch-msg{transition:opacity .3s}</style>');c.insertAdjacentHTML('beforeend','<div id="ch-msg" style="font-size:17px;font-weight:600;text-align:center;padding:0 24px;min-height:26px;color:'+chMsgs[0][2]+'">'+chMsgs[0][0]+' '+chMsgs[0][1]+'</div><div style="position:relative;width:60%;max-width:260px;height:4px;border-radius:4px;background:#16263a;overflow:hidden"><div style="position:absolute;top:0;bottom:0;width:40%;border-radius:4px;background:linear-gradient(90deg,#2ecc71,#3498db);animation:chBarre 1.4s linear infinite"></div></div><div style="font-size:15px;font-style:italic;text-align:center;padding:0 24px;background:linear-gradient(90deg,#2ecc71,#3498db,#f1c40f);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent">Ensemble tout devient possible</div>');var i=0;window.chTimer=setInterval(function(){var m=document.getElementById('ch-msg');if(!m){clearInterval(window.chTimer);return;}i=(i+1)%chMsgs.length;m.style.opacity='0';setTimeout(function(){m.textContent=chMsgs[i][0]+' '+chMsgs[i][1];m.style.color=chMsgs[i][2];m.style.opacity='1';},300);},2000);})();
+function finChargement(){if(window.chTimer)clearInterval(window.chTimer);var e=document.getElementById('ecran-charge');if(!e)return;e.style.opacity='0';setTimeout(function(){if(e.parentNode)e.parentNode.removeChild(e);},300);}
+function attendreAccueil(){var d=Date.now();(function t(){var l=document.getElementById('liste-conv');var ok=window.chAccueilOk&&document.readyState==='complete';if(ok||Date.now()-d>10000){setTimeout(finChargement,400);return;}setTimeout(t,200);})();}
+setTimeout(finChargement,15000);
 </script>
 
 <div id="login" class="ecran centre hidden">
@@ -433,7 +435,7 @@ function copierCode(code){
         });
       } catch (e) {}
     }
-    if (!session) return montrer('login');
+    if (!session) { finChargement(); return montrer('login'); }
     try {
       const c0 = JSON.parse(localStorage.getItem('kc_msg_' + session.user.id) || 'null');
       if (c0 && c0.length && !$('zone').children.length) { moi = { id: session.user.id }; dernierJour = ''; c0.forEach(ajouter); }
@@ -447,11 +449,11 @@ function copierCode(code){
     } catch (e) {}
     moi = { id: session.user.id, ...p };
     if (p && p.statut !== 'banni' && !p.phone) {
-      const ph = await askPhone();
+      finChargement(); const ph = await askPhone();
       if (!ph) return;
       p.phone = ph; moi.phone = ph;
     }
-    if (p && p.statut !== 'banni' && !p.is_admin && !horsLigne && !(await visageEnregistre())) {
+    if (p && p.statut !== 'banni' && !p.is_admin && !horsLigne && !(await visageEnregistre())) { finChargement();
       if (!(await askVisage())) return;
     }
     if (!p || p.statut !== 'admis') {
@@ -460,7 +462,7 @@ function copierCode(code){
       $('attente-msg').textContent = banni
         ? "L'administrateur a banni ce compte."
         : "Ton compte doit être validé par l'administrateur avant d'accéder au chat.";
-      return montrer('attente');
+      finChargement(); return montrer('attente');
     }
     montrer('accueil');
     await chargerAnnuaire();
@@ -468,7 +470,7 @@ function copierCode(code){
     $('mi-reglages').classList.toggle('hidden', !moi.is_admin);
     chargerMessages();
     ecouter();
-    try { ecouterPrive(); chargerNonLus(); chargerAccueil(); setTimeout(chargerAccueil, 2500); } catch (e) {}
+    try { ecouterPrive(); chargerNonLus(); chargerAccueil(); setTimeout(chargerAccueil, 2500); } catch (e) {} attendreAccueil();
   }
 
   async function connexion(creer) {
@@ -2488,7 +2490,7 @@ async function chargerAccueil(){
   if (!moi) return;
   if (accEnCours) { accRefaire = true; return; }
   accEnCours = true;
-  try { await rendreAccueil(); } catch (e) {}
+  try { await rendreAccueil(); } catch (e) {} window.chAccueilOk = true;
   accEnCours = false;
   if (accRefaire) { accRefaire = false; chargerAccueil(); }
 }
