@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261027-204411">
+<meta name="build" content="20261028-130722">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -1553,7 +1553,7 @@ function ouvrirParametres(){
     '<button id="pm-defaut" style="' + bt + 'background:#2a3942">Remettre le fond par défaut</button>' +
     '<input id="pm-fichier" type="file" accept="image/*" hidden>' +
     '<div id="pm-err" style="color:#ff6b6b"></div>' +
-    (admin ? '<div style="color:#00a884;font-size:.8rem;font-weight:700;margin-top:12px">ADMINISTRATION</div><button id="pm-admin" style="' + bt + 'background:#2a3942">Nom et logo de l\'app</button>' : '') +
+    (admin ? '<div style="color:#00a884;font-size:.8rem;font-weight:700;margin-top:12px">ADMINISTRATION</div><button id="pm-admin" style="' + bt + 'background:#2a3942">Nom et logo de l\'app</button><div id="pm-ia"></div>' : '') +
     '</div>';
   document.body.appendChild(o);
   var fi = o.querySelector('#pm-fichier'), err = o.querySelector('#pm-err');
@@ -1566,6 +1566,54 @@ function ouvrirParametres(){
     catch (e) { err.textContent = 'Image illisible ou trop lourde.'; }
   };
   if (admin) o.querySelector('#pm-admin').onclick = function(){ o.remove(); ouvrirReglages(); };
+  if (admin) chargerReglagesIA(o.querySelector('#pm-ia'));
+}
+async function chargerReglagesIA(zone){
+  if (!zone) return;
+  var cfg = {ia_actif:true, ia_auto:true, ia_delai:2, ia_prive:true, ia_court:false};
+  try {
+    var r = await sb.from('config').select('ia_actif,ia_auto,ia_delai,ia_prive,ia_court').eq('id',1).single();
+    if (r && r.data) cfg = r.data;
+  } catch (e) {}
+  var lignes = [
+    ['ia_actif', 'IA activée', "Répond quand on l'appelle avec @ia"],
+    ['ia_auto', 'Réponse automatique', 'Répond seule si personne ne répond'],
+    ['ia_prive', 'IA en privé', 'Les membres peuvent lui écrire en privé'],
+    ['ia_court', 'Réponses courtes', '3 phrases au maximum']
+  ];
+  var css = 'display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;background:#111b21;border:1px solid #202c33;border-radius:12px';
+  var h = '<div style="color:#00a884;font-size:.8rem;font-weight:700;margin-top:12px">🤖 INTELLIGENCE ARTIFICIELLE</div>';
+  lignes.forEach(function(l){
+    h += '<div style="' + css + '"><div><div style="font-weight:600">' + l[1] + '</div><div style="font-size:.75rem;color:#8696a0">' + l[2] + '</div></div>' +
+      '<div class="ia-sw" data-cle="' + l[0] + '" style="width:46px;height:26px;border-radius:13px;position:relative;cursor:pointer;flex:none"><div style="position:absolute;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s"></div></div></div>';
+  });
+  h += '<div style="' + css + ';flex-direction:column;align-items:stretch"><div><div style="font-weight:600">Temps d\'attente</div><div style="font-size:.75rem;color:#8696a0">Minutes avant que l\'IA réponde seule</div></div><div style="display:flex;gap:8px">';
+  [1,2,3,5].forEach(function(n){ h += '<button class="ia-delai" data-n="' + n + '" style="flex:1;padding:10px;border:0;border-radius:8px;color:#fff;font-size:16px">' + n + ' min</button>'; });
+  h += '</div></div><div id="ia-msg" style="font-size:.85rem;min-height:18px"></div>';
+  zone.innerHTML = h;
+  var msg = zone.querySelector('#ia-msg');
+  function dessiner(){
+    zone.querySelectorAll('.ia-sw').forEach(function(s){
+      var on = !!cfg[s.dataset.cle];
+      s.style.background = on ? '#00a884' : '#2a3942';
+      s.firstChild.style.left = on ? '23px' : '3px';
+    });
+    zone.querySelectorAll('.ia-delai').forEach(function(b){
+      b.style.background = (Number(b.dataset.n) === Number(cfg.ia_delai)) ? '#00a884' : '#2a3942';
+    });
+  }
+  async function sauver(cle, val){
+    var anc = cfg[cle]; cfg[cle] = val; dessiner();
+    var m = {}; m[cle] = val;
+    var r2 = await sb.from('config').update(m).eq('id',1).select();
+    var ok = !r2.error && r2.data && r2.data.length;
+    if (!ok) { cfg[cle] = anc; dessiner(); }
+    msg.style.color = ok ? '#00a884' : '#ff6b6b';
+    msg.textContent = ok ? '✅ Enregistré' : 'Erreur : réglage non enregistré';
+  }
+  zone.querySelectorAll('.ia-sw').forEach(function(s){ s.onclick = function(){ sauver(s.dataset.cle, !cfg[s.dataset.cle]); }; });
+  zone.querySelectorAll('.ia-delai').forEach(function(b){ b.onclick = function(){ sauver('ia_delai', Number(b.dataset.n)); }; });
+  dessiner();
 }
 function ouvrirReglages(){
   var o = document.createElement('div');
