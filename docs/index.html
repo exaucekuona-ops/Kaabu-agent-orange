@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261102-115353">
+<meta name="build" content="20261102-123711">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -675,12 +675,15 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
     async function televerser(blob, type, ext, contentType) {
     const pb = (typeof bullePending === 'function') ? bullePending(blob, type, '_' + ext, 'zone') : null;
     const chemin = `${moi.id}/${Date.now()}.${ext}`;
-    const { error } = await sb.storage.from('chat').upload(chemin, blob, { contentType });
-    if (pb && pb.annule) { try { await sb.storage.from('chat').remove([chemin]); } catch (e) {} pb.retirer(); return; }
-    if (error) { if (pb) pb.retirer(); return alert('Envoi impossible : ' + error.message); }
-    const r = await sb.from('messages').insert({ auteur: moi.id, type, contenu: chemin, groupe_id: window.grpActif || null });
-    if (pb) pb.retirer();
-    if (r.error) { alert('Message non envoyé : ' + r.error.message); demarrer(); }
+    try {
+      await essayer(() => sb.storage.from('chat').upload(chemin, blob, { contentType }), 3, delaiEnvoi(blob.size), 'envoi du fichier').catch(e => { if (/exist|duplicate/i.test(e.message)) return {}; throw e; });
+      if (pb && pb.annule) { try { await sb.storage.from('chat').remove([chemin]); } catch (e) {} pb.retirer(); return; }
+      await essayer(() => sb.from('messages').insert({ auteur: moi.id, type, contenu: chemin, groupe_id: window.grpActif || null }), 3, 20000, 'enregistrement du message');
+      if (pb) pb.retirer();
+    } catch (e) {
+      if (pb) pb.echec(() => televerser(blob, type, ext, contentType), e.message);
+      else alert('Envoi impossible : ' + e.message);
+    }
   }
 
   function reduire(file) {
@@ -1691,14 +1694,19 @@ async function envoyerFichier(inp){
   var f = inp.files[0]; inp.value = ''; if(!f) return;
   if(f.size > 50*1024*1024){ alert('Fichier trop lourd (50 Mo maximum).'); return; }
   var nom = f.name.replace(/[^A-Za-z0-9._-]+/g,'_').slice(-80);
-  var pb = (typeof bullePending === 'function') ? bullePending(f, 'fichier', '_' + nom, 'zone') : null;
   var chemin = moi.id + '/' + Date.now() + '__' + nom;
-  var up = await sb.storage.from('chat').upload(chemin, f, { contentType: f.type || 'application/octet-stream' });
-  if(pb && pb.annule){ try{ await sb.storage.from('chat').remove([chemin]); }catch(e){} pb.retirer(); return; }
-  if(up.error){ if(pb) pb.retirer(); alert('Envoi impossible : ' + up.error.message); return; }
-  var r = await sb.from('messages').insert({ auteur: moi.id, type: 'fichier', contenu: chemin, groupe_id: window.grpActif || null });
-  if(pb) pb.retirer();
-  if(r.error){ alert('Message non envoyé : ' + r.error.message); }
+  async function aller(){
+    var pb = (typeof bullePending === 'function') ? bullePending(f, 'fichier', '_' + nom, 'zone') : null;
+    try{
+      await essayer(function(){ return sb.storage.from('chat').upload(chemin, f, { contentType: f.type || 'application/octet-stream' }); }, 3, delaiEnvoi(f.size), 'envoi du fichier').catch(function(e){ if(/exist|duplicate/i.test(e.message)) return {}; throw e; });
+      if(pb && pb.annule){ try{ await sb.storage.from('chat').remove([chemin]); }catch(e){} pb.retirer(); return; }
+      await essayer(function(){ return sb.from('messages').insert({ auteur: moi.id, type: 'fichier', contenu: chemin, groupe_id: window.grpActif || null }); }, 3, 20000, 'enregistrement du message');
+      if(pb) pb.retirer();
+    }catch(e){
+      if(pb) pb.echec(aller, e.message); else alert('Envoi impossible : ' + e.message);
+    }
+  }
+  return aller();
 }
 /* DEBUT-APERCU-FICHIER */
 var _envoyerFichierOrig = envoyerFichier;
@@ -2813,6 +2821,8 @@ function repId(){ var r=window.repA?String(window.repA.id):null; annulerReponse(
 .env-ring{flex:none;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;background:rgba(255,255,255,.08);position:relative}
 .env-ring::before{content:'';position:absolute;inset:0;border-radius:50%;border:3px solid transparent;border-top-color:#25d366;border-right-color:#2aa8ff;animation:envtourne .9s linear infinite}
 .env-ring i{font-size:16px;opacity:.9}
+.env-ring.env-ko::before{animation:none;border-color:#ff5a5f}
+.env-ring.env-ko{color:#ff5a5f}
 .env-info{display:flex;flex-direction:column;gap:4px;min-width:0}
 .env-info b{font-weight:500;word-break:break-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .env-info small{opacity:.7;font-size:.75rem}
@@ -2874,22 +2884,47 @@ function bullePending(blob,type,fin,zid){
   }
   z.insertAdjacentHTML('beforeend','<div class="rang moi" id="'+id+'"><div class="bulle moi">'+corps+'<span class="heure">'+h+'</span><span class="coches"><i class="fa-solid fa-clock"></i></span></div></div>');
   z.scrollTop=z.scrollHeight;
-  var o={annule:false,retirer:function(){ var e=document.getElementById(id); if(e) e.remove(); }};
+  var o={annule:false,retirer:function(){ var e=document.getElementById(id); if(e) e.remove(); },echec:function(retry,msg){ var e=document.getElementById(id); if(!e) return; var r=e.querySelector('.env-ring'); if(r){ r.classList.add('env-ko'); r.innerHTML='<i class="fa-solid fa-rotate-right"></i>'; r.onclick=function(){ o.retirer(); retry(); }; } var c=e.querySelector('.coches'); if(c) c.innerHTML='<i class="fa-solid fa-circle-exclamation" style="color:#ff5a5f"></i>'; var sm=e.querySelector('.env-info small'); if(sm) sm.textContent=msg; }};
   window.envEnCours=window.envEnCours||{}; window.envEnCours[id]=o;
   return o;
 }
 function envAnnuler(id){ var o=window.envEnCours&&window.envEnCours[id]; if(o){ o.annule=true; o.retirer(); } }
+function avecDelai(p, ms){
+  return new Promise(function(ok, ko){
+    var t = setTimeout(function(){ ko(new Error('délai dépassé')); }, ms);
+    Promise.resolve(p).then(function(v){ clearTimeout(t); ok(v); }, function(e){ clearTimeout(t); ko(e); });
+  });
+}
+function delaiEnvoi(taille){ return 25000 + Math.round((taille || 0) / 10); }
+async function essayer(fn, essais, ms, etape){
+  var derniere;
+  for(var i = 0; i < essais; i++){
+    try{
+      var r = await avecDelai(fn(), ms);
+      if(r && r.error) throw new Error(r.error.message || String(r.error));
+      return r;
+    }catch(e){
+      derniere = e;
+      if(!/fetch|network|load failed/i.test(String((e && e.message) || e))) break;
+      await new Promise(function(z){ setTimeout(z, 1200); });
+    }
+  }
+  throw new Error(etape + ' : ' + ((derniere && derniere.message) || derniere));
+}
 async function envoyerMediaP(blob,type,fin,ct,cible){
   cible=cible||priveId; if(!cible) return;
   var pb=(cible===priveId)?bullePending(blob,type,fin):null;
   var chemin=moi.id+'/'+Date.now()+fin;
-  var up=await sb.storage.from('chat').upload(chemin,blob,{contentType:ct});
-  if(pb&&pb.annule){ try{ await sb.storage.from('chat').remove([chemin]); }catch(e){} pb.retirer(); return; }
-  if(up.error){ if(pb) pb.retirer(); alert('Envoi impossible : '+up.error.message); return; }
-  var r=await sb.from('prives').insert({de:moi.id,a:cible,type:type,contenu:chemin}).select();
-  if(pb) pb.retirer();
-  if(r.error){ alert('Message non envoyé : '+r.error.message); return; }
-  if(r.data&&r.data[0]) ajouterPrive(r.data[0]);
+  try{
+    await essayer(function(){ return sb.storage.from('chat').upload(chemin,blob,{contentType:ct}); },3,delaiEnvoi(blob.size),'envoi du fichier').catch(function(e){ if(/exist|duplicate/i.test(e.message)) return {}; throw e; });
+    if(pb&&pb.annule){ try{ await sb.storage.from('chat').remove([chemin]); }catch(e){} pb.retirer(); return; }
+    var r=await essayer(function(){ return sb.from('prives').insert({de:moi.id,a:cible,type:type,contenu:chemin}).select(); },3,20000,'enregistrement du message');
+    if(pb) pb.retirer();
+    if(r.data&&r.data[0]) ajouterPrive(r.data[0]);
+  }catch(e){
+    if(pb) pb.echec(function(){ envoyerMediaP(blob,type,fin,ct,cible); }, e.message);
+    else alert('Envoi impossible : '+e.message);
+  }
 }
 /* FIN-BULLE-ENVOI */
 async function photoP(inp){
@@ -3079,6 +3114,7 @@ function majCoche(id){
   };
   function verrouiller(){ S.locked=true; bar.querySelector('#vx-hint').style.display='none'; bar.querySelector('#vx-act').style.display='flex'; }
 
+  window.vxToucher=async function(){ if(S) return; var ok=await demarrer(); if(ok&&S&&!S.locked) verrouiller(); };
   function relache(){ if(!S||S.locked) return; if(Date.now()-S.t0<600) verrouiller(); else finir(true); }
   var par=old.parentNode, bm=null;
   [].slice.call(par.querySelectorAll('button')).forEach(function(b){ if(b.querySelector('.fa-microphone')) bm=b; });
@@ -3538,7 +3574,7 @@ bar.parentNode.insertBefore(pan,bar); t.blur();
     t.addEventListener('input',sync); setInterval(sync,300); sync();
   }
   monter({bar:'saisie',texte:'texte',photo:function(i){ envoyerPhoto(i); },fichier:function(i){ envoyerFichier(i); },vocal:null});
-  monter({bar:'prive-saisie',texte:'prive-texte',photo:function(i){ photoP(i); },fichier:function(i){ fichierP(i); },vocal:function(b){ vocalP(b); }});
+  monter({bar:'prive-saisie',texte:'prive-texte',photo:function(i){ photoP(i); },fichier:function(i){ fichierP(i); },vocal:function(b){ if(window.vxToucher) window.vxToucher(); else vocalP(b); }});
 })();
 </script>
 
