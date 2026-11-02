@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261028-130722">
+<meta name="build" content="20261102-115353">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -672,11 +672,14 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
     ouvrirAdmin();
   }
 
-  async function televerser(blob, type, ext, contentType) {
+    async function televerser(blob, type, ext, contentType) {
+    const pb = (typeof bullePending === 'function') ? bullePending(blob, type, '_' + ext, 'zone') : null;
     const chemin = `${moi.id}/${Date.now()}.${ext}`;
     const { error } = await sb.storage.from('chat').upload(chemin, blob, { contentType });
-    if (error) return alert('Envoi impossible : ' + error.message);
+    if (pb && pb.annule) { try { await sb.storage.from('chat').remove([chemin]); } catch (e) {} pb.retirer(); return; }
+    if (error) { if (pb) pb.retirer(); return alert('Envoi impossible : ' + error.message); }
     const r = await sb.from('messages').insert({ auteur: moi.id, type, contenu: chemin, groupe_id: window.grpActif || null });
+    if (pb) pb.retirer();
     if (r.error) { alert('Message non envoyé : ' + r.error.message); demarrer(); }
   }
 
@@ -700,8 +703,16 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
     const f = input.files[0];
     input.value = '';
     if (!f) return;
-    try { await televerser(await reduire(f), 'image', 'jpg', 'image/jpeg'); }
-    catch (e) { alert(e.message); }
+    let blob;
+    try { blob = await reduire(f); } catch (e) { return alert(e.message); }
+    const url = URL.createObjectURL(blob);
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;';
+    ov.innerHTML = '<img src="' + url + '" style="max-width:100%;max-height:70%;border-radius:12px;object-fit:contain"><div id="apercu-barre" style="display:flex;gap:16px;margin-top:20px;width:100%;max-width:360px"><button id="apercu-non" style="flex:1;padding:14px;border:0;border-radius:24px;background:#444;color:#fff;font-size:16px">Annuler</button><button id="apercu-oui" style="flex:1;padding:14px;border:0;border-radius:24px;background:#00a884;color:#fff;font-size:16px">Envoyer</button></div>';
+    document.body.appendChild(ov);
+    const fermer = () => { URL.revokeObjectURL(url); ov.remove(); };
+    document.getElementById('apercu-non').onclick = fermer;
+    document.getElementById('apercu-oui').onclick = () => { fermer(); televerser(blob, 'image', 'jpg', 'image/jpeg').catch(e => alert(e.message)); };
   }
 
   let enregistreur = null, morceaux = [], envoyerVocal = false, chrono = null;
@@ -710,6 +721,34 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
     const sec = Math.floor((Date.now() - t0) / 1000);
     $('chrono').textContent = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
   }
+
+  /* DEBUT-APERCU-VOCAL */
+  function apercuVocal(blob) {
+    var url = URL.createObjectURL(blob);
+    var f = document.createElement('div');
+    f.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:20px';
+    var t = document.createElement('div');
+    t.style.cssText = 'color:#fff;font-size:18px';
+    t.textContent = '🎤 Message vocal';
+    var a = document.createElement('audio');
+    a.src = url; a.controls = true;
+    a.style.cssText = 'width:100%;max-width:340px';
+    var r = document.createElement('div');
+    r.style.cssText = 'display:flex;gap:14px';
+    var bA = document.createElement('button');
+    bA.textContent = 'Annuler';
+    bA.style.cssText = 'padding:12px 24px;border:0;border-radius:24px;background:#444;color:#fff;font-size:16px';
+    var bE = document.createElement('button');
+    bE.textContent = 'Envoyer';
+    bE.style.cssText = 'padding:12px 24px;border:0;border-radius:24px;background:#25d366;color:#fff;font-size:16px';
+    function fermer() { a.pause(); URL.revokeObjectURL(url); f.remove(); }
+    bA.onclick = fermer;
+    bE.onclick = function () { fermer(); televerser(blob, 'vocal', 'webm', 'audio/webm'); };
+    r.appendChild(bA); r.appendChild(bE);
+    f.appendChild(t); f.appendChild(a); f.appendChild(r);
+    document.body.appendChild(f);
+  }
+  /* FIN-APERCU-VOCAL */
 
   async function demarrerVocal() {
     try {
@@ -724,7 +763,7 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
         $('saisie').classList.remove('hidden');
         enregistreur = null;
         const blob = new Blob(morceaux, { type: 'audio/webm' });
-        if (envoyerVocal && blob.size > 1000) await televerser(blob, 'vocal', 'webm', 'audio/webm');
+        if (envoyerVocal && blob.size > 1000) apercuVocal(blob);
       };
       rec.start();
       enregistreur = rec;
@@ -1652,12 +1691,49 @@ async function envoyerFichier(inp){
   var f = inp.files[0]; inp.value = ''; if(!f) return;
   if(f.size > 50*1024*1024){ alert('Fichier trop lourd (50 Mo maximum).'); return; }
   var nom = f.name.replace(/[^A-Za-z0-9._-]+/g,'_').slice(-80);
+  var pb = (typeof bullePending === 'function') ? bullePending(f, 'fichier', '_' + nom, 'zone') : null;
   var chemin = moi.id + '/' + Date.now() + '__' + nom;
   var up = await sb.storage.from('chat').upload(chemin, f, { contentType: f.type || 'application/octet-stream' });
-  if(up.error){ alert('Envoi impossible : ' + up.error.message); return; }
+  if(pb && pb.annule){ try{ await sb.storage.from('chat').remove([chemin]); }catch(e){} pb.retirer(); return; }
+  if(up.error){ if(pb) pb.retirer(); alert('Envoi impossible : ' + up.error.message); return; }
   var r = await sb.from('messages').insert({ auteur: moi.id, type: 'fichier', contenu: chemin, groupe_id: window.grpActif || null });
+  if(pb) pb.retirer();
   if(r.error){ alert('Message non envoyé : ' + r.error.message); }
 }
+/* DEBUT-APERCU-FICHIER */
+var _envoyerFichierOrig = envoyerFichier;
+envoyerFichier = function(inp){
+  var f = inp.files[0]; inp.value = ''; if(!f) return;
+  if(f.size > 50*1024*1024){ alert('Fichier trop lourd (50 Mo maximum).'); return; }
+  var nom = f.name;
+  var taille = f.size >= 1048576 ? (f.size/1048576).toFixed(1)+' Mo' : Math.max(1,Math.round(f.size/1024))+' Ko';
+  var ext = nom.lastIndexOf('.') > 0 ? nom.slice(nom.lastIndexOf('.')+1).toUpperCase().slice(0,6) : 'FICHIER';
+  var o = document.createElement('div');
+  o.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:20px';
+  var ic = document.createElement('div');
+  ic.style.cssText = 'font-size:56px';
+  ic.textContent = '📄';
+  var n = document.createElement('div');
+  n.style.cssText = 'color:#fff;font-size:17px;font-weight:bold;text-align:center;word-break:break-all;max-width:90%';
+  n.textContent = nom;
+  var t = document.createElement('div');
+  t.style.cssText = 'color:#bbb;font-size:15px';
+  t.textContent = taille + ' • ' + ext;
+  var r = document.createElement('div');
+  r.style.cssText = 'display:flex;gap:14px;margin-top:8px';
+  var bA = document.createElement('button');
+  bA.textContent = 'Annuler';
+  bA.style.cssText = 'padding:12px 24px;border:0;border-radius:24px;background:#444;color:#fff;font-size:16px';
+  var bE = document.createElement('button');
+  bE.textContent = 'Envoyer';
+  bE.style.cssText = 'padding:12px 24px;border:0;border-radius:24px;background:#25d366;color:#fff;font-size:16px';
+  bA.onclick = function(){ o.remove(); };
+  bE.onclick = function(){ o.remove(); _envoyerFichierOrig({ files: [f], value: '' }); };
+  r.appendChild(bA); r.appendChild(bE);
+  o.appendChild(ic); o.appendChild(n); o.appendChild(t); o.appendChild(r);
+  document.body.appendChild(o);
+};
+/* FIN-APERCU-FICHIER */
 function lienFichier(m, url){
   var n = m.contenu.split('__').slice(1).join('__') || 'fichier';
   return '<a class="pfic" href="' + url + '" target="_blank" rel="noopener"><i class="fa-solid fa-file pf-i"></i><span class="pf-t"><b>' + esc(n) + '</b><small>' + (n.lastIndexOf('.')>0?n.slice(n.lastIndexOf('.')+1).toUpperCase().slice(0,6):'FICHIER') + '</small></span></a>';
@@ -2733,6 +2809,24 @@ function repId(){ var r=window.repA?String(window.repA.id):null; annulerReponse(
 <style>
 .coches{margin-left:4px;font-size:.7rem;opacity:.75}
 .coches.lu{color:#53bdeb;opacity:1}
+.env-box{display:flex;align-items:center;gap:12px;min-width:200px;padding:4px 2px}
+.env-ring{flex:none;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;background:rgba(255,255,255,.08);position:relative}
+.env-ring::before{content:'';position:absolute;inset:0;border-radius:50%;border:3px solid transparent;border-top-color:#25d366;border-right-color:#2aa8ff;animation:envtourne .9s linear infinite}
+.env-ring i{font-size:16px;opacity:.9}
+.env-info{display:flex;flex-direction:column;gap:4px;min-width:0}
+.env-info b{font-weight:500;word-break:break-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.env-info small{opacity:.7;font-size:.75rem}
+.env-eq{display:flex;align-items:center;gap:3px;height:20px}
+.env-eq span{width:4px;height:18px;border-radius:2px;background:linear-gradient(#2aa8ff,#25d366);animation:envbarre 1s ease-in-out infinite}
+.env-eq span:nth-child(2){animation-delay:.15s}
+.env-eq span:nth-child(3){animation-delay:.3s}
+.env-eq span:nth-child(4){animation-delay:.45s}
+.env-eq span:nth-child(5){animation-delay:.6s}
+.env-img{position:relative;display:inline-block}
+.env-img img{max-width:240px;max-height:300px;border-radius:10px;filter:brightness(.55);display:block}
+.env-img .env-ring{position:absolute;top:50%;left:50%;margin:-23px 0 0 -23px;background:rgba(0,0,0,.45)}
+@keyframes envtourne{to{transform:rotate(360deg)}}
+@keyframes envbarre{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
 .pbtn{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:#202c33;color:#aebac1;font-size:18px;cursor:pointer}
 .pfic{display:flex;align-items:center;gap:10px;color:inherit;text-decoration:none;background:rgba(0,0,0,.2);border-radius:10px;padding:10px 12px;min-width:190px;max-width:100%}.pfic .pf-i{flex:none;font-size:26px;color:#8696a0;width:34px;text-align:center}.pfic .pf-t{display:flex;flex-direction:column;min-width:0}.pfic .pf-t b{font-weight:500;word-break:break-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.pfic .pf-t small{opacity:.65;font-size:.75rem;margin-top:2px}
 </style>
@@ -2763,15 +2857,41 @@ async function afficherMediaP(m){
     e.innerHTML='<a class="pfic" href="'+url+'" target="_blank"><i class="fa-solid fa-file pf-i"></i><span class="pf-t"><b>'+esc(nom)+'</b><small>'+(nom.lastIndexOf('.')>0?nom.slice(nom.lastIndexOf('.')+1).toUpperCase().slice(0,6):'FICHIER')+'</small></span></a>';
   }
 }
+/* DEBUT-BULLE-ENVOI */
+function bullePending(blob,type,fin,zid){
+  var z=$(zid||'prive-zone'); if(!z) return null;
+  var id='env'+Date.now();
+  var ko=blob.size>=1048576?(blob.size/1048576).toFixed(1)+' Mo':Math.max(1,Math.round(blob.size/1024))+' ko';
+  var h=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  var ring='<div class="env-ring" onclick="envAnnuler(\''+id+'\')"><i class="fa-solid fa-xmark"></i></div>';
+  var corps;
+  if(type==='image'){
+    corps='<div class="env-img"><img src="'+URL.createObjectURL(blob)+'">'+ring+'</div>';
+  }else if(type==='vocal'){
+    corps='<div class="env-box">'+ring+'<div class="env-info"><div class="env-eq"><span></span><span></span><span></span><span></span><span></span></div><small>'+ko+'</small></div></div>';
+  }else{
+    corps='<div class="env-box">'+ring+'<div class="env-info"><b>'+esc(fin.replace(/^_/,''))+'</b><small>'+ko+'</small></div></div>';
+  }
+  z.insertAdjacentHTML('beforeend','<div class="rang moi" id="'+id+'"><div class="bulle moi">'+corps+'<span class="heure">'+h+'</span><span class="coches"><i class="fa-solid fa-clock"></i></span></div></div>');
+  z.scrollTop=z.scrollHeight;
+  var o={annule:false,retirer:function(){ var e=document.getElementById(id); if(e) e.remove(); }};
+  window.envEnCours=window.envEnCours||{}; window.envEnCours[id]=o;
+  return o;
+}
+function envAnnuler(id){ var o=window.envEnCours&&window.envEnCours[id]; if(o){ o.annule=true; o.retirer(); } }
 async function envoyerMediaP(blob,type,fin,ct,cible){
   cible=cible||priveId; if(!cible) return;
+  var pb=(cible===priveId)?bullePending(blob,type,fin):null;
   var chemin=moi.id+'/'+Date.now()+fin;
   var up=await sb.storage.from('chat').upload(chemin,blob,{contentType:ct});
-  if(up.error){ alert('Envoi impossible : '+up.error.message); return; }
+  if(pb&&pb.annule){ try{ await sb.storage.from('chat').remove([chemin]); }catch(e){} pb.retirer(); return; }
+  if(up.error){ if(pb) pb.retirer(); alert('Envoi impossible : '+up.error.message); return; }
   var r=await sb.from('prives').insert({de:moi.id,a:cible,type:type,contenu:chemin}).select();
+  if(pb) pb.retirer();
   if(r.error){ alert('Message non envoyé : '+r.error.message); return; }
   if(r.data&&r.data[0]) ajouterPrive(r.data[0]);
 }
+/* FIN-BULLE-ENVOI */
 async function photoP(inp){
   var f=inp.files&&inp.files[0]; inp.value=''; if(!f) return;
   try{ var b=await reduire(f); await envoyerMediaP(b,'image','.jpg','image/jpeg'); }
@@ -2783,6 +2903,33 @@ async function fichierP(inp){
   var s=f.name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9._-]+/g,'_');
   await envoyerMediaP(f,'fichier','_'+s,f.type||'application/octet-stream');
 }
+/* DEBUT-APERCU-VOCALP */
+function apercuVocalP(blob, cible){
+  var url = URL.createObjectURL(blob);
+  var f = document.createElement('div');
+  f.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:20px';
+  var t = document.createElement('div');
+  t.style.cssText = 'color:#fff;font-size:18px';
+  t.textContent = '🎤 Message vocal';
+  var a = document.createElement('audio');
+  a.src = url; a.controls = true;
+  a.style.cssText = 'width:100%;max-width:340px';
+  var r = document.createElement('div');
+  r.style.cssText = 'display:flex;gap:14px';
+  var bA = document.createElement('button');
+  bA.textContent = 'Annuler';
+  bA.style.cssText = 'padding:12px 24px;border:0;border-radius:24px;background:#444;color:#fff;font-size:16px';
+  var bE = document.createElement('button');
+  bE.textContent = 'Envoyer';
+  bE.style.cssText = 'padding:12px 24px;border:0;border-radius:24px;background:#25d366;color:#fff;font-size:16px';
+  function fermer(){ a.pause(); URL.revokeObjectURL(url); f.remove(); }
+  bA.onclick = fermer;
+  bE.onclick = function(){ fermer(); envoyerMediaP(blob, 'vocal', '.webm', 'audio/webm', cible); };
+  r.appendChild(bA); r.appendChild(bE);
+  f.appendChild(t); f.appendChild(a); f.appendChild(r);
+  document.body.appendChild(f);
+}
+/* FIN-APERCU-VOCALP */
 var recP=null;
 async function vocalP(btn){
   if(recP){ recP.stop(); return; }
@@ -2795,7 +2942,7 @@ async function vocalP(btn){
       flux.getTracks().forEach(function(t){ t.stop(); });
       recP=null; btn.style.background=''; btn.innerHTML='<i class="fa-solid fa-microphone"></i>';
       var blob=new Blob(morc,{type:'audio/webm'});
-      if(blob.size>1000) await envoyerMediaP(blob,'vocal','.webm','audio/webm',cible);
+      if(blob.size>1000) apercuVocalP(blob,cible);
     };
     rec.start(); recP=rec;
     btn.style.background='#c62828'; btn.innerHTML='<i class="fa-solid fa-stop"></i>';
