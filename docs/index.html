@@ -491,6 +491,93 @@ function copierCode(code){
     montrer('login');
   }
 
+  const ETIQUETTE = { en_attente: 'En attente', admis: 'Admis', banni: 'Banni' };
+
+  function fermerAdmin() { $('admin').classList.add('hidden'); }
+
+  async function ouvrirAdmin() {
+    $('admin').classList.remove('hidden');
+    const { data, error } = await sb.from('profiles')
+      .select('id,nom,statut,is_admin,created_at').order('created_at', { ascending: false });
+    if (error) return alert(error.message);
+    const ligneDe = p => {
+      let actions = '<small>Toi</small>';
+      if (p.id !== moi.id) {
+        actions = (p.statut !== 'admis' ? `<button class="primaire" onclick="changerStatut('${p.id}','admis')">Admettre</button>` : '')
+                + (p.statut !== 'banni' ? `<button class="danger" onclick="changerStatut('${p.id}','banni')">Bannir</button>` : '');
+        if (p.is_admin && !moi.is_supreme) actions = '<small>Admin</small>';
+        else if (moi.is_supreme && p.statut === 'admis') actions += (p.is_admin ? `<button class="secondaire" onclick="changerAdmin('${p.id}',false)">Retirer admin</button>` : `<button class="secondaire" onclick="changerAdmin('${p.id}',true)">Nommer admin</button>`);
+      }
+      return `<div class="ligne"><div>${esc(p.nom)}<small>${ETIQUETTE[p.statut] || ''}</small></div><div>${actions}${p.id !== moi.id ? `<button class="secondaire" onclick="reinitVisage('${p.id}')">Visage</button>` : ''}</div></div>`;
+    };
+    const actifs = data.filter(p => p.statut !== 'banni'), bannis = data.filter(p => p.statut === 'banni');
+window.filtreCompte = window.filtreCompte || 'tous';
+const nbAdm = actifs.filter(p => p.is_admin).length;
+const vA = filtreCompte === 'bannis' ? [] : (filtreCompte === 'admins' ? actifs.filter(p => p.is_admin) : actifs);
+const vB = (filtreCompte === 'tous' || filtreCompte === 'bannis') ? bannis : [];
+$('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Admins (' + nbAdm + ')'], ['bannis', 'Bannis (' + bannis.length + ')']].map(o => `<button class="${filtreCompte === o[0] ? 'primaire' : 'secondaire'}" style="padding:8px 14px;border:0;border-radius:20px;font-weight:600" onclick="filtreCompte='${o[0]}';ouvrirAdmin()">${o[1]}</button>`).join('');
+    $('liste').innerHTML = vA.map(ligneDe).join('') + (vB.length ? '<div style="padding:18px 12px 6px;color:#8696a0;font-weight:bold">Comptes bannis (' + bannis.length + ')</div>' + vB.map(ligneDe).join('') : '');
+  }
+
+  async function changerAdmin(id, valeur) {
+    if (!confirm(valeur ? 'Nommer ce compte administrateur ?' : "Retirer les droits d'administrateur ?")) return;
+    const { error } = await sb.from('profiles').update({ is_admin: valeur }).eq('id', id);
+    if (error) return alert(error.message);
+    ouvrirAdmin();
+  }
+
+  async function changerStatut(id, statut) {
+    if (statut === 'banni' && !confirm('Bannir ce compte ?')) return;
+    const { error } = await sb.from('profiles').update({ statut }).eq('id', id);
+    if (!error && (statut === 'banni' || statut === 'admis')) {
+      try {
+        const q = await sb.from('profiles').select('nom').eq('id', id).single();
+        const nm = (q.data && q.data.nom) || 'Un compte';
+        await sb.from('messages').insert({ auteur: moi.id, type: 'texte', contenu: '§SYS§ ' + nm + (statut === 'banni' ? ' a été banni' : ' a été admis') });
+      } catch (e) {}
+    }
+    if (error) return alert(error.message);
+    ouvrirAdmin();
+  }
+
+  function ouvrirProfil() {
+    $('profil-av').innerHTML = avatarDe(moi.id, moi.nom); { const im = $('profil-av').querySelector('img'); if (im) { im.style.cursor = 'pointer'; im.onclick = function(){ voirPhoto(im.src); }; } }
+    $('profil-nom').textContent = moi.nom || '';
+    $('profil-tel').textContent = moi.phone ? '📞 ' + moi.phone : '';
+    $('profil').classList.remove('hidden');
+  }
+
+  async function changerPhotoIA(input) {
+    const f = input.files[0];
+    input.value = '';
+    if (!f) return;
+    try {
+      const chemin = moi.id + '/ia-' + Date.now() + '.jpg';
+      const up = await sb.storage.from('avatars').upload(chemin, await carre(f, 800), { contentType: 'image/jpeg' });
+      if (up.error) throw up.error;
+      const r = await sb.rpc('changer_photo_ia', { p_chemin: chemin });
+      if (r.error) throw r.error;
+      await chargerAnnuaire();
+      $('prive-av').innerHTML = avatarDe('00000000-0000-4000-8000-0000000000a1', nomDe('00000000-0000-4000-8000-0000000000a1'));
+    } catch (e) { alert('Photo non enregistrée : ' + e.message); }
+  }
+
+  async function changerPhoto(input) {
+    const f = input.files[0];
+    input.value = '';
+    if (!f) return;
+    try {
+      const chemin = `${moi.id}/${Date.now()}.jpg`;
+      const up = await sb.storage.from('avatars').upload(chemin, await carre(f, 800), { contentType: 'image/jpeg' });
+      if (up.error) throw up.error;
+      const r = await sb.rpc('changer_photo', { p_chemin: chemin });
+      if (r.error) throw r.error;
+      await chargerAnnuaire();
+      ouvrirProfil();
+      await chargerMessages();
+    } catch (e) { alert('Photo non enregistrée : ' + e.message); }
+  }
+
   const msgs = {};
   let annuaire = {}, tels = {};
 
@@ -600,7 +687,7 @@ function copierCode(code){
     const data = { signedUrl: await urlLocale(m.contenu) };
     const url = data ? esc(data.signedUrl) : '';
     $('m' + m.id).innerHTML = !url ? '(fichier indisponible)'
-      : m.type === 'image' ? `<img src="${url}" onclick="voirPhoto(this.src)" onload="$('zone').scrollTop=$('zone').scrollHeight">`
+      : m.type === 'image' ? `<img src="${url}" onclick="voirPhoto(this.src)" onload="if(!window.__hist)$('zone').scrollTop=$('zone').scrollHeight">`
       : lecteurVocal(url, m);
   }
 
@@ -621,55 +708,6 @@ function copierCode(code){
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, p => retirer(p.old.id))
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, p => { if ((p.new.groupe_id || null) === (window.grpActif || null)) majMessage(p.new); })
       .subscribe();
-  }
-
-  const ETIQUETTE = { en_attente: 'En attente', admis: 'Admis', banni: 'Banni' };
-
-  function fermerAdmin() { $('admin').classList.add('hidden'); }
-
-  async function ouvrirAdmin() {
-    $('admin').classList.remove('hidden');
-    const { data, error } = await sb.from('profiles')
-      .select('id,nom,statut,is_admin,created_at').order('created_at', { ascending: false });
-    if (error) return alert(error.message);
-    const ligneDe = p => {
-      let actions = '<small>Toi</small>';
-      if (p.id !== moi.id) {
-        actions = (p.statut !== 'admis' ? `<button class="primaire" onclick="changerStatut('${p.id}','admis')">Admettre</button>` : '')
-                + (p.statut !== 'banni' ? `<button class="danger" onclick="changerStatut('${p.id}','banni')">Bannir</button>` : '');
-        if (p.is_admin && !moi.is_supreme) actions = '<small>Admin</small>';
-        else if (moi.is_supreme && p.statut === 'admis') actions += (p.is_admin ? `<button class="secondaire" onclick="changerAdmin('${p.id}',false)">Retirer admin</button>` : `<button class="secondaire" onclick="changerAdmin('${p.id}',true)">Nommer admin</button>`);
-      }
-      return `<div class="ligne"><div>${esc(p.nom)}<small>${ETIQUETTE[p.statut] || ''}</small></div><div>${actions}${p.id !== moi.id ? `<button class="secondaire" onclick="reinitVisage('${p.id}')">Visage</button>` : ''}</div></div>`;
-    };
-    const actifs = data.filter(p => p.statut !== 'banni'), bannis = data.filter(p => p.statut === 'banni');
-window.filtreCompte = window.filtreCompte || 'tous';
-const nbAdm = actifs.filter(p => p.is_admin).length;
-const vA = filtreCompte === 'bannis' ? [] : (filtreCompte === 'admins' ? actifs.filter(p => p.is_admin) : actifs);
-const vB = (filtreCompte === 'tous' || filtreCompte === 'bannis') ? bannis : [];
-$('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Admins (' + nbAdm + ')'], ['bannis', 'Bannis (' + bannis.length + ')']].map(o => `<button class="${filtreCompte === o[0] ? 'primaire' : 'secondaire'}" style="padding:8px 14px;border:0;border-radius:20px;font-weight:600" onclick="filtreCompte='${o[0]}';ouvrirAdmin()">${o[1]}</button>`).join('');
-    $('liste').innerHTML = vA.map(ligneDe).join('') + (vB.length ? '<div style="padding:18px 12px 6px;color:#8696a0;font-weight:bold">Comptes bannis (' + bannis.length + ')</div>' + vB.map(ligneDe).join('') : '');
-  }
-
-  async function changerAdmin(id, valeur) {
-    if (!confirm(valeur ? 'Nommer ce compte administrateur ?' : "Retirer les droits d'administrateur ?")) return;
-    const { error } = await sb.from('profiles').update({ is_admin: valeur }).eq('id', id);
-    if (error) return alert(error.message);
-    ouvrirAdmin();
-  }
-
-  async function changerStatut(id, statut) {
-    if (statut === 'banni' && !confirm('Bannir ce compte ?')) return;
-    const { error } = await sb.from('profiles').update({ statut }).eq('id', id);
-    if (!error && (statut === 'banni' || statut === 'admis')) {
-      try {
-        const q = await sb.from('profiles').select('nom').eq('id', id).single();
-        const nm = (q.data && q.data.nom) || 'Un compte';
-        await sb.from('messages').insert({ auteur: moi.id, type: 'texte', contenu: '§SYS§ ' + nm + (statut === 'banni' ? ' a été banni' : ' a été admis') });
-      } catch (e) {}
-    }
-    if (error) return alert(error.message);
-    ouvrirAdmin();
   }
 
     async function televerser(blob, type, ext, contentType) {
@@ -797,44 +835,6 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
       img.onerror = () => ko(new Error('Image illisible'));
       img.src = URL.createObjectURL(file);
     });
-  }
-
-  function ouvrirProfil() {
-    $('profil-av').innerHTML = avatarDe(moi.id, moi.nom); { const im = $('profil-av').querySelector('img'); if (im) { im.style.cursor = 'pointer'; im.onclick = function(){ voirPhoto(im.src); }; } }
-    $('profil-nom').textContent = moi.nom || '';
-    $('profil-tel').textContent = moi.phone ? '📞 ' + moi.phone : '';
-    $('profil').classList.remove('hidden');
-  }
-
-  async function changerPhotoIA(input) {
-    const f = input.files[0];
-    input.value = '';
-    if (!f) return;
-    try {
-      const chemin = moi.id + '/ia-' + Date.now() + '.jpg';
-      const up = await sb.storage.from('avatars').upload(chemin, await carre(f, 800), { contentType: 'image/jpeg' });
-      if (up.error) throw up.error;
-      const r = await sb.rpc('changer_photo_ia', { p_chemin: chemin });
-      if (r.error) throw r.error;
-      await chargerAnnuaire();
-      $('prive-av').innerHTML = avatarDe('00000000-0000-4000-8000-0000000000a1', nomDe('00000000-0000-4000-8000-0000000000a1'));
-    } catch (e) { alert('Photo non enregistrée : ' + e.message); }
-  }
-
-  async function changerPhoto(input) {
-    const f = input.files[0];
-    input.value = '';
-    if (!f) return;
-    try {
-      const chemin = `${moi.id}/${Date.now()}.jpg`;
-      const up = await sb.storage.from('avatars').upload(chemin, await carre(f, 800), { contentType: 'image/jpeg' });
-      if (up.error) throw up.error;
-      const r = await sb.rpc('changer_photo', { p_chemin: chemin });
-      if (r.error) throw r.error;
-      await chargerAnnuaire();
-      ouvrirProfil();
-      await chargerMessages();
-    } catch (e) { alert('Photo non enregistrée : ' + e.message); }
   }
 
   // Photo en grand, suppression par appui long
@@ -2841,15 +2841,7 @@ function repId(){ var r=window.repA?String(window.repA.id):null; annulerReponse(
 .pfic{display:flex;align-items:center;gap:10px;color:inherit;text-decoration:none;background:rgba(0,0,0,.2);border-radius:10px;padding:10px 12px;min-width:190px;max-width:100%}.pfic .pf-i{flex:none;font-size:26px;color:#8696a0;width:34px;text-align:center}.pfic .pf-t{display:flex;flex-direction:column;min-width:0}.pfic .pf-t b{font-weight:500;word-break:break-all;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.pfic .pf-t small{opacity:.65;font-size:.75rem;margin-top:2px}
 </style>
 <script>
-function cochesP(m){
-  var lu=!!m.lu_at;
-  return '<span class="coches'+(lu?' lu':'')+'" id="c'+m.id+'"><i class="fa-solid '+(lu?'fa-check-double':'fa-check')+'"></i></span>';
-}
-function majCoche(id){
-  var e=document.getElementById('c'+id); if(!e) return;
-  e.classList.add('lu'); e.innerHTML='<i class="fa-solid fa-check-double"></i>';
-}
-function defP(){ var z=document.getElementById('prive-zone'); z.scrollTop=z.scrollHeight; }
+function defP(){ if(window.__histP) return; var z=document.getElementById('prive-zone'); z.scrollTop=z.scrollHeight; }
 function contenuP(m){
   if(!m.type||m.type==='texte') return esc(m.contenu);
   setTimeout(function(){ afficherMediaP(m); },0);
@@ -3166,14 +3158,14 @@ function majCoche(id){
     c.toBlob(async function(b){ fermerCam(); if(b) await envoyerMediaP(b,'image','.jpg','image/jpeg',cible); },'image/jpeg',0.82);
   };
 })();
-/* FIN-WA */
-
-/* DEBUT-CACHE */
-(function(){
   function cle(p,id){ return 'kc_'+p+'_'+id; }
   function lire(k){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch(e){ return null; } }
   function ecrire(k,o){ try{ localStorage.setItem(k,JSON.stringify(o)); }catch(e){} }
   function pret(){ try{ return !!(moi&&moi.id); }catch(e){ return false; } }
+/* FIN-WA */
+
+/* DEBUT-CACHE */
+(function(){
 
   var _ca=chargerAnnuaire;
   chargerAnnuaire=async function(){
@@ -3220,16 +3212,15 @@ function majCoche(id){
 
 /* DEBUT-CACHE2 */
 (function(){
-  function cle(p,id){ return 'kc_'+p+'_'+id; }
-  function lire(k){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch(e){ return null; } }
-  function ecrire(k,o){ try{ localStorage.setItem(k,JSON.stringify(o)); }catch(e){} }
-  function pret(){ try{ return !!(moi&&moi.id); }catch(e){ return false; } }
   function parDate(x,y){ return new Date(x.created_at)-new Date(y.created_at); }
 
   function sauverMsgs(){ if(window.grpActif) return;
     try{
       if(!pret()) return;
-      var a=Object.keys(msgs).map(function(k){ return msgs[k]; }).sort(parDate).slice(-100);
+      var tous={};
+      (lire(cle('msg',moi.id))||[]).forEach(function(m){ tous[m.id]=m; });
+      Object.keys(msgs).forEach(function(k){ tous[msgs[k].id]=msgs[k]; });
+      var a=Object.keys(tous).map(function(k){ return tous[k]; }).sort(parDate).slice(-1500);
       if(a.length) ecrire(cle('msg',moi.id),a);
     }catch(e){}
   }
@@ -3241,11 +3232,25 @@ function majCoche(id){
         if(c&&c.length){
           Object.keys(msgs).forEach(function(k){ delete msgs[k]; });
           dernierJour='';
-          c.forEach(function(m){ ajouter(m); });
+          c.slice(-300).forEach(function(m){ ajouter(m); });
         }
       }
     }catch(e){}
     var r=await _cm.apply(this,arguments);
+    try{
+      if(pret()){
+        var m2={}, ici={};
+        (lire(cle('msg',moi.id))||[]).forEach(function(m){ m2[m.id]=m; });
+        Object.keys(msgs).forEach(function(k){ m2[msgs[k].id]=msgs[k]; ici[msgs[k].id]=1; });
+        var fin=Object.keys(m2).map(function(k){ return m2[k]; }).sort(parDate).slice(-300);
+        if(fin.some(function(m){ return !ici[m.id]; })){
+          $('zone').innerHTML='';
+          Object.keys(msgs).forEach(function(k){ delete msgs[k]; });
+          dernierJour='';
+          fin.forEach(function(m){ ajouter(m); });
+        }
+      }
+    }catch(e){}
     sauverMsgs();
     return r;
   };
@@ -3254,10 +3259,95 @@ function majCoche(id){
   function sauverPrive(autre){
     try{
       if(!pret()||!pc[autre]) return;
-      var a=Object.keys(pc[autre]).map(function(k){ return pc[autre][k]; }).sort(parDate).slice(-100);
+      var tp={};
+      (lire(cle('prv_'+autre,moi.id))||[]).forEach(function(m){ tp[m.id]=m; });
+      Object.keys(pc[autre]).forEach(function(k){ tp[pc[autre][k].id]=pc[autre][k]; });
+      var a=Object.keys(tp).map(function(k){ return tp[k]; }).sort(parDate).slice(-1500);
       if(a.length) ecrire(cle('prv_'+autre,moi.id),a);
     }catch(e){}
   }
+  var _pre={}, _preF=[], _preB=false;
+  function precharger(m){
+    try{
+      if(!m||!m.contenu||!/^(image|vocal|fichier)$/.test(m.type)||_pre[m.contenu]) return;
+      _pre[m.contenu]=1; _preF.push(m); if(!_preB) _preGo();
+    }catch(e){}
+  }
+  async function _preUn(m){
+    if(!window.caches||!navigator.onLine) return false;
+    var c=await caches.open('kaabu-medias');
+    var k=new Request('/kaabu-media/'+encodeURIComponent(m.contenu));
+    if(await c.match(k)) return true;
+    var sg=await sb.storage.from('chat').createSignedUrl(m.contenu,600);
+    if(!sg.data) return false;
+    var r=await fetch(sg.data.signedUrl);
+    if(!r.ok) return false;
+    var t=+r.headers.get('content-length')||0;
+    if(m.type==='fichier'&&t>3000000){ try{ r.body.cancel(); }catch(e){} return true; }
+    await c.put(k,r);
+    return true;
+  }
+  async function _preGo(){
+    _preB=true;
+    while(_preF.length){
+      var m=_preF.shift(), ok=false;
+      try{ ok=await _preUn(m); }catch(e){}
+      if(!ok) delete _pre[m.contenu];
+    }
+    _preB=false;
+  }
+  var _aj=ajouter;
+  ajouter=function(m){ precharger(m); return _aj.apply(this,arguments); };
+  var _ap0=ajouterPrive;
+  ajouterPrive=function(m){ precharger(m); return _ap0.apply(this,arguments); };
+  var _nbG=300, _nbP=300, _chH=false;
+  function _histG(){
+    if(_chH||window.grpActif||!pret()) return;
+    var z=$('zone'); if(!z) return;
+    var tous={};
+    (lire(cle('msg',moi.id))||[]).forEach(function(m){ tous[m.id]=m; });
+    Object.keys(msgs).forEach(function(k){ tous[msgs[k].id]=msgs[k]; });
+    var l=Object.keys(tous).map(function(k){ return tous[k]; }).sort(parDate);
+    if(l.length<=_nbG) return;
+    _chH=true;
+    var avant=z.scrollHeight-z.scrollTop;
+    _nbG+=300; window.__hist=true;
+    z.innerHTML='';
+    Object.keys(msgs).forEach(function(k){ delete msgs[k]; });
+    dernierJour='';
+    l.slice(-_nbG).forEach(function(m){ ajouter(m); });
+    z.scrollTop=z.scrollHeight-avant;
+    setTimeout(function(){ _chH=false; },500);
+  }
+  function _histP(){
+    if(_chH||!priveId||!pret()) return;
+    var z=$('prive-zone'); if(!z) return;
+    var tp={};
+    (lire(cle('prv_'+priveId,moi.id))||[]).forEach(function(m){ tp[m.id]=m; });
+    if(pc[priveId]) Object.keys(pc[priveId]).forEach(function(k){ tp[pc[priveId][k].id]=pc[priveId][k]; });
+    var l=Object.keys(tp).map(function(k){ return tp[k]; }).sort(parDate);
+    if(l.length<=_nbP) return;
+    _chH=true;
+    var avant=z.scrollHeight-z.scrollTop;
+    _nbP+=300; window.__histP=true;
+    z.innerHTML='';
+    l.slice(-_nbP).forEach(function(m){ ajouterPrive(m); });
+    z.scrollTop=z.scrollHeight-avant;
+    setTimeout(function(){ _chH=false; },500);
+  }
+  var _cm3=chargerMessages;
+  chargerMessages=function(){ _nbG=300; window.__hist=false; return _cm3.apply(this,arguments); };
+  var _op3=ouvrirPrive;
+  ouvrirPrive=function(id){ _nbP=300; window.__histP=false; return _op3.apply(this,arguments); };
+  var _zg=$('zone'), _zp=$('prive-zone');
+  if(_zg) _zg.addEventListener('scroll',function(){
+    if(_zg.scrollTop<80) _histG();
+    else if(_zg.scrollHeight-_zg.scrollTop-_zg.clientHeight<150) window.__hist=false;
+  },{passive:true});
+  if(_zp) _zp.addEventListener('scroll',function(){
+    if(_zp.scrollTop<80) _histP();
+    else if(_zp.scrollHeight-_zp.scrollTop-_zp.clientHeight<150) window.__histP=false;
+  },{passive:true});
   var _ap=ajouterPrive;
   ajouterPrive=function(m){
     try{ var autre=(m.de===moi.id)?m.a:m.de; (pc[autre]=pc[autre]||{})[m.id]=m; }catch(e){}
@@ -3276,7 +3366,7 @@ function majCoche(id){
     try{
       if(pret()){
         var c=lire(cle('prv_'+id,moi.id));
-        if(c&&c.length&&priveId===id){ c.forEach(function(m){ ajouterPrive(m); }); cache=true; }
+        if(c&&c.length&&priveId===id){ c.slice(-300).forEach(function(m){ ajouterPrive(m); }); cache=true; }
       }
     }catch(e){}
     try{ await p; }catch(e){}
@@ -3313,8 +3403,6 @@ function majCoche(id){
   st.textContent='.vbadge{display:inline-block;width:20px;height:20px;margin-left:5px;vertical-align:-4px;flex:none}';
   document.head.appendChild(st);
 
-  function cle(p,id){ return 'kc_'+p+'_'+id; }
-  function pret(){ try{ return !!(moi&&moi.id); }catch(e){ return false; } }
   function sauverV(){ try{ if(pret()) localStorage.setItem(cle('ver',moi.id),JSON.stringify(Object.keys(V))); }catch(e){} }
   function poser(el,id){
     if(!el) return;
