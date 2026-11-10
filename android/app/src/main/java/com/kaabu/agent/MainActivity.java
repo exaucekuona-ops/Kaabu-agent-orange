@@ -74,6 +74,7 @@ public class MainActivity extends BridgeActivity {
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    try { getBridge().getWebView().getSettings().setTextZoom(100); } catch (Exception e) { }
     try {
       getBridge().getWebView().addJavascriptInterface(new Pont(), "AppelNatif");
     } catch (Exception e) { }
