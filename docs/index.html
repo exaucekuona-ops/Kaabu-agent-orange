@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261102-123711">
+<meta name="build" content="20261110-113534">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -661,6 +661,7 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
   }
 
     const _mediaUrls = {};
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
   async function urlLocale(chemin) {
     if (_mediaUrls[chemin]) return _mediaUrls[chemin];
     try {
@@ -2890,6 +2891,7 @@ function avecDelai(p, ms){
 function delaiEnvoi(taille){ return 25000 + Math.round((taille || 0) / 10); }
 async function essayer(fn, essais, ms, etape){
   var derniere;
+  essais = Math.max(essais || 0, 5);
   for(var i = 0; i < essais; i++){
     try{
       var r = await avecDelai(fn(), ms);
@@ -2898,7 +2900,7 @@ async function essayer(fn, essais, ms, etape){
     }catch(e){
       derniere = e;
       if(!/fetch|network|load failed/i.test(String((e && e.message) || e))) break;
-      await new Promise(function(z){ setTimeout(z, 1200); });
+      await new Promise(function(z){ setTimeout(z, 1500 + i * 2500); });
     }
   }
   throw new Error(etape + ' : ' + ((derniere && derniere.message) || derniere));
