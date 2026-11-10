@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261110-113534">
+<meta name="build" content="20261110-184729">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -1844,6 +1844,38 @@ afficherMedia = async function(m){
       if(b) b.disabled = false;
     }
   };
+    /*DEBUT-OUVRIR-GROUPE*/
+  document.addEventListener('click', async function(ev){
+    var s = null, ancien = '';
+    try{
+      var t = ev.target; if(!t || !t.closest) return;
+      if(t.closest('button')) return;
+      var sp = t.closest('span[id^="m"]'); if(!sp) return;
+      var id = sp.id.slice(1), f = reg[id]; if(!f) return;
+      if(localStorage.getItem('dl:' + id) !== '1') return;
+      var P = window.Capacitor && Capacitor.Plugins;
+      if(!P || !P.Filesystem || !P.FileOpener) return;
+      var nom = f.nom, ext = nom.indexOf('.') > 0 ? nom.split('.').pop().toLowerCase() : '';
+      var mime = ext === 'apk' ? 'application/vnd.android.package-archive' : undefined;
+      s = document.getElementById('fs' + id); ancien = s ? s.textContent : '';
+      if(s) s.textContent = 'Ouverture…';
+      try{
+        var u = await P.Filesystem.getUri({ path: 'Telecom RDC/' + nom, directory: 'DOCUMENTS' });
+        var o1 = { path: String(u.uri).replace('file://', '') };
+        if(mime) o1.mimeType = mime;
+        await P.FileOpener.openFile(o1);
+      }catch(e1){
+        var sg = await sb.storage.from('chat').createSignedUrl(f.m.contenu, 600);
+        if(sg.error || !sg.data) throw new Error('fichier indisponible');
+        var r = await P.Filesystem.downloadFile({ url: sg.data.signedUrl, path: nom, directory: 'CACHE' });
+        var o2 = { path: String(r.path).replace('file://', '') };
+        if(mime) o2.mimeType = mime;
+        await P.FileOpener.openFile(o2);
+      }
+    }catch(e){ alert('Fichier non ouvert : ' + (e && e.message || e)); }
+    if(s) s.textContent = ancien;
+  });
+  /*FIN-OUVRIR-GROUPE*/
   afficherMedia = async function(m){
     if(m.type !== 'fichier') return prev(m);
     var el = $('m' + m.id); if(!el) return;
