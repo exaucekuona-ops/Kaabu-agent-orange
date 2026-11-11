@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261111-152305">
+<meta name="build" content="20261111-191711">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -377,7 +377,7 @@ function vpnSauver(){
 }
 function vpnConf(){ try{ return JSON.parse(localStorage.getItem('kc_vpn_conf')||'{}'); }catch(e){ return {}; } }
 function vpnCharger(){
-  fetch('serveurs.json?t='+Date.now()).then(function(r){ return r.json(); }).then(function(j){
+  fetch('https://exaucekuona-ops.github.io/Kaabu-agent-orange/serveurs.json?t='+Date.now()).then(function(r){ return r.json(); }).then(function(j){
     try{ localStorage.setItem('kc_vpn_conf', JSON.stringify(j)); }catch(e){}
     if($('vpn-fiche') && $('vpn-fiche').style.display==='none'){ rendreServices(); }
   }).catch(function(){});

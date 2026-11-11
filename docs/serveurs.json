@@ -1,5 +1,7 @@
 {
   "version": "1.0",
   "annonce": "Bienvenue sur ExauchVPN",
-  "serveurs": []
+  "serveurs": [
+    { "nom": "Serveur test", "pays": "RDC", "adresse": "test.invalid", "port": 0, "cle": "" }
+  ]
 }
