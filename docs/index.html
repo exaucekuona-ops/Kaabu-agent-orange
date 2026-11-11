@@ -383,9 +383,60 @@ function vpnCharger(){
   }).catch(function(){});
 }
 function vpnOuvrir(){ $('vpn-fiche').style.display='flex'; }
+function vpnMenu(){ var m=$('vpn-menu'); m.style.display=(m.style.display==='flex')?'none':'flex'; }
 function vpnFermer(){ $('vpn-fiche').style.display='none'; }
 function vpnConnecter(){ toast('Moteur VPN pas encore installé'); }
 function vpnAjouter(){ toast('Pub récompensée bientôt disponible'); }
+function vpnServeurTexte(){
+  var s=vpnLire();
+  if(!s.ip){ return ''; }
+  return JSON.stringify({type:'exauchvpn',nom:s.nom||'',ip:s.ip,port:s.port||'',cle:s.cle||''});
+}
+function vpnExporter(){
+  var t=vpnServeurTexte();
+  if(!t){ toast('Aucun serveur à transférer'); return; }
+  try{
+    var f=new File([t],'serveur-exauchvpn.json',{type:'application/json'});
+    if(navigator.canShare && navigator.canShare({files:[f]})){ navigator.share({files:[f],title:'Serveur ExauchVPN'}).catch(function(){}); return; }
+  }catch(e){}
+  try{ navigator.clipboard.writeText(t).then(function(){ toast('Serveur copié : colle-le dans un message'); }).catch(function(){ toast('Copie impossible'); }); }catch(e){ toast('Copie impossible'); }
+}
+function vpnImporterTexte(t){
+  var j;
+  try{ j=JSON.parse(t); }catch(e){ toast('Fichier non valide'); return; }
+  if(!j || j.type!=='exauchvpn' || !j.ip){ toast('Ce fichier n est pas un serveur ExauchVPN'); return; }
+  try{ localStorage.setItem('kc_vpn', JSON.stringify({nom:String(j.nom||''),ip:String(j.ip),port:String(j.port||''),cle:String(j.cle||'')})); }catch(e){}
+  toast('Serveur importé');
+  rendreServices();
+}
+function vpnImporter(){
+  var i=document.createElement('input');
+  i.type='file';
+  i.onchange=function(){
+    var f=i.files && i.files[0];
+    if(!f){ return; }
+    var r=new FileReader();
+    r.onload=function(){ vpnImporterTexte(String(r.result||'')); };
+    r.readAsText(f);
+  };
+  i.click();
+}
+function vpnEffacerPerso(){
+  try{ localStorage.removeItem('kc_vpn'); }catch(e){}
+  toast('Serveur personnalisé effacé');
+  rendreServices();
+}
+function vpnEffacerDonnees(){
+  try{ localStorage.removeItem('kc_vpn'); localStorage.removeItem('kc_vpn_conf'); }catch(e){}
+  toast('Données VPN effacées');
+  vpnCharger();
+  rendreServices();
+}
+function vpnMettreAJour(){
+  vpnCharger();
+  toast('Liste des serveurs mise à jour');
+}
+function vpnRedemarrer(){ location.reload(); }
 function rendreServices(){
   var s=vpnLire(), c=vpnConf(), a=(c.serveurs||[])[0];
   if(window.vpnOk===undefined){ window.vpnOk=1; vpnCharger(); }
@@ -399,7 +450,8 @@ function rendreServices(){
       +'<div style="flex:1;min-width:0"><div style="color:#0b1b5e;font-weight:800;font-size:1.05rem">'+titre+'</div><div style="color:#555;font-weight:600">'+sous+'</div></div>'
       +(perso?'<div onclick="vpnOuvrir()" style="text-align:center;padding:8px 12px;border-radius:14px;background:#e8eeff;color:#1e40af;font-weight:700;font-size:.8rem;cursor:pointer"><i class="fa-solid fa-gear" style="font-size:1.3rem;display:block"></i>Personnalisé</div>':'')+'</div>';
   };
-  var h='<div style="margin:-12px -12px 0;padding:22px 16px 18px;text-align:center;background:linear-gradient(160deg,#0a1a6b,#1d4ed8);color:#fff">'
+  var h='<div style="margin:-12px -12px 0;padding:22px 16px 18px;text-align:center;position:relative;background:linear-gradient(160deg,#0a1a6b,#1d4ed8);color:#fff">'
+    +'<div onclick="vpnMenu()" style="position:absolute;top:10px;right:12px;padding:6px 12px;font-size:1.4rem;cursor:pointer"><i class="fa-solid fa-ellipsis-vertical"></i></div>'
     +'<i class="fa-solid fa-shield-halved" style="font-size:2.6rem"></i>'
     +'<div style="font-size:2rem;font-weight:800;font-style:italic">Exauch<span style="color:#38bdf8">VPN</span></div>'
     +'<div style="font-style:italic;opacity:.9">Connect · Browse · Be Free</div></div>'
@@ -416,6 +468,8 @@ function rendreServices(){
     +'<i class="fa-solid fa-stopwatch" style="font-size:2.2rem;color:#1d4ed8"></i>'
     +'<div style="flex:1"><div style="color:#1d4ed8;font-weight:700">Temps restant</div><div style="font-size:1.3rem;font-weight:800">0d:0h:0m:0s</div></div>'
     +'<div onclick="vpnAjouter()" style="padding:12px 14px;border-radius:14px;background:#e11d1d;color:#fff;font-weight:700;cursor:pointer"><i class="fa-solid fa-plus"></i> Ajouter Durée</div></div>'
+    +'<div id="vpn-menu" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:20;background:rgba(0,0,0,.5)" onclick="vpnMenu()"><div style="position:absolute;top:100px;right:14px;width:240px;background:#fff;border-radius:14px;padding:6px 0;box-shadow:0 6px 24px rgba(0,0,0,.4)">'
+    +['vpnMettreAJour|Mettre à jour la liste','vpnImporter|Importer un serveur','vpnExporter|Transférer mon serveur','vpnEffacerPerso|Effacer mon serveur','vpnEffacerDonnees|Effacer les données','vpnRedemarrer|Redémarrer'].map(function(x){ var p=x.split('|'); return '<div onclick="vpnMenu();'+p[0]+'()" style="padding:14px 18px;color:#0b1b5e;font-weight:600">'+p[1]+'</div>'; }).join('')+'</div></div>'
     +'<div id="vpn-fiche" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:20;background:rgba(0,0,0,.7);align-items:flex-end">'
     +'<div style="width:100%;box-sizing:border-box;padding:18px;border-radius:22px 22px 0 0;background:#0b1530;max-height:90%;overflow:auto">'
     +'<div style="font-size:1.2rem;font-weight:800;color:#e9edef;margin-bottom:14px">Personnalisé : mon serveur</div>'
