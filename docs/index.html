@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261111-145253">
+<meta name="build" content="20261111-151620">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -371,24 +371,60 @@ function vpnEsc(t){ return String(t||'').replace(/&/g,'&amp;').replace(/"/g,'&qu
 function vpnLire(){ try{ return JSON.parse(localStorage.getItem('kc_vpn')||'{}'); }catch(e){ return {}; } }
 function vpnSauver(){
   var d={nom:$('vpn-nom').value.trim(), ip:$('vpn-ip').value.trim(), port:$('vpn-port').value.trim(), cle:$('vpn-cle').value.trim()};
-  if(!d.ip || !d.port){ toast('Mets au moins l\'adresse et le port'); return; }
-  try{ localStorage.setItem('kc_vpn', JSON.stringify(d)); toast('Serveur enregistré'); }catch(e){ toast('Erreur d\'enregistrement'); }
+  if(d.ip && d.port){
+    try{ localStorage.setItem('kc_vpn', JSON.stringify(d)); toast('Serveur enregistré'); vpnFermer(); rendreServices(); }catch(e){ toast('Erreur d\'enregistrement'); }
+  }else{ toast('Mets au moins l\'adresse et le port'); }
 }
+function vpnConf(){ try{ return JSON.parse(localStorage.getItem('kc_vpn_conf')||'{}'); }catch(e){ return {}; } }
+function vpnCharger(){
+  fetch('serveurs.json?t='+Date.now()).then(function(r){ return r.json(); }).then(function(j){
+    try{ localStorage.setItem('kc_vpn_conf', JSON.stringify(j)); }catch(e){}
+    if($('vpn-fiche') && $('vpn-fiche').style.display==='none'){ rendreServices(); }
+  }).catch(function(){});
+}
+function vpnOuvrir(){ $('vpn-fiche').style.display='flex'; }
+function vpnFermer(){ $('vpn-fiche').style.display='none'; }
 function vpnConnecter(){ toast('Moteur VPN pas encore installé'); }
+function vpnAjouter(){ toast('Pub récompensée bientôt disponible'); }
 function rendreServices(){
-  var s=vpnLire();
+  var s=vpnLire(), c=vpnConf(), a=(c.serveurs||[])[0];
+  if(window.vpnOk===undefined){ window.vpnOk=1; vpnCharger(); }
   var champ=function(id,label,val,ph){
-    return '<div style="margin-bottom:12px"><div style="color:#8696a0;font-size:.8rem;margin-bottom:4px">'+label+'</div>'
-      +'<input id="'+id+'" value="'+vpnEsc(val)+'" placeholder="'+ph+'" style="width:100%;box-sizing:border-box;padding:12px;border-radius:12px;border:1px solid #202c33;background:#111b21;color:#e9edef;font-size:1rem"></div>';
+    return '<div style="margin-bottom:12px"><div style="color:#8fb0ff;font-size:.8rem;margin-bottom:4px">'+label+'</div>'
+      +'<input id="'+id+'" value="'+vpnEsc(val)+'" placeholder="'+ph+'" style="width:100%;box-sizing:border-box;padding:12px;border-radius:12px;border:1px solid #1e3a8a;background:#0b1530;color:#e9edef;font-size:1rem"></div>';
   };
-  var h='<div style="text-align:center;padding:18px 0"><i class="fa-solid fa-shield-halved" style="font-size:3rem;color:#8696a0"></i>'
-    +'<div style="margin-top:8px;color:#8696a0">Non connecté</div></div>'
+  var carte=function(icone,titre,sous,perso){
+    return '<div style="display:flex;align-items:center;gap:12px;padding:12px;margin-bottom:12px;border-radius:18px;background:#fff;border:2px solid #2f4fd8;box-shadow:0 4px 14px rgba(47,79,216,.35)">'
+      +'<div style="width:48px;height:48px;border-radius:50%;background:#e8eeff;display:flex;align-items:center;justify-content:center;color:#1e40af;font-size:1.5rem"><i class="fa-solid '+icone+'"></i></div>'
+      +'<div style="flex:1;min-width:0"><div style="color:#0b1b5e;font-weight:800;font-size:1.05rem">'+titre+'</div><div style="color:#555;font-weight:600">'+sous+'</div></div>'
+      +(perso?'<div onclick="vpnOuvrir()" style="text-align:center;padding:8px 12px;border-radius:14px;background:#e8eeff;color:#1e40af;font-weight:700;font-size:.8rem;cursor:pointer"><i class="fa-solid fa-gear" style="font-size:1.3rem;display:block"></i>Personnalisé</div>':'')+'</div>';
+  };
+  var h='<div style="margin:-12px -12px 0;padding:22px 16px 18px;text-align:center;background:linear-gradient(160deg,#0a1a6b,#1d4ed8);color:#fff">'
+    +'<i class="fa-solid fa-shield-halved" style="font-size:2.6rem"></i>'
+    +'<div style="font-size:2rem;font-weight:800;font-style:italic">Exauch<span style="color:#38bdf8">VPN</span></div>'
+    +'<div style="font-style:italic;opacity:.9">Connect · Browse · Be Free</div></div>'
+    +'<div style="text-align:center;margin:14px 0"><span style="display:inline-block;padding:8px 16px;border-radius:20px;background:#0a1a6b;color:#fff;font-size:.85rem"><i class="fa-solid fa-gear"></i> Version : '+vpnEsc(c.version||'1.0')+' | Réseau : '+(navigator.onLine?'En ligne':'Hors ligne')+'</span></div>'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;color:#8fb0ff;font-weight:700">'
+    +'<div><i class="fa-solid fa-cloud-arrow-up"></i> 0</div>'
+    +'<div style="text-align:center"><div style="font-size:1.5rem;font-weight:800;color:#60a5fa">Déconnecté</div><div style="color:#e9edef">00:00:00</div></div>'
+    +'<div><i class="fa-solid fa-cloud-arrow-down"></i> 0</div></div>'
+    +carte('fa-earth-africa','Auto Server',a?vpnEsc(a.nom||'Serveur par défaut'):'Aucun serveur disponible',false)
+    +carte('fa-server',vpnEsc(s.nom||'Mon serveur'),s.ip?vpnEsc(s.ip+':'+s.port):'Aucun serveur',true)
+    +'<div style="display:flex;align-items:center;gap:12px;padding:14px;margin-bottom:18px;border-radius:20px;background:#0a1a6b;color:#fff;font-weight:600"><i class="fa-solid fa-bullhorn" style="font-size:1.6rem"></i><div>'+vpnEsc(c.annonce||'Bienvenue sur ExauchVPN')+'</div></div>'
+    +'<div style="text-align:center;margin:10px 0 22px"><div onclick="vpnConnecter()" style="display:inline-flex;align-items:center;justify-content:center;width:130px;height:130px;border-radius:50%;background:#fff;color:#1d4ed8;font-size:3rem;border:10px solid #3b82f6;box-shadow:0 0 0 8px rgba(59,130,246,.35),0 0 30px rgba(59,130,246,.8);cursor:pointer"><i class="fa-solid fa-power-off"></i></div></div>'
+    +'<div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:20px;background:#fff;color:#0b1b5e">'
+    +'<i class="fa-solid fa-stopwatch" style="font-size:2.2rem;color:#1d4ed8"></i>'
+    +'<div style="flex:1"><div style="color:#1d4ed8;font-weight:700">Temps restant</div><div style="font-size:1.3rem;font-weight:800">0d:0h:0m:0s</div></div>'
+    +'<div onclick="vpnAjouter()" style="padding:12px 14px;border-radius:14px;background:#e11d1d;color:#fff;font-weight:700;cursor:pointer"><i class="fa-solid fa-plus"></i> Ajouter Durée</div></div>'
+    +'<div id="vpn-fiche" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:20;background:rgba(0,0,0,.7);align-items:flex-end">'
+    +'<div style="width:100%;box-sizing:border-box;padding:18px;border-radius:22px 22px 0 0;background:#0b1530;max-height:90%;overflow:auto">'
+    +'<div style="font-size:1.2rem;font-weight:800;color:#e9edef;margin-bottom:14px">Personnalisé : mon serveur</div>'
     +champ('vpn-nom','Nom du serveur',s.nom,'Ex : Mon serveur')
     +champ('vpn-ip','Adresse (IP ou domaine)',s.ip,'Ex : 123.45.67.89')
     +champ('vpn-port','Port',s.port,'Ex : 51820')
     +champ('vpn-cle','Clé',s.cle,'Colle ta clé ici')
-    +'<button onclick="vpnSauver()" style="width:100%;padding:14px;border:0;border-radius:12px;background:#00a884;color:#fff;font-weight:700;font-size:1rem;margin-bottom:10px">Enregistrer le serveur</button>'
-    +'<button onclick="vpnConnecter()" style="width:100%;padding:14px;border:1px solid #00a884;border-radius:12px;background:transparent;color:#00a884;font-weight:700;font-size:1rem">Connecter</button>';
+    +'<button onclick="vpnSauver()" style="width:100%;padding:14px;border:0;border-radius:12px;background:#1d4ed8;color:#fff;font-weight:700;font-size:1rem;margin-bottom:10px">Enregistrer le serveur</button>'
+    +'<button onclick="vpnFermer()" style="width:100%;padding:14px;border:1px solid #3b82f6;border-radius:12px;background:transparent;color:#60a5fa;font-weight:700;font-size:1rem">Fermer</button></div></div>';
   $('services-liste').innerHTML=h;
 }
 function basculerReseau(id){
