@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261112-104930">
+<meta name="build" content="20261112-111451">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -377,6 +377,7 @@ function vpnSauver(){
 }
 function vpnConf(){ try{ return JSON.parse(localStorage.getItem('kc_vpn_conf')||'{}'); }catch(e){ return {}; } }
 function vpnCharger(){
+  vpnOfficielLire().then(function(o){ if(o&&o.ip){ window.vpnOff=o; try{ localStorage.setItem('kc_vpn_off', JSON.stringify(o)); }catch(e){} if($('vpn-fiche') && $('vpn-fiche').style.display==='none'){ rendreServices(); } } }).catch(function(){});
   fetch('https://exaucekuona-ops.github.io/Kaabu-agent-orange/serveurs.json?t='+Date.now()).then(function(r){ return r.json(); }).then(function(j){
     try{ localStorage.setItem('kc_vpn_conf', JSON.stringify(j)); }catch(e){}
     if($('vpn-fiche') && $('vpn-fiche').style.display==='none'){ rendreServices(); }
@@ -472,7 +473,7 @@ function vpnOfficielValider(){
   });
 }
 function rendreServices(){
-  var s=vpnLire(), c=vpnConf(), a=(c.serveurs||[])[0];
+  var s=vpnLire(), c=vpnConf(), a=window.vpnOff||(function(){ try{ return JSON.parse(localStorage.getItem('kc_vpn_off')||'null'); }catch(e){ return null; } })()||(c.serveurs||[])[0];
   if(window.vpnOk===undefined){ window.vpnOk=1; vpnCharger(); }
   var champ=function(id,label,val,ph){
     return '<div style="margin-bottom:12px"><div style="color:#8fb0ff;font-size:.8rem;margin-bottom:4px">'+label+'</div>'
