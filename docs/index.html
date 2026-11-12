@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261112-113055">
+<meta name="build" content="20261112-115411">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -386,6 +386,15 @@ function vpnCharger(){
 function vpnOuvrir(){ $('vpn-fiche').style.display='flex'; }
 function vpnMenu(){ var m=$('vpn-menu'); m.style.display=(m.style.display==='flex')?'none':'flex'; }
 function vpnFermer(){ $('vpn-fiche').style.display='none'; }
+(function(){
+  function aff(m){
+    var d=document.getElementById('vpn-dbg');
+    if(!d){ d=document.createElement('div'); d.id='vpn-dbg'; d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#b91c1c;color:#fff;padding:10px;font-size:12px'; d.onclick=function(){ d.remove(); }; document.body.appendChild(d); }
+    d.textContent='ERREUR : '+m;
+  }
+  window.addEventListener('error',function(e){ aff((e.message||'')+' (ligne '+(e.lineno||'?')+')'); });
+  window.addEventListener('unhandledrejection',function(e){ aff(String((e.reason&&e.reason.message)||e.reason)); });
+})();
 function vpnP2(n){ return (n<10?'0':'')+n; }
 function vpnMaj(){
   if(!window.vpnTimer){ window.vpnTimer=setInterval(vpnMaj,1000); }
