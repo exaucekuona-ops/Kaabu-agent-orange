@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261112-102439">
+<meta name="build" content="20261112-104930">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -437,6 +437,40 @@ function vpnMettreAJour(){
   toast('Liste des serveurs mise à jour');
 }
 function vpnRedemarrer(){ location.reload(); }
+function vpnOfficielLire(){
+  return sb.from('vpn_config').select('nom,ip,port,cle').eq('id',1).maybeSingle().then(function(r){ return (r && r.data) || null; });
+}
+function vpnOfficielSauver(d){
+  var o={id:1,nom:String(d.nom||'').trim(),ip:String(d.ip||'').trim(),port:String(d.port||'').trim(),cle:String(d.cle||'').trim(),maj:new Date().toISOString()};
+  if(!o.ip||!o.port){ toast('Adresse et port obligatoires'); return Promise.resolve(false); }
+  return sb.from('vpn_config').upsert(o).then(function(r){
+    if(r.error){ toast('Refusé : réservé aux admins suprêmes'); return false; }
+    toast('Serveur officiel enregistré'); return true;
+  });
+}
+function vpnOfficiel(){
+  vpnOfficielLire().then(function(o){
+    o=o||{};
+    var st='width:100%;box-sizing:border-box;padding:12px;border-radius:12px;border:1px solid #1e3a8a;background:#0b1530;color:#e9edef;font-size:1rem;margin-bottom:10px';
+    var d=document.createElement('div');
+    d.id='vpn-off';
+    d.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:30;background:rgba(0,0,0,.7);display:flex;align-items:flex-end';
+    d.innerHTML='<div style="width:100%;box-sizing:border-box;padding:18px;border-radius:22px 22px 0 0;background:#0b1530;max-height:90%;overflow:auto">'
+      +'<div style="font-size:1.2rem;font-weight:800;color:#e9edef;margin-bottom:14px">Serveur officiel (admin)</div>'
+      +'<input id="vo-nom" placeholder="Nom" value="'+vpnEsc(o.nom||'')+'" style="'+st+'">'
+      +'<input id="vo-ip" placeholder="Adresse (IP ou domaine)" value="'+vpnEsc(o.ip||'')+'" style="'+st+'">'
+      +'<input id="vo-port" placeholder="Port" value="'+vpnEsc(o.port||'')+'" style="'+st+'">'
+      +'<input id="vo-cle" placeholder="Clé" value="'+vpnEsc(o.cle||'')+'" style="'+st+'">'
+      +'<button onclick="vpnOfficielValider()" style="width:100%;padding:14px;border:0;border-radius:12px;background:#1d4ed8;color:#fff;font-weight:700;font-size:1rem;margin-bottom:10px">Enregistrer</button>'
+      +'<button onclick="$(\'vpn-off\').remove()" style="width:100%;padding:14px;border:1px solid #3b82f6;border-radius:12px;background:transparent;color:#60a5fa;font-weight:700;font-size:1rem">Fermer</button></div>';
+    document.body.appendChild(d);
+  });
+}
+function vpnOfficielValider(){
+  vpnOfficielSauver({nom:$('vo-nom').value,ip:$('vo-ip').value,port:$('vo-port').value,cle:$('vo-cle').value}).then(function(ok){
+    if(ok){ $('vpn-off').remove(); }
+  });
+}
 function rendreServices(){
   var s=vpnLire(), c=vpnConf(), a=(c.serveurs||[])[0];
   if(window.vpnOk===undefined){ window.vpnOk=1; vpnCharger(); }
@@ -469,7 +503,7 @@ function rendreServices(){
     +'<div style="flex:1"><div style="color:#1d4ed8;font-weight:700">Temps restant</div><div style="font-size:1.3rem;font-weight:800">0d:0h:0m:0s</div></div>'
     +'<div onclick="vpnAjouter()" style="padding:12px 14px;border-radius:14px;background:#e11d1d;color:#fff;font-weight:700;cursor:pointer"><i class="fa-solid fa-plus"></i> Ajouter Durée</div></div>'
     +'<div id="vpn-menu" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:20;background:rgba(0,0,0,.5)" onclick="vpnMenu()"><div style="position:absolute;top:100px;right:14px;width:240px;background:#fff;border-radius:14px;padding:6px 0;box-shadow:0 6px 24px rgba(0,0,0,.4)">'
-    +['vpnMettreAJour|Mettre à jour la liste','vpnImporter|Importer un serveur','vpnExporter|Transférer mon serveur','vpnEffacerPerso|Effacer mon serveur','vpnEffacerDonnees|Effacer les données','vpnRedemarrer|Redémarrer'].map(function(x){ var p=x.split('|'); return '<div onclick="vpnMenu();'+p[0]+'()" style="padding:14px 18px;color:#0b1b5e;font-weight:600">'+p[1]+'</div>'; }).join('')+'</div></div>'
+    +['vpnMettreAJour|Mettre à jour la liste','vpnImporter|Importer un serveur','vpnExporter|Transférer mon serveur','vpnEffacerPerso|Effacer mon serveur','vpnEffacerDonnees|Effacer les données','vpnRedemarrer|Redémarrer'].concat((typeof moi!=='undefined'&&moi&&moi.is_supreme)?['vpnOfficiel|Serveur officiel (admin)']:[]).map(function(x){ var p=x.split('|'); return '<div onclick="vpnMenu();'+p[0]+'()" style="padding:14px 18px;color:#0b1b5e;font-weight:600">'+p[1]+'</div>'; }).join('')+'</div></div>'
     +'<div id="vpn-fiche" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:20;background:rgba(0,0,0,.7);align-items:flex-end">'
     +'<div style="width:100%;box-sizing:border-box;padding:18px;border-radius:22px 22px 0 0;background:#0b1530;max-height:90%;overflow:auto">'
     +'<div style="font-size:1.2rem;font-weight:800;color:#e9edef;margin-bottom:14px">Personnalisé : mon serveur</div>'
