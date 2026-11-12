@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261112-111451">
+<meta name="build" content="20261112-113055">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -386,7 +386,42 @@ function vpnCharger(){
 function vpnOuvrir(){ $('vpn-fiche').style.display='flex'; }
 function vpnMenu(){ var m=$('vpn-menu'); m.style.display=(m.style.display==='flex')?'none':'flex'; }
 function vpnFermer(){ $('vpn-fiche').style.display='none'; }
-function vpnConnecter(){ toast('Moteur VPN pas encore installé'); }
+function vpnP2(n){ return (n<10?'0':'')+n; }
+function vpnMaj(){
+  if(!window.vpnTimer){ window.vpnTimer=setInterval(vpnMaj,1000); }
+  var b=$('vpn-bouton'), t=$('vpn-etat'), c=$('vpn-chrono');
+  if(!b||!t||!c){ return; }
+  var e='deconnecte', d=0;
+  try{ if(typeof AppelNatif!=='undefined'&&AppelNatif.vpnEtat){ e=String(AppelNatif.vpnEtat()); d=Number(AppelNatif.vpnDuree())||0; } }catch(x){}
+  if(!$('vpn-css')){ var st=document.createElement('style'); st.id='vpn-css'; st.textContent='@keyframes vpnPulse{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}'; document.head.appendChild(st); }
+  var coul='#3b82f6', icone='#1d4ed8', txt='Déconnecté', ctxt='#60a5fa', anim='none';
+  if(e==='connexion'){ coul='#f59e0b'; icone='#f59e0b'; txt='Connexion…'; ctxt='#f59e0b'; anim='vpnPulse 0.8s infinite'; }
+  else if(e==='connecte'){ coul='#22c55e'; icone='#16a34a'; txt='Connecté'; ctxt='#22c55e'; }
+  else if(e.indexOf('erreur')===0){ coul='#ef4444'; icone='#dc2626'; txt='Erreur'; ctxt='#ef4444'; if(window.vpnErr!==e){ window.vpnErr=e; toast(e.slice(0,80)); } }
+  if(e.indexOf('erreur')!==0){ window.vpnErr=''; }
+  b.style.borderColor=coul; b.style.color=icone; b.style.animation=anim;
+  b.style.boxShadow='0 0 0 8px '+coul+'59, 0 0 30px '+coul+'cc';
+  t.textContent=txt; t.style.color=ctxt;
+  c.textContent=vpnP2(Math.floor(d/3600))+':'+vpnP2(Math.floor(d%3600/60))+':'+vpnP2(d%60);
+}
+function vpnConfigTexte(t){
+  t=String(t||'').trim();
+  if(t.indexOf('\n')<0){
+    t=t.replace(/\s*(\[Interface\]|\[Peer\])\s*/g,'\n$1\n').replace(/\s+(PrivateKey|Address|DNS|MTU|ListenPort|PublicKey|PresharedKey|AllowedIPs|Endpoint|PersistentKeepalive)\s*=/gi,'\n$1 =');
+  }
+  return t.trim();
+}
+function vpnConnecter(){
+  if(typeof AppelNatif==='undefined'||!AppelNatif.vpnConnecter){ toast('Disponible dans la nouvelle version de l app'); return; }
+  var etat=''; try{ etat=String(AppelNatif.vpnEtat()); }catch(e){}
+  if(etat==='connecte'||etat==='connexion'){ AppelNatif.vpnDeconnecter(); toast('VPN déconnecté'); return; }
+  var s=vpnLire();
+  var o=window.vpnOff||(function(){ try{ return JSON.parse(localStorage.getItem('kc_vpn_off')||'null'); }catch(e){ return null; } })();
+  var cle=(s&&s.ip&&s.cle)?s.cle:((o&&o.cle)?o.cle:'');
+  if(!cle){ toast('Aucun serveur configuré'); return; }
+  AppelNatif.vpnConnecter(vpnConfigTexte(cle));
+  toast('Connexion…');
+}
 function vpnAjouter(){ toast('Pub récompensée bientôt disponible'); }
 function vpnServeurTexte(){
   var s=vpnLire();
@@ -493,12 +528,12 @@ function rendreServices(){
     +'<div style="text-align:center;margin:14px 0"><span style="display:inline-block;padding:8px 16px;border-radius:20px;background:#0a1a6b;color:#fff;font-size:.85rem"><i class="fa-solid fa-gear"></i> Version : '+vpnEsc(c.version||'1.0')+' | Réseau : '+(navigator.onLine?'En ligne':'Hors ligne')+'</span></div>'
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;color:#8fb0ff;font-weight:700">'
     +'<div><i class="fa-solid fa-cloud-arrow-up"></i> 0</div>'
-    +'<div style="text-align:center"><div style="font-size:1.5rem;font-weight:800;color:#60a5fa">Déconnecté</div><div style="color:#e9edef">00:00:00</div></div>'
+    +'<div style="text-align:center"><div id="vpn-etat" style="font-size:1.5rem;font-weight:800;color:#60a5fa">Déconnecté</div><div id="vpn-chrono" style="color:#e9edef">00:00:00</div></div>'
     +'<div><i class="fa-solid fa-cloud-arrow-down"></i> 0</div></div>'
     +carte('fa-earth-africa','Auto Server',a?vpnEsc(a.nom||'Serveur par défaut'):'Aucun serveur disponible',false)
     +carte('fa-server',vpnEsc(s.nom||'Mon serveur'),s.ip?vpnEsc(s.ip+':'+s.port):'Aucun serveur',true)
     +'<div style="display:flex;align-items:center;gap:12px;padding:14px;margin-bottom:18px;border-radius:20px;background:#0a1a6b;color:#fff;font-weight:600"><i class="fa-solid fa-bullhorn" style="font-size:1.6rem"></i><div>'+vpnEsc(c.annonce||'Bienvenue sur ExauchVPN')+'</div></div>'
-    +'<div style="text-align:center;margin:10px 0 22px"><div onclick="vpnConnecter()" style="display:inline-flex;align-items:center;justify-content:center;width:130px;height:130px;border-radius:50%;background:#fff;color:#1d4ed8;font-size:3rem;border:10px solid #3b82f6;box-shadow:0 0 0 8px rgba(59,130,246,.35),0 0 30px rgba(59,130,246,.8);cursor:pointer"><i class="fa-solid fa-power-off"></i></div></div>'
+    +'<div style="text-align:center;margin:10px 0 22px"><div id="vpn-bouton" onclick="vpnConnecter()" style="display:inline-flex;align-items:center;justify-content:center;width:130px;height:130px;border-radius:50%;background:#fff;color:#1d4ed8;font-size:3rem;border:10px solid #3b82f6;box-shadow:0 0 0 8px rgba(59,130,246,.35),0 0 30px rgba(59,130,246,.8);cursor:pointer"><i class="fa-solid fa-power-off"></i></div></div>'
     +'<div style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:20px;background:#fff;color:#0b1b5e">'
     +'<i class="fa-solid fa-stopwatch" style="font-size:2.2rem;color:#1d4ed8"></i>'
     +'<div style="flex:1"><div style="color:#1d4ed8;font-weight:700">Temps restant</div><div style="font-size:1.3rem;font-weight:800">0d:0h:0m:0s</div></div>'
@@ -514,7 +549,7 @@ function rendreServices(){
     +champ('vpn-cle','Clé',s.cle,'Colle ta clé ici')
     +'<button onclick="vpnSauver()" style="width:100%;padding:14px;border:0;border-radius:12px;background:#1d4ed8;color:#fff;font-weight:700;font-size:1rem;margin-bottom:10px">Enregistrer le serveur</button>'
     +'<button onclick="vpnFermer()" style="width:100%;padding:14px;border:1px solid #3b82f6;border-radius:12px;background:transparent;color:#60a5fa;font-weight:700;font-size:1rem">Fermer</button></div></div>';
-  $('services-liste').innerHTML=h;
+  $('services-liste').innerHTML=h; vpnMaj();
 }
 function basculerReseau(id){
   var c=$('corps-'+id), f=$('fl-'+id);
