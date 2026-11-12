@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261112-115411">
+<meta name="build" content="20261112-120020">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -395,6 +395,13 @@ function vpnFermer(){ $('vpn-fiche').style.display='none'; }
   window.addEventListener('error',function(e){ aff((e.message||'')+' (ligne '+(e.lineno||'?')+')'); });
   window.addEventListener('unhandledrejection',function(e){ aff(String((e.reason&&e.reason.message)||e.reason)); });
 })();
+if(typeof toast==='undefined'){
+  window.toast=function(t){
+    var d=document.createElement('div'); d.textContent=t;
+    d.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:99999;background:#075e54;color:#fff;padding:10px 16px;border-radius:20px;font:14px sans-serif;max-width:90%;text-align:center';
+    document.body.appendChild(d); setTimeout(function(){ d.remove(); },4000);
+  };
+}
 function vpnP2(n){ return (n<10?'0':'')+n; }
 function vpnMaj(){
   if(!window.vpnTimer){ window.vpnTimer=setInterval(vpnMaj,1000); }
