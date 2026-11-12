@@ -3,6 +3,7 @@ package com.kaabu.agent;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
+import android.net.VpnService;
 import android.os.Build;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
@@ -26,6 +27,39 @@ public class MainActivity extends BridgeActivity {
       couper();
       arreter();
     }
+
+    @JavascriptInterface
+    public void vpnConnecter(final String config) {
+      runOnUiThread(new Runnable() {
+        public void run() {
+          try {
+            Intent i = VpnService.prepare(MainActivity.this);
+            if (i != null) { vpnEnAttente = config; startActivityForResult(i, 7711); }
+            else { VpnMoteur.demarrer(MainActivity.this, config); }
+          } catch (Exception e) { }
+        }
+      });
+    }
+
+    @JavascriptInterface
+    public void vpnDeconnecter() { VpnMoteur.arreter(); }
+
+    @JavascriptInterface
+    public String vpnEtat() { return VpnMoteur.etat(); }
+
+    @JavascriptInterface
+    public long vpnDuree() { return VpnMoteur.duree(); }
+  }
+
+  private String vpnEnAttente = null;
+
+  @Override
+  public void onActivityResult(int code, int res, Intent data) {
+    super.onActivityResult(code, res, data);
+    if (code == 7711 && res == RESULT_OK && vpnEnAttente != null) {
+      VpnMoteur.demarrer(this, vpnEnAttente);
+    }
+    if (code == 7711) { vpnEnAttente = null; }
   }
 
   private MediaPlayer lecteur = null;
