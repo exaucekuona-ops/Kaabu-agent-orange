@@ -12,6 +12,8 @@ public class VpnMoteur {
   private static Tunnel tunnel = null;
   private static volatile String etat = "deconnecte";
   private static volatile long debut = 0;
+  private static volatile boolean xray = false;
+  private static Context appCtx = null;
 
   private static class T implements Tunnel {
     @Override public String getName() { return "exauchvpn"; }
@@ -20,14 +22,16 @@ public class VpnMoteur {
     }
   }
 
-  public static String etat() { return etat; }
+  public static String etat() { if (xray) { return XrayService.etat(); } return etat; }
 
   public static long duree() {
+    if (xray) { return XrayService.duree(); }
     if (etat.equals("connecte") && debut > 0) { return (System.currentTimeMillis() - debut) / 1000; }
     return 0;
   }
 
   public static String octets() {
+    if (xray) { return XrayService.octets(); }
     try {
       if (backend != null && tunnel != null && etat.equals("connecte")) {
         com.wireguard.android.backend.Statistics s = backend.getStatistics(tunnel);
@@ -38,6 +42,17 @@ public class VpnMoteur {
   }
 
   public static void demarrer(final Context ctx, final String texte) {
+    appCtx = ctx.getApplicationContext();
+    if (texte.startsWith("xray|")) {
+      try {
+        String[] a = texte.split("\\|", -1);
+        String cfg = XrayService.config(a[1], a[2], a[3], a[4], a[5]);
+        xray = true;
+        appCtx.startService(new android.content.Intent(appCtx, XrayService.class).putExtra("config", cfg));
+      } catch (Throwable e) { xray = false; etat = "erreur:" + String.valueOf(e.getMessage()); }
+      return;
+    }
+    xray = false;
     etat = "connexion";
     new Thread(new Runnable() {
       public void run() {
@@ -56,6 +71,11 @@ public class VpnMoteur {
   }
 
   public static void arreter() {
+    if (xray) {
+      xray = false;
+      try { appCtx.startService(new android.content.Intent(appCtx, XrayService.class).setAction("STOP")); } catch (Throwable e) { }
+      return;
+    }
     new Thread(new Runnable() {
       public void run() {
         try {
