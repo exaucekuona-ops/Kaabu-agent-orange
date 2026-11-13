@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261112-120020">
+<meta name="build" content="20261113-220710">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -422,6 +422,16 @@ function vpnMaj(){
   c.textContent=vpnP2(Math.floor(d/3600))+':'+vpnP2(Math.floor(d%3600/60))+':'+vpnP2(d%60);
   try{ var oc=String(AppelNatif.vpnOctets()).split(','), vu=$('vpn-up'), vd=$('vpn-down'); if(vu){ vu.textContent=vpnFmt(oc[0]); } if(vd){ vd.textContent=vpnFmt(oc[1]); } }catch(x){}
 }
+function vpnXrayOut(lien){
+  var m=String(lien||'').trim().match(/^vless:\/\/([^@]+)@([^:\/?#]+):(\d+)\/?\??([^#]*)/i);
+  if(!m){ return null; }
+  var q={};
+  m[4].split('&').forEach(function(p){ var i=p.indexOf('='); if(i>0){ q[p.slice(0,i)]=decodeURIComponent(p.slice(i+1)); } });
+  var s={network:q.type||'tcp', security:q.security||'none'};
+  if(s.security==='tls'){ s.tlsSettings={serverName:q.sni||q.host||m[2], fingerprint:q.fp||'chrome', allowInsecure:q.allowInsecure==='1'}; }
+  if(s.network==='ws'){ s.wsSettings={path:q.path||'/', headers:{Host:q.host||q.sni||m[2]}}; }
+  return {tag:'proxy', protocol:'vless', settings:{vnext:[{address:m[2], port:parseInt(m[3],10), users:[{id:decodeURIComponent(m[1]), encryption:q.encryption||'none'}]}]}, streamSettings:s};
+}
 function vpnConfigTexte(t){
   t=String(t||'').trim();
   if(t.indexOf('\n')<0){
@@ -504,7 +514,7 @@ function vpnOfficielSauver(d){
 }
 function vpnOfficiel(){
   vpnOfficielLire().then(function(o){
-    o=o||{};
+    o=o||{}; var x={}; try{ x=JSON.parse(o.cle||'{}')||{}; }catch(e){ x={}; }
     var st='width:100%;box-sizing:border-box;padding:12px;border-radius:12px;border:1px solid #1e3a8a;background:#0b1530;color:#e9edef;font-size:1rem;margin-bottom:10px';
     var d=document.createElement('div');
     d.id='vpn-off';
@@ -514,14 +524,16 @@ function vpnOfficiel(){
       +'<input id="vo-nom" placeholder="Nom" value="'+vpnEsc(o.nom||'')+'" style="'+st+'">'
       +'<input id="vo-ip" placeholder="Adresse (IP ou domaine)" value="'+vpnEsc(o.ip||'')+'" style="'+st+'">'
       +'<input id="vo-port" placeholder="Port" value="'+vpnEsc(o.port||'')+'" style="'+st+'">'
-      +'<input id="vo-cle" placeholder="Clé" value="'+vpnEsc(o.cle||'')+'" style="'+st+'">'
+      +'<input id="vo-uuid" placeholder="UUID" value="'+vpnEsc(x.uuid||'')+'" style="'+st+'">'
+      +'<input id="vo-sni" placeholder="SNI (ex: exemple.com)" value="'+vpnEsc(x.sni||'')+'" style="'+st+'">'
+      +'<input id="vo-chemin" placeholder="Chemin WebSocket (ex: /ws)" value="'+vpnEsc(x.chemin||'')+'" style="'+st+'">'
       +'<button onclick="vpnOfficielValider()" style="width:100%;padding:14px;border:0;border-radius:12px;background:#1d4ed8;color:#fff;font-weight:700;font-size:1rem;margin-bottom:10px">Enregistrer</button>'
       +'<button onclick="$(\'vpn-off\').remove()" style="width:100%;padding:14px;border:1px solid #3b82f6;border-radius:12px;background:transparent;color:#60a5fa;font-weight:700;font-size:1rem">Fermer</button></div>';
     document.body.appendChild(d);
   });
 }
 function vpnOfficielValider(){
-  vpnOfficielSauver({nom:$('vo-nom').value,ip:$('vo-ip').value,port:$('vo-port').value,cle:$('vo-cle').value}).then(function(ok){
+  vpnOfficielSauver({nom:$('vo-nom').value,ip:$('vo-ip').value,port:$('vo-port').value,cle:JSON.stringify({uuid:$('vo-uuid').value.trim(),sni:$('vo-sni').value.trim(),chemin:$('vo-chemin').value.trim(),type:'ws'})}).then(function(ok){
     if(ok){ $('vpn-off').remove(); }
   });
 }
