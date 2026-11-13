@@ -49,6 +49,8 @@ public class MainActivity extends BridgeActivity {
 
     @JavascriptInterface
     public long vpnDuree() { return VpnMoteur.duree(); }
+    @JavascriptInterface
+    public String vpnOctets() { return VpnMoteur.octets(); }
   }
 
   private String vpnEnAttente = null;

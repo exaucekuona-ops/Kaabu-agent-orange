@@ -27,6 +27,16 @@ public class VpnMoteur {
     return 0;
   }
 
+  public static String octets() {
+    try {
+      if (backend != null && tunnel != null && etat.equals("connecte")) {
+        com.wireguard.android.backend.Statistics s = backend.getStatistics(tunnel);
+        return s.totalTx() + "," + s.totalRx();
+      }
+    } catch (Throwable e) { }
+    return "0,0";
+  }
+
   public static void demarrer(final Context ctx, final String texte) {
     etat = "connexion";
     new Thread(new Runnable() {

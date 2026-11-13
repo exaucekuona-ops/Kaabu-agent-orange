@@ -403,6 +403,7 @@ if(typeof toast==='undefined'){
   };
 }
 function vpnP2(n){ return (n<10?'0':'')+n; }
+function vpnFmt(n){ n=Number(n)||0; if(n<1024){ return n+' o'; } if(n<1048576){ return (n/1024).toFixed(1)+' Ko'; } if(n<1073741824){ return (n/1048576).toFixed(1)+' Mo'; } return (n/1073741824).toFixed(2)+' Go'; }
 function vpnMaj(){
   if(!window.vpnTimer){ window.vpnTimer=setInterval(vpnMaj,1000); }
   var b=$('vpn-bouton'), t=$('vpn-etat'), c=$('vpn-chrono');
@@ -419,6 +420,7 @@ function vpnMaj(){
   b.style.boxShadow='0 0 0 8px '+coul+'59, 0 0 30px '+coul+'cc';
   t.textContent=txt; t.style.color=ctxt;
   c.textContent=vpnP2(Math.floor(d/3600))+':'+vpnP2(Math.floor(d%3600/60))+':'+vpnP2(d%60);
+  try{ var oc=String(AppelNatif.vpnOctets()).split(','), vu=$('vpn-up'), vd=$('vpn-down'); if(vu){ vu.textContent=vpnFmt(oc[0]); } if(vd){ vd.textContent=vpnFmt(oc[1]); } }catch(x){}
 }
 function vpnConfigTexte(t){
   t=String(t||'').trim();
@@ -543,9 +545,9 @@ function rendreServices(){
     +'<div style="font-style:italic;opacity:.9">Connect · Browse · Be Free</div></div>'
     +'<div style="text-align:center;margin:14px 0"><span style="display:inline-block;padding:8px 16px;border-radius:20px;background:#0a1a6b;color:#fff;font-size:.85rem"><i class="fa-solid fa-gear"></i> Version : '+vpnEsc(c.version||'1.0')+' | Réseau : '+(navigator.onLine?'En ligne':'Hors ligne')+'</span></div>'
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;color:#8fb0ff;font-weight:700">'
-    +'<div><i class="fa-solid fa-cloud-arrow-up"></i> 0</div>'
+    +'<div><i class="fa-solid fa-cloud-arrow-up"></i> <span id="vpn-up">0</span></div>'
     +'<div style="text-align:center"><div id="vpn-etat" style="font-size:1.5rem;font-weight:800;color:#60a5fa">Déconnecté</div><div id="vpn-chrono" style="color:#e9edef">00:00:00</div></div>'
-    +'<div><i class="fa-solid fa-cloud-arrow-down"></i> 0</div></div>'
+    +'<div><i class="fa-solid fa-cloud-arrow-down"></i> <span id="vpn-down">0</span></div></div>'
     +carte('fa-earth-africa','Auto Server',a?vpnEsc(a.nom||'Serveur par défaut'):'Aucun serveur disponible',false)
     +carte('fa-server',vpnEsc(s.nom||'Mon serveur'),s.ip?vpnEsc(s.ip+':'+s.port):'Aucun serveur',true)
     +'<div style="display:flex;align-items:center;gap:12px;padding:14px;margin-bottom:18px;border-radius:20px;background:#0a1a6b;color:#fff;font-weight:600"><i class="fa-solid fa-bullhorn" style="font-size:1.6rem"></i><div>'+vpnEsc(c.annonce||'Bienvenue sur ExauchVPN')+'</div></div>'
