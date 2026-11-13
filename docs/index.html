@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261113-220710">
+<meta name="build" content="20261113-222250">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -447,7 +447,10 @@ function vpnConnecter(){
   var o=window.vpnOff||(function(){ try{ return JSON.parse(localStorage.getItem('kc_vpn_off')||'null'); }catch(e){ return null; } })();
   var cle=(s&&s.ip&&s.cle)?s.cle:((o&&o.cle)?o.cle:'');
   if(!cle){ toast('Aucun serveur configuré'); return; }
-  AppelNatif.vpnConnecter(vpnConfigTexte(cle));
+  var xr=null; try{ xr=JSON.parse(cle); }catch(e){}
+  var src=(s&&s.ip&&s.cle)?s:o;
+  if(xr&&xr.uuid&&src){ AppelNatif.vpnConnecter('xray|'+src.ip+'|'+src.port+'|'+xr.uuid+'|'+(xr.sni||'')+'|'+(xr.chemin||'')); }
+  else{ AppelNatif.vpnConnecter(vpnConfigTexte(cle)); }
   toast('Connexion…');
 }
 function vpnAjouter(){ toast('Pub récompensée bientôt disponible'); }
