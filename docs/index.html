@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261114-133123">
+<meta name="build" content="20261114-134225">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -172,7 +172,14 @@ setTimeout(finChargement,15000);
 .conv-top,.conv-bot{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .conv-top small{color:#8696a0;white-space:nowrap}
 .conv-txt{color:#8696a0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.badge{background:#00a884;color:#111b21;border-radius:12px;min-width:20px;padding:1px 6px;text-align:center;font-size:.75rem;font-weight:700;flex:none}
+.badge{background:linear-gradient(135deg,#00d4a1,#00a884);color:#07231c;border-radius:12px;min-width:20px;padding:1px 6px;text-align:center;font-size:.75rem;font-weight:800;flex:none;box-shadow:0 0 8px rgba(0,168,132,.55)}
+.conv{border-bottom:1px solid rgba(255,255,255,.04)}
+.conv-top strong{font-weight:600;letter-spacing:.1px}
+.conv.nl .conv-top strong{color:#fff}
+.conv.nl .conv-txt{color:#d1d7db;font-weight:600}
+.conv.epi{background:linear-gradient(90deg,rgba(0,168,132,.14),rgba(0,168,132,0) 75%)}
+.conv.epi .conv-av{box-shadow:0 0 0 2px #00a884,0 0 12px rgba(0,168,132,.45)}
+.epi-ic{color:#00a884;font-size:.75rem;transform:rotate(35deg);flex:none}
 .mi{display:flex;align-items:center;gap:14px;padding:13px 18px;cursor:pointer}
 .mi i{width:20px;text-align:center;color:#8696a0}
 .mi:active{background:#2a3942}
@@ -2829,15 +2836,15 @@ async function rendreAccueil(){
   });
   await chargerMasques(); Object.values(par).forEach(c => { var d = MASQUES[c.id]; if (d && new Date(c.t) <= new Date(d)) return; items.push(c); });
   try { const mg = await sb.from('membres_groupe').select('groupe_id').eq('user_id', moi.id); const ids = (mg.data || []).map(x => x.groupe_id); if (ids.length) { const gg = await sb.from('groupes').select('id,nom,created_at').in('id', ids); (gg.data || []).forEach(x => items.push({ cg: true, id: x.id, nomg: x.nom, t: x.created_at, apercu: 'Nouveau groupe', n: 0 })); } } catch (e) {}
-  items.sort((a, b) => new Date(b.t) - new Date(a.t));
+  items.sort((a, b) => (b.groupe ? 1 : 0) - (a.groupe ? 1 : 0) || new Date(b.t) - new Date(a.t));
   $('liste-conv').innerHTML = items.map(c => {
     const av = c.cg ? '<i class="fa-solid fa-users"></i>' : c.groupe ? (logo ? `<img src="${esc(grpPhoto() || logo)}">` : '<i class="fa-solid fa-users"></i>') : avatarDe(c.id, nomDe(c.id));
     const nom = c.cg ? c.nomg : c.groupe ? (grpCache().nom || 'Groupe général') : nomDe(c.id);
     const clic = c.cg ? `ouvrirGroupeCree('${c.id}')` : c.groupe ? 'ouvrirGroupe()' : `ouvrirPrive('${c.id}')`;
     const h = c.t > '1971' ? heureConv(c.t) : '';
-    return `<div class="conv" onclick="${clic}"><div class="conv-av">${av}</div><div class="conv-mid">` +
+    return `<div class="conv${c.groupe ? ' epi' : ''}${c.n ? ' nl' : ''}" onclick="${clic}"><div class="conv-av">${av}</div><div class="conv-mid">` +
       `<div class="conv-top"><strong>${esc(nom)}</strong><small${c.n ? ' style="color:#00a884"' : ''}>${h}</small></div>` +
-      `<div class="conv-bot"><span class="conv-txt">${esc(c.apercu).replace(/^(.{0,40} : )?§SYS§ /,'⚙️ Système : ').replace(/^(.{0,40} : )?§IA§ /,'🤖 IA : ')}</span>${c.n ? `<span class="badge">${c.n}</span>` : ''}</div></div></div>`;
+      `<div class="conv-bot"><span class="conv-txt">${esc(c.apercu).replace(/^(.{0,40} : )?§SYS§ /,'⚙️ Système : ').replace(/^(.{0,40} : )?§IA§ /,'🤖 IA : ')}</span>${c.n ? `<span class="badge">${c.n}</span>` : (c.groupe ? '<i class="fa-solid fa-thumbtack epi-ic"></i>' : '')}</div></div></div>`;
   }).join('') + (items.length === 1 ? '<p style="color:#8696a0;text-align:center;padding:24px 16px">Touche le bouton 💬 pour écrire en privé à un membre.</p>' : '');
   filtrerConv(($('rech-conv') || {}).value); document.querySelectorAll('#liste-conv .conv-av img').forEach(im => { im.style.cursor = 'pointer'; im.onclick = function(e){ e.stopPropagation(); voirPhoto(im.src); }; });
 }
