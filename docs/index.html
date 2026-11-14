@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261114-193339">
+<meta name="build" content="20261114-194331">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -1442,7 +1442,7 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
 
   function nettoyer(){ stopSonner();
     clearTimeout(minuteur); minuteur = null;
-    clearInterval(tic); tic = null; debutAppel = null; micOff = false;
+    window.cxDur = window.cxAt ? Math.max(1, Math.round((Date.now() - window.cxAt) / 1000)) : 0; window.cxAt = null; clearInterval(tic); tic = null; debutAppel = null; micOff = false;
     if (flux){ flux.getTracks().forEach(function(t){ t.stop(); }); flux = null; }
     if (pc){ try{ pc.close(); }catch(e){} pc = null; }
     if (canalA){ try{ sb.removeChannel(canalA); }catch(e){} canalA = null; }
@@ -1465,7 +1465,7 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
     var id = appelId;
     nettoyer();
     if (msg) message(msg, 2500); else fermerEcran();
-    if (id){ try{ await sb.from('appels').update({ etat: 'fini' }).eq('id', id); }catch(e){} }
+    if (id){ try{ await sb.from('appels').update(window.cxDur ? { etat: 'fini', reponse: { type: 'answer', duree: window.cxDur } } : { etat: 'fini' }).eq('id', id); }catch(e){} }
   }
 
   async function preparer(){
@@ -1480,7 +1480,7 @@ if(document.hidden){ try{ ch.untrack(); }catch(e){} } else track();
     };
     pc.onconnectionstatechange = function(){
       if (!pc) return;
-      if (pc.connectionState === 'connected') montrerActif();
+      if (pc.connectionState === 'connected') { if (!window.cxAt) window.cxAt = Date.now(); montrerActif(); }
       if (pc.connectionState === 'failed') raccrocher('Connexion impossible');
     };
   }
@@ -2438,10 +2438,10 @@ function ajouterPrive(m){
 
 function ajouterAppelPrive(a){
   if (!priveId || $('ap' + a.id)) return;
-  var sortant = a.de === moi.id, repondu = !!a.rep, manque = !sortant && !repondu;
+  var sortant = a.de === moi.id, repondu = !!a.rep || !!a.dur, manque = !sortant && !repondu;
   var nom = ""; try{ nom = nomDe(priveId) || ""; }catch(e){}
   var titre = sortant ? (repondu ? "Appel vocal sortant" : "Pas de réponse") : (repondu ? "Appel vocal reçu" : "Appel vocal manqué");
-  var qui = sortant ? "↗ Vous avez appelé" : "↙ " + (nom || "Il") + " vous a appelé";
+  var qui = sortant ? "↗ Vous avez appelé" : "↙ " + (nom || "Il") + " vous a appelé"; if (a.dur) qui += " · " + (Math.floor(a.dur / 60) ? Math.floor(a.dur / 60) + " min " : "") + (a.dur % 60) + " s";
   var d = new Date(a.created_at || Date.now());
   var h = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   var jk = d.toDateString();
@@ -2472,7 +2472,7 @@ async function ouvrirPrive(id){
     .order('created_at', { ascending: false }).limit(100);
   if (error) { $('prive-zone').textContent = 'Erreur : ' + error.message; return; }
   var _ml = (data || []).reverse().map(function(x){ return { d: x.created_at, m: x }; });
-  try{ var ap = await sb.from('appels').select('id,de,vers,etat,created_at,rep:reponse->>type').or('and(de.eq.' + moi.id + ',vers.eq.' + id + '),and(de.eq.' + id + ',vers.eq.' + moi.id + ')').eq('etat', 'fini').order('created_at', { ascending: false }).limit(30); (ap.data || []).forEach(function(c){ _ml.push({ d: c.created_at, c: c }); }); }catch(e){}
+  try{ var ap = await sb.from('appels').select('id,de,vers,etat,created_at,rep:reponse->>type,dur:reponse->>duree').or('and(de.eq.' + moi.id + ',vers.eq.' + id + '),and(de.eq.' + id + ',vers.eq.' + moi.id + ')').eq('etat', 'fini').order('created_at', { ascending: false }).limit(30); (ap.data || []).forEach(function(c){ _ml.push({ d: c.created_at, c: c }); }); }catch(e){}
   _ml.sort(function(p, q){ return new Date(p.d) - new Date(q.d); });
   _ml.forEach(function(z){ if (z.m) ajouterPrive(z.m); else ajouterAppelPrive(z.c); });
   marquerVu(id);
