@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261114-140130">
+<meta name="build" content="20261114-141103">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -172,19 +172,25 @@ setTimeout(finChargement,15000);
 .conv-top,.conv-bot{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .conv-top small{color:#8696a0;white-space:nowrap}
 .conv-txt{color:#8696a0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.badge{background:linear-gradient(135deg,#00d4a1,#00a884);color:#07231c;border-radius:12px;min-width:20px;padding:1px 6px;text-align:center;font-size:.75rem;font-weight:800;flex:none;box-shadow:0 0 8px rgba(0,168,132,.55)}
+.badge{background:linear-gradient(135deg,#00d4a1,#00a884);color:#07231c;border-radius:12px;min-width:20px;padding:1px 6px;text-align:center;font-size:.75rem;font-weight:800;flex:none;box-shadow:0 0 4px rgba(0,168,132,.35)}
 .conv{border-bottom:1px solid rgba(255,255,255,.04)}
 .conv-top strong{font-weight:600;letter-spacing:.1px}
 .conv.nl .conv-top strong{color:#fff}
 .conv.nl .conv-txt{color:#d1d7db;font-weight:600}
-.conv.epi{background:linear-gradient(90deg,rgba(0,168,132,.14),rgba(0,168,132,0) 75%)}
-.conv.epi .conv-av{box-shadow:0 0 0 2px #00a884,0 0 12px rgba(0,168,132,.45)}
+.conv.epi{background:linear-gradient(90deg,rgba(0,168,132,.05),rgba(0,168,132,0) 75%)}
+.conv.epi .conv-av{box-shadow:0 0 0 1px rgba(0,168,132,.55)}
 .epi-ic{color:#00a884;font-size:.75rem;transform:rotate(35deg);flex:none}
-#accueil .entete{background:linear-gradient(135deg,#0b2a3a 0%,#0a1f2e 55%,#06352e 100%)!important;border-bottom:1px solid rgba(0,168,132,.35)!important;box-shadow:0 4px 18px rgba(0,0,0,.4)}
-#logo-acc{width:42px!important;height:42px!important;border-radius:13px!important;box-shadow:0 0 0 2px rgba(0,168,132,.65),0 0 14px rgba(0,168,132,.45)}
-#titre-acc{font-size:1.08rem;letter-spacing:.7px;background:linear-gradient(90deg,#ffffff,#7ee8cf);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-#titre-acc~*{color:#7fd8c3!important;font-size:.72rem!important}
-#accueil .entete .fa-ellipsis-vertical{color:#cfe9e3}
+#barre-bas{background:rgba(17,27,33,.93)!important;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-top:1px solid rgba(255,255,255,.08)!important}
+button[onclick="ouvrirMembres()"]{background:linear-gradient(135deg,#00b38f,#00a884)!important;box-shadow:0 4px 12px rgba(0,0,0,.45)!important;transition:transform .15s ease}
+button[onclick="ouvrirMembres()"]:active{transform:scale(.9)}
+#rech-conv{transition:box-shadow .2s ease}
+#rech-conv:focus{outline:none;box-shadow:0 0 0 2px rgba(0,168,132,.4)}
+.conv-av{box-shadow:0 0 0 1px rgba(255,255,255,.1)}
+#accueil .entete{background:linear-gradient(135deg,#14212b 0%,#101b24 100%)!important;border-bottom:1px solid rgba(255,255,255,.07)!important;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+#logo-acc{width:42px!important;height:42px!important;border-radius:13px!important;box-shadow:0 0 0 1px rgba(255,255,255,.14)}
+#titre-acc{font-size:1.08rem;letter-spacing:.7px;background:linear-gradient(90deg,#ffffff,#d5e2ea);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+#titre-acc~*{color:#8696a0!important;font-size:.72rem!important}
+#accueil .entete .fa-ellipsis-vertical{color:#d5dde2}
 #liste-conv{background:linear-gradient(rgba(11,20,26,.9),rgba(11,20,26,.9)),var(--fond,none) center/cover no-repeat}
 .conv{position:relative}
 .conv.on::after{content:"";position:absolute;left:54px;top:50px;width:13px;height:13px;border-radius:50%;background:#22c55e;border:2.5px solid #0b141a;box-shadow:0 0 8px rgba(34,197,94,.8)}
