@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261114-125341">
+<meta name="build" content="20261114-132938">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -422,6 +422,8 @@ function vpnMaj(){
   c.textContent=vpnP2(Math.floor(d/3600))+':'+vpnP2(Math.floor(d%3600/60))+':'+vpnP2(d%60);
   try{ var T=parseInt(localStorage.getItem('kc_vpn_temps')||'0',10)||0, now=Date.now();
     if(window.vpnT0&&e==='connecte'&&T>0){ var dt=Math.floor((now-window.vpnT0)/1000); if(dt>0){ T=Math.max(0,T-dt); localStorage.setItem('kc_vpn_temps',String(T)); window.vpnT0=window.vpnT0+dt*1000; } } else { window.vpnT0=now; }
+    if(e!=='connecte'){ window.vpnCoupe=0; }
+    if(e==='connecte'&&T<=0&&!window.vpnCoupe){ window.vpnCoupe=1; try{ AppelNatif.vpnDeconnecter(); }catch(x){} toast('Temps épuisé : VPN coupé'); }
     var rs=$('vpn-reste'); if(rs){ rs.textContent=Math.floor(T/86400)+'d:'+Math.floor(T%86400/3600)+'h:'+Math.floor(T%3600/60)+'m:'+(T%60)+'s'; } }catch(x){}
   try{ var oc=String(AppelNatif.vpnOctets()).split(','), vu=$('vpn-up'), vd=$('vpn-down'); if(vu){ vu.textContent=vpnFmt(oc[0]); } if(vd){ vd.textContent=vpnFmt(oc[1]); } }catch(x){}
 }
@@ -446,6 +448,7 @@ function vpnConnecter(){
   if(typeof AppelNatif==='undefined'||!AppelNatif.vpnConnecter){ toast('Disponible dans la nouvelle version de l app'); return; }
   var etat=''; try{ etat=String(AppelNatif.vpnEtat()); }catch(e){}
   if(etat==='connecte'||etat==='connexion'){ AppelNatif.vpnDeconnecter(); toast('VPN déconnecté'); return; }
+  if((parseInt(localStorage.getItem('kc_vpn_temps')||'0',10)||0)<=0){ toast('Temps épuisé : appuie sur Ajouter Durée'); return; }
   var s=vpnLire();
   var o=window.vpnOff||(function(){ try{ return JSON.parse(localStorage.getItem('kc_vpn_off')||'null'); }catch(e){ return null; } })();
   var cle=(s&&s.ip&&s.cle)?s.cle:((o&&o.cle)?o.cle:'');
