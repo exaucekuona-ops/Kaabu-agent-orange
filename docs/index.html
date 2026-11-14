@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261114-081042">
+<meta name="build" content="20261114-081424">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -515,23 +515,55 @@ function vpnOfficielSauver(d){
     toast('Serveur officiel enregistré'); return true;
   });
 }
+function voGenererUuid(){
+  var u;
+  try{ u=crypto.randomUUID(); }catch(e){
+    u='xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){ var r=Math.random()*16|0; return (c==='x'?r:(r&3|8)).toString(16); });
+  }
+  $('vo-uuid').value=u;
+  toast('UUID généré : mets le même sur ton serveur');
+}
 function vpnOfficiel(){
   vpnOfficielLire().then(function(o){
-    o=o||{}; var x={}; try{ x=JSON.parse(o.cle||'{}')||{}; }catch(e){ x={}; } var lb='color:#8fb0ff;font-size:.8rem;margin:0 0 4px 4px'; var gt='color:#60a5fa;font-weight:800;font-size:.8rem;letter-spacing:.08em;margin:8px 0 8px';
-    var st='width:100%;box-sizing:border-box;padding:12px;border-radius:12px;border:1px solid #1e3a8a;background:#0b1530;color:#e9edef;font-size:1rem;margin-bottom:10px';
+    o=o||{};
+    var x={}; try{ x=JSON.parse(o.cle||'{}')||{}; }catch(e){ x={}; }
+    var inp='width:100%;box-sizing:border-box;padding:13px 14px;border-radius:12px;border:1px solid #23408f;background:#081124;color:#e9edef;font-size:1rem;outline:none';
+    var lab='display:flex;align-items:center;gap:8px;color:#9db8ff;font-size:.82rem;font-weight:600;margin:14px 0 6px 2px';
+    var hint='color:#6f84b8;font-size:.74rem;margin:5px 0 0 2px;line-height:1.35';
+    var card='background:rgba(59,130,246,.07);border:1px solid #1e3a8a;border-radius:18px;padding:4px 14px 16px;margin-bottom:14px';
+    var tit='display:flex;align-items:center;gap:10px;color:#60a5fa;font-weight:800;font-size:.78rem;letter-spacing:.09em;margin-top:14px';
+    var champ=function(id,ico,label,ph,val,aide,extra){
+      return '<div style="'+lab+'"><i class="fa-solid '+ico+'" style="width:16px;text-align:center"></i>'+label+'</div>'
+        +'<input id="'+id+'" placeholder="'+ph+'" value="'+vpnEsc(val||'')+'" '+(extra||'')+'autocomplete="off" autocapitalize="off" spellcheck="false" style="'+inp+'">'
+        +'<div style="'+hint+'">'+aide+'</div>';
+    };
     var d=document.createElement('div');
     d.id='vpn-off';
-    d.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:30;background:rgba(0,0,0,.7);display:flex;align-items:flex-end';
-    d.innerHTML='<div style="width:100%;box-sizing:border-box;padding:18px;border-radius:22px 22px 0 0;background:#0b1530;max-height:90%;overflow:auto">'
-      +'<div style="font-size:1.2rem;font-weight:800;color:#e9edef;margin-bottom:14px">Serveur officiel (admin)</div>'
-      +'<div style="'+gt+'">SERVEUR</div><div style="'+lb+'">Nom du serveur</div><input id="vo-nom" placeholder="Nom" value="'+vpnEsc(o.nom||'')+'" style="'+st+'">'
-      +'<div style="'+lb+'">Adresse (IP ou domaine)</div><input id="vo-ip" placeholder="Adresse (IP ou domaine)" value="'+vpnEsc(o.ip||'')+'" style="'+st+'">'
-      +'<div style="'+lb+'">Port (ex: 443)</div><input id="vo-port" placeholder="Port" value="'+vpnEsc(o.port||'')+'" style="'+st+'">'
-      +'<div style="'+gt+'">XRAY</div><div style="'+lb+'">UUID (le mot de passe du serveur)</div><input id="vo-uuid" placeholder="UUID" value="'+vpnEsc(x.uuid||'')+'" style="'+st+'">'
-      +'<div style="'+lb+'">SNI (le nom du domaine)</div><input id="vo-sni" placeholder="SNI (ex: exemple.com)" value="'+vpnEsc(x.sni||'')+'" style="'+st+'">'
-      +'<div style="'+lb+'">Chemin WebSocket (ex: /ws)</div><input id="vo-chemin" placeholder="Chemin WebSocket (ex: /ws)" value="'+vpnEsc(x.chemin||'')+'" style="'+st+'">'
-      +'<button onclick="vpnOfficielValider()" style="width:100%;padding:14px;border:0;border-radius:12px;background:#1d4ed8;color:#fff;font-weight:700;font-size:1rem;margin-bottom:10px">Enregistrer</button>'
-      +'<button onclick="$(\'vpn-off\').remove()" style="width:100%;padding:14px;border:1px solid #3b82f6;border-radius:12px;background:transparent;color:#60a5fa;font-weight:700;font-size:1rem">Fermer</button></div>';
+    d.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:30;background:rgba(0,0,0,.72);display:flex;align-items:flex-end';
+    d.onclick=function(e){ if(e.target===d){ d.remove(); } };
+    d.innerHTML='<div style="width:100%;box-sizing:border-box;padding:10px 18px 24px;border-radius:26px 26px 0 0;background:linear-gradient(180deg,#10224f,#0b1530 40%);max-height:92%;overflow:auto;box-shadow:0 -10px 40px rgba(29,78,216,.35)">'
+      +'<div style="width:44px;height:5px;border-radius:3px;background:#2b3f7a;margin:4px auto 16px"></div>'
+      +'<div style="display:flex;align-items:center;gap:14px;margin-bottom:6px">'
+        +'<div style="width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#1d4ed8,#3b82f6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.4rem;box-shadow:0 0 20px rgba(59,130,246,.5)"><i class="fa-solid fa-shield-halved"></i></div>'
+        +'<div><div style="font-size:1.2rem;font-weight:800;color:#e9edef">Serveur officiel</div>'
+        +'<div style="font-size:.78rem;color:#8fa6dd">Réservé à l’administrateur suprême</div></div></div>'
+      +'<div style="'+card+'">'
+        +'<div style="'+tit+'"><i class="fa-solid fa-server"></i>SERVEUR</div>'
+        +champ('vo-nom','fa-tag','Nom du serveur','Ex : Serveur Goma',o.nom,'Le nom que les clients voient dans la liste.')
+        +champ('vo-ip','fa-globe','Adresse','IP ou domaine',o.ip,'L’adresse de ton serveur, par exemple mon-domaine.com.')
+        +champ('vo-port','fa-plug','Port','443',o.port,'Le numéro de la porte d’entrée : 443 pour Xray avec TLS.','inputmode="numeric" ')
+      +'</div>'
+      +'<div style="'+card+'">'
+        +'<div style="'+tit+'"><i class="fa-solid fa-key"></i>XRAY</div>'
+        +'<div style="'+lab+'"><i class="fa-solid fa-lock" style="width:16px;text-align:center"></i>UUID</div>'
+        +'<div style="display:flex;gap:8px"><input id="vo-uuid" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" value="'+vpnEsc(x.uuid||'')+'" autocomplete="off" autocapitalize="off" spellcheck="false" style="'+inp+';flex:1;min-width:0">'
+        +'<button onclick="voGenererUuid()" style="flex:none;padding:0 14px;border-radius:12px;border:1px solid #3b82f6;background:rgba(59,130,246,.15);color:#93c5fd;font-weight:700;font-size:.85rem"><i class="fa-solid fa-wand-magic-sparkles"></i> Générer</button></div>'
+        +'<div style="'+hint+'">Le mot de passe de ton serveur : le même UUID doit être sur le serveur.</div>'
+        +champ('vo-sni','fa-shield','SNI','mon-domaine.com',x.sni,'Le nom de domaine du certificat TLS (souvent le même que l’adresse).')
+        +champ('vo-chemin','fa-route','Chemin WebSocket','/ws',x.chemin,'Doit être identique sur le serveur (ex : /ws).')
+      +'</div>'
+      +'<button onclick="vpnOfficielValider()" style="width:100%;padding:15px;border:0;border-radius:14px;background:linear-gradient(135deg,#1d4ed8,#2563eb);color:#fff;font-weight:800;font-size:1.05rem;margin-bottom:10px;box-shadow:0 6px 18px rgba(37,99,235,.4)"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>'
+      +'<button onclick="$(\'vpn-off\').remove()" style="width:100%;padding:14px;border:1px solid #3b82f6;border-radius:14px;background:transparent;color:#60a5fa;font-weight:700;font-size:1rem">Fermer</button></div>';
     document.body.appendChild(d);
   });
 }
