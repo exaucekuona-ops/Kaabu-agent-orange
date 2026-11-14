@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261114-142827">
+<meta name="build" content="20261114-192533">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -139,6 +139,7 @@
 <style>.roue-charge{width:42px;height:42px;border:4px solid #202c33;border-top-color:#00a884;border-radius:50%;animation:roue-tourne .8s linear infinite}@keyframes roue-tourne{to{transform:rotate(360deg)}}</style>
 <script>
 var chMsgs=[['📡','Connexion en cours…','#3498db'],['💬','Chargement de vos messages…','#2ecc71'],['✨','Préparation de l’accueil…','#f1c40f'],['🚀','Presque prêt…','#e67e22']];
+try{if(localStorage.getItem('kc_deja_ouvert')){var rc=document.getElementById('ecran-charge');if(rc)rc.style.display='none';}else{localStorage.setItem('kc_deja_ouvert','1');}}catch(e){};
 (function(){var c=document.getElementById('ecran-charge');if(!c)return;document.head.insertAdjacentHTML('beforeend','<style>@keyframes chBarre{0%{left:-40%}100%{left:100%}}#ch-msg{transition:opacity .3s}</style>');c.insertAdjacentHTML('beforeend','<div id="ch-msg" style="font-size:17px;font-weight:600;text-align:center;padding:0 24px;min-height:26px;color:'+chMsgs[0][2]+'">'+chMsgs[0][0]+' '+chMsgs[0][1]+'</div><div style="position:relative;width:60%;max-width:260px;height:4px;border-radius:4px;background:#16263a;overflow:hidden"><div style="position:absolute;top:0;bottom:0;width:40%;border-radius:4px;background:linear-gradient(90deg,#2ecc71,#3498db);animation:chBarre 1.4s linear infinite"></div></div><div style="font-size:15px;font-style:italic;text-align:center;padding:0 24px;background:linear-gradient(90deg,#2ecc71,#3498db,#f1c40f);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent">Ensemble tout devient possible</div>');var i=0;window.chTimer=setInterval(function(){var m=document.getElementById('ch-msg');if(!m){clearInterval(window.chTimer);return;}i=(i+1)%chMsgs.length;m.style.opacity='0';setTimeout(function(){m.textContent=chMsgs[i][0]+' '+chMsgs[i][1];m.style.color=chMsgs[i][2];m.style.opacity='1';},300);},2000);})();
 function finChargement(){if(window.chTimer)clearInterval(window.chTimer);var e=document.getElementById('ecran-charge');if(!e)return;e.style.opacity='0';setTimeout(function(){if(e.parentNode)e.parentNode.removeChild(e);},300);}
 function attendreAccueil(){var d=Date.now();(function t(){var l=document.getElementById('liste-conv');var ok=window.chAccueilOk&&document.readyState==='complete';if(ok||Date.now()-d>10000){setTimeout(finChargement,400);return;}setTimeout(t,200);})();}
@@ -221,14 +222,14 @@ html body #accueil .entete #titre-acc{background:linear-gradient(90deg,#ffffff,#
   </div>
   <div style="padding:8px 12px"><div style="display:flex;align-items:center;gap:10px;background:#202c33;border-radius:24px;padding:0 16px;min-height:44px"><i class="fa-solid fa-magnifying-glass" style="color:#8696a0"></i><input id="rech-conv" type="search" placeholder="Rechercher une discussion" oninput="filtrerConv(this.value)" style="flex:1;background:transparent;border:0;color:inherit;font-size:16px;outline:0;padding:0"></div></div>
   <div id="liste-conv" style="flex:1;overflow-y:auto;padding-bottom:160px"></div>
-  <div id="barre-bas" class="kc-bar" style="position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:#111b21;border-top:1px solid #202c33;padding-bottom:env(safe-area-inset-bottom,0px)"><div  style="flex:1;text-align:center;padding:8px 0;color:#00a884;cursor:pointer"><i class="fa-solid fa-comments" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Discussions</div></div><div onclick="toast('Appels : bientôt disponible')" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-phone" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Appels</div></div><div onclick="montrer('services')" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-shield-halved" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">VPN</div></div><div onclick="ouvrirParametres()" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-gear" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Paramètres</div></div></div>
+  <div id="barre-bas" class="kc-bar" style="position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:#111b21;border-top:1px solid #202c33;padding-bottom:env(safe-area-inset-bottom,0px)"><div  style="flex:1;text-align:center;padding:8px 0;color:#00a884;cursor:pointer"><i class="fa-solid fa-comments" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Discussions</div></div><div onclick="retourAccueil();ouvrirAppels()" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-phone" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Appels</div></div><div onclick="montrer('services')" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-shield-halved" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">VPN</div></div><div onclick="ouvrirParametres()" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-gear" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Paramètres</div></div></div>
   <button onclick="ouvrirMembres()" style="position:fixed;right:18px;bottom:84px;z-index:5;width:56px;height:56px;border-radius:16px;background:#00a884;color:#111b21;font-size:1.3rem;padding:0;box-shadow:0 4px 12px rgba(0,0,0,.5)"><i class="fa-solid fa-message"></i></button>
 </div>
 
 <div id="services" class="ecran hidden">
   <div style="padding:14px 16px;background:#111b21;border-bottom:1px solid #202c33;font-size:1.2rem;font-weight:700;color:#e9edef">VPN</div>
   <div id="services-liste" style="padding:12px 12px 90px"></div>
-  <div class="kc-bar" style="position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:#111b21;border-top:1px solid #202c33;padding-bottom:env(safe-area-inset-bottom,0px)"><div onclick="retourAccueil()" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-comments" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Discussions</div></div><div onclick="toast('Appels : bientôt disponible')" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-phone" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Appels</div></div><div style="flex:1;text-align:center;padding:8px 0;color:#00a884;cursor:pointer"><i class="fa-solid fa-shield-halved" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">VPN</div></div><div onclick="ouvrirParametres()" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-gear" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Paramètres</div></div></div>
+  <div class="kc-bar" style="position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:#111b21;border-top:1px solid #202c33;padding-bottom:env(safe-area-inset-bottom,0px)"><div onclick="retourAccueil()" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-comments" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Discussions</div></div><div onclick="retourAccueil();ouvrirAppels()" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-phone" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Appels</div></div><div style="flex:1;text-align:center;padding:8px 0;color:#00a884;cursor:pointer"><i class="fa-solid fa-shield-halved" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">VPN</div></div><div onclick="ouvrirParametres()" style="flex:1;text-align:center;padding:8px 0;color:#8696a0;cursor:pointer"><i class="fa-solid fa-gear" style="font-size:1.25rem"></i><div style="font-size:.72rem;margin-top:2px">Paramètres</div></div></div>
 </div>
 <div id="chat" class="ecran hidden">
   <div class="entete">
@@ -569,7 +570,7 @@ function vpnOfficielSauver(d){
   if(!o.ip||!o.port){ toast('Adresse et port obligatoires'); return Promise.resolve(false); }
   return sb.from('vpn_config').upsert(o).then(function(r){
     if(r.error){ toast('Refusé : réservé aux admins suprêmes'); return false; }
-    toast('Serveur officiel enregistré'); return true;
+    window.vpnOff=o; try{ localStorage.setItem('kc_vpn_off', JSON.stringify(o)); }catch(e){} toast('Serveur officiel enregistré'); return true;
   });
 }
 function voGenererUuid(){
@@ -973,10 +974,10 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
   }
 
   async function afficherMedia(m) {
-    const data = { signedUrl: await urlLocale(m.contenu) };
+    var ph0=$('m'+m.id); if(ph0&&m.type==='vocal') ph0.innerHTML=lecteurVocal('',m); if(ph0&&m.type==='image') ph0.innerHTML='<div style="width:200px;height:200px;border-radius:12px;background:#1a2630"></div>'; const data = { signedUrl: await urlLocale(m.contenu) };
     const url = data ? esc(data.signedUrl) : '';
     $('m' + m.id).innerHTML = !url ? '(fichier indisponible)'
-      : m.type === 'image' ? `<img src="${url}" onclick="voirPhoto(this.src)" onload="if(!window.__hist)$('zone').scrollTop=$('zone').scrollHeight">`
+      : m.type === 'image' ? `<img src="${url}" style="opacity:0;transition:opacity .25s" onclick="voirPhoto(this.src)" onload="this.style.opacity=1;if(!window.__hist)$('zone').scrollTop=$('zone').scrollHeight">`
       : lecteurVocal(url, m);
   }
 
@@ -1983,7 +1984,7 @@ function lienFichier(m, url){
 }
 /*DEBUT-OUVRIR*/
 document.addEventListener('click', async function(ev){
-  var a = ev.target.closest && ev.target.closest('a.pfic');
+  var a = ev.target.closest && ev.target.closest('a.pfic'); if(a&&a.getAttribute('data-attend')){ ev.preventDefault(); return; }
   if(!a) return;
   var P = window.Capacitor && window.Capacitor.Plugins;
   if(!P || !P.Filesystem || !P.FileOpener) return;
@@ -2004,7 +2005,7 @@ document.addEventListener('click', async function(ev){
 /*FIN-OUVRIR*/
 var _afficherMediaOrig = afficherMedia;
 afficherMedia = async function(m){
-  if(m.type !== 'fichier') return _afficherMediaOrig(m);
+  if(m.type !== 'fichier') return _afficherMediaOrig(m); var el0=$('m' + m.id); if(el0) el0.innerHTML=lienFichier(m,'#').replace('href="#"','href="#" data-attend="1"');
   var r = await sb.storage.from('chat').createSignedUrl(m.contenu, 3600);
   var url = r.data ? esc(r.data.signedUrl) : '';
   $('m' + m.id).innerHTML = url ? lienFichier(m, url) : '(fichier indisponible)';
@@ -2435,6 +2436,23 @@ function ajouterPrive(m){
   $('prive-zone').scrollTop = $('prive-zone').scrollHeight;
 }
 
+function ajouterAppelPrive(a){
+  if (!priveId || $('ap' + a.id)) return;
+  var sortant = a.de === moi.id, repondu = !!a.rep, manque = !sortant && !repondu;
+  var titre = sortant ? (repondu ? 'Appel vocal sortant' : 'Appel vocal sans réponse') : (repondu ? 'Appel vocal reçu' : 'Appel vocal manqué');
+  var d = new Date(a.created_at || Date.now());
+  var h = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  var jk = d.toDateString();
+  var zj = $('prive-zone').querySelectorAll('.jour-sep');
+  if (!zj.length || zj[zj.length-1].dataset.jour !== jk) {
+    var hier = new Date(Date.now() - 864e5);
+    var lib = jk === new Date().toDateString() ? "Aujourd'hui" : jk === hier.toDateString() ? 'Hier' : d.toLocaleDateString('fr-FR');
+    if (zj.length) { var sep = zj[0].cloneNode(true); sep.dataset.jour = jk; sep.textContent = lib; $('prive-zone').appendChild(sep); }
+    else $('prive-zone').insertAdjacentHTML('beforeend', '<div class="jour-sep" data-jour="' + jk + '" style="align-self:center;margin:10px 0 6px;padding:4px 12px;border-radius:10px;background:#1a2630;font-size:.8rem;opacity:.85">' + lib + '</div>');
+  }
+  $('prive-zone').insertAdjacentHTML('beforeend', '<div id="ap' + a.id + '" onclick="appeler(\'' + priveId + '\')" style="align-self:center;display:flex;align-items:center;gap:12px;margin:6px 0;padding:10px 14px;border-radius:14px;background:#17222b;cursor:pointer;max-width:85%"><div style="width:40px;height:40px;border-radius:50%;background:#2a3942;display:flex;align-items:center;justify-content:center;color:' + (manque ? '#f15c6d' : '#8696a0') + '"><i class="fa-solid fa-phone"></i></div><div><div style="font-weight:600' + (manque ? ';color:#f15c6d' : '') + '">' + titre + '</div><div style="font-size:.85rem;opacity:.7">Appuyez pour rappeler</div></div><span style="font-size:.75rem;opacity:.6;align-self:flex-end">' + h + '</span></div>');
+  $('prive-zone').scrollTop = $('prive-zone').scrollHeight;
+}
 async function ouvrirPrive(id){
   fermerContact();
   priveId = id;
@@ -2447,7 +2465,10 @@ async function ouvrirPrive(id){
     .or(`and(de.eq.${moi.id},a.eq.${id}),and(de.eq.${id},a.eq.${moi.id})`)
     .order('created_at', { ascending: false }).limit(100);
   if (error) { $('prive-zone').textContent = 'Erreur : ' + error.message; return; }
-  (data || []).reverse().forEach(ajouterPrive);
+  var _ml = (data || []).reverse().map(function(x){ return { d: x.created_at, m: x }; });
+  try{ var ap = await sb.from('appels').select('id,de,vers,etat,created_at,rep:reponse->>type').or('and(de.eq.' + moi.id + ',vers.eq.' + id + '),and(de.eq.' + id + ',vers.eq.' + moi.id + ')').eq('etat', 'fini').order('created_at', { ascending: false }).limit(30); (ap.data || []).forEach(function(c){ _ml.push({ d: c.created_at, c: c }); }); }catch(e){}
+  _ml.sort(function(p, q){ return new Date(p.d) - new Date(q.d); });
+  _ml.forEach(function(z){ if (z.m) ajouterPrive(z.m); else ajouterAppelPrive(z.c); });
   marquerVu(id);
 }
 
@@ -3115,11 +3136,11 @@ function contenuP(m){
   return '<span id="pm'+m.id+'">…</span>';
 }
 async function afficherMediaP(m){
-  var e=document.getElementById('pm'+m.id); if(!e) return;
+  var e=document.getElementById('pm'+m.id); if(!e) return; if(m.type==='vocal') e.innerHTML=lecteurVocal('',{id:m.id,auteur:m.de}); if(m.type==='image'){ e.innerHTML='<div style="width:200px;height:200px;border-radius:12px;background:#1a2630"></div>'; } if(m.type!=='image'&&m.type!=='vocal'){ var nm0=decodeURIComponent(m.contenu.split('/').pop().replace(/^\d+_/,'')); e.innerHTML='<a class="pfic" href="#" data-attend="1"><i class="fa-solid fa-file pf-i"></i><span class="pf-t"><b>'+esc(nm0)+'</b><small>'+(nm0.lastIndexOf('.')>0?nm0.slice(nm0.lastIndexOf('.')+1).toUpperCase().slice(0,6):'FICHIER')+'</small></span></a>'; }
   var r={data:{signedUrl:(m.type==='image'||m.type==='vocal')?await urlLocale(m.contenu):(((await sb.storage.from('chat').createSignedUrl(m.contenu,3600)).data||{}).signedUrl||'')}};
   var url=(r&&r.data)?esc(r.data.signedUrl):'';
   if(!url){ e.textContent='(fichier indisponible)'; return; }
-  if(m.type==='image') e.innerHTML='<img src="'+url+'" onclick="voirPhoto(this.src)" onload="defP()">';
+  if(m.type==='image') e.innerHTML='<img src="'+url+'" style="opacity:0;transition:opacity .25s" onclick="voirPhoto(this.src)" onload="this.style.opacity=1;defP()">';
   else if(m.type==='vocal') e.innerHTML=lecteurVocal(url,{id:m.id,auteur:m.de});
   else {
     var nom=decodeURIComponent(m.contenu.split('/').pop().replace(/^\d+_/,''));
