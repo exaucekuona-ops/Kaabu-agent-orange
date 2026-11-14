@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261114-192533">
+<meta name="build" content="20261114-193339">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -2439,19 +2439,25 @@ function ajouterPrive(m){
 function ajouterAppelPrive(a){
   if (!priveId || $('ap' + a.id)) return;
   var sortant = a.de === moi.id, repondu = !!a.rep, manque = !sortant && !repondu;
-  var titre = sortant ? (repondu ? 'Appel vocal sortant' : 'Appel vocal sans réponse') : (repondu ? 'Appel vocal reçu' : 'Appel vocal manqué');
+  var nom = ""; try{ nom = nomDe(priveId) || ""; }catch(e){}
+  var titre = sortant ? (repondu ? "Appel vocal sortant" : "Pas de réponse") : (repondu ? "Appel vocal reçu" : "Appel vocal manqué");
+  var qui = sortant ? "↗ Vous avez appelé" : "↙ " + (nom || "Il") + " vous a appelé";
   var d = new Date(a.created_at || Date.now());
-  var h = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  var h = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   var jk = d.toDateString();
-  var zj = $('prive-zone').querySelectorAll('.jour-sep');
+  var zj = $("prive-zone").querySelectorAll(".jour-sep");
   if (!zj.length || zj[zj.length-1].dataset.jour !== jk) {
     var hier = new Date(Date.now() - 864e5);
-    var lib = jk === new Date().toDateString() ? "Aujourd'hui" : jk === hier.toDateString() ? 'Hier' : d.toLocaleDateString('fr-FR');
-    if (zj.length) { var sep = zj[0].cloneNode(true); sep.dataset.jour = jk; sep.textContent = lib; $('prive-zone').appendChild(sep); }
-    else $('prive-zone').insertAdjacentHTML('beforeend', '<div class="jour-sep" data-jour="' + jk + '" style="align-self:center;margin:10px 0 6px;padding:4px 12px;border-radius:10px;background:#1a2630;font-size:.8rem;opacity:.85">' + lib + '</div>');
+    var lib = jk === new Date().toDateString() ? "Aujourd'hui" : jk === hier.toDateString() ? "Hier" : d.toLocaleDateString("fr-FR");
+    if (zj.length) { var sep = zj[0].cloneNode(true); sep.dataset.jour = jk; sep.textContent = lib; $("prive-zone").appendChild(sep); }
+    else $("prive-zone").insertAdjacentHTML("beforeend", '<div class="jour-sep" data-jour="' + jk + '" style="align-self:center;margin:10px 0 6px;padding:4px 12px;border-radius:10px;background:#1a2630;font-size:.8rem;opacity:.85">' + lib + '</div>');
   }
-  $('prive-zone').insertAdjacentHTML('beforeend', '<div id="ap' + a.id + '" onclick="appeler(\'' + priveId + '\')" style="align-self:center;display:flex;align-items:center;gap:12px;margin:6px 0;padding:10px 14px;border-radius:14px;background:#17222b;cursor:pointer;max-width:85%"><div style="width:40px;height:40px;border-radius:50%;background:#2a3942;display:flex;align-items:center;justify-content:center;color:' + (manque ? '#f15c6d' : '#8696a0') + '"><i class="fa-solid fa-phone"></i></div><div><div style="font-weight:600' + (manque ? ';color:#f15c6d' : '') + '">' + titre + '</div><div style="font-size:.85rem;opacity:.7">Appuyez pour rappeler</div></div><span style="font-size:.75rem;opacity:.6;align-self:flex-end">' + h + '</span></div>');
-  $('prive-zone').scrollTop = $('prive-zone').scrollHeight;
+  var coul = manque ? "#f15c6d" : (sortant ? "#9be7d0" : "#8696a0");
+  var fond = sortant ? "linear-gradient(135deg,#0b6b58,#0a5546)" : "#1b2a35";
+  var cote = sortant ? "flex-end" : "flex-start";
+  var pastille = manque ? "rgba(241,92,109,.2)" : "rgba(255,255,255,.12)";
+  $("prive-zone").insertAdjacentHTML("beforeend", '<div id="ap' + a.id + '" onclick="appeler(\'' + priveId + '\')" style="align-self:' + cote + ';display:flex;align-items:center;gap:12px;margin:5px 10px;padding:10px 14px 8px;border-radius:16px;background:' + fond + ';box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:pointer;max-width:80%"><div style="width:42px;height:42px;border-radius:50%;background:' + pastille + ';display:flex;align-items:center;justify-content:center;flex:none;color:' + coul + '"><i class="fa-solid fa-phone"></i></div><div style="min-width:0"><div style="font-weight:600;color:' + (manque ? "#f15c6d" : "inherit") + '">' + titre + '</div><div style="font-size:.82rem;color:' + coul + '">' + qui + '</div><div style="font-size:.78rem;opacity:.6;margin-top:1px">Appuyez pour rappeler · ' + h + '</div></div></div>');
+  $("prive-zone").scrollTop = $("prive-zone").scrollHeight;
 }
 async function ouvrirPrive(id){
   fermerContact();
