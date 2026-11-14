@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261113-222250">
+<meta name="build" content="20261114-081042">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -517,19 +517,19 @@ function vpnOfficielSauver(d){
 }
 function vpnOfficiel(){
   vpnOfficielLire().then(function(o){
-    o=o||{}; var x={}; try{ x=JSON.parse(o.cle||'{}')||{}; }catch(e){ x={}; }
+    o=o||{}; var x={}; try{ x=JSON.parse(o.cle||'{}')||{}; }catch(e){ x={}; } var lb='color:#8fb0ff;font-size:.8rem;margin:0 0 4px 4px'; var gt='color:#60a5fa;font-weight:800;font-size:.8rem;letter-spacing:.08em;margin:8px 0 8px';
     var st='width:100%;box-sizing:border-box;padding:12px;border-radius:12px;border:1px solid #1e3a8a;background:#0b1530;color:#e9edef;font-size:1rem;margin-bottom:10px';
     var d=document.createElement('div');
     d.id='vpn-off';
     d.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:30;background:rgba(0,0,0,.7);display:flex;align-items:flex-end';
     d.innerHTML='<div style="width:100%;box-sizing:border-box;padding:18px;border-radius:22px 22px 0 0;background:#0b1530;max-height:90%;overflow:auto">'
       +'<div style="font-size:1.2rem;font-weight:800;color:#e9edef;margin-bottom:14px">Serveur officiel (admin)</div>'
-      +'<input id="vo-nom" placeholder="Nom" value="'+vpnEsc(o.nom||'')+'" style="'+st+'">'
-      +'<input id="vo-ip" placeholder="Adresse (IP ou domaine)" value="'+vpnEsc(o.ip||'')+'" style="'+st+'">'
-      +'<input id="vo-port" placeholder="Port" value="'+vpnEsc(o.port||'')+'" style="'+st+'">'
-      +'<input id="vo-uuid" placeholder="UUID" value="'+vpnEsc(x.uuid||'')+'" style="'+st+'">'
-      +'<input id="vo-sni" placeholder="SNI (ex: exemple.com)" value="'+vpnEsc(x.sni||'')+'" style="'+st+'">'
-      +'<input id="vo-chemin" placeholder="Chemin WebSocket (ex: /ws)" value="'+vpnEsc(x.chemin||'')+'" style="'+st+'">'
+      +'<div style="'+gt+'">SERVEUR</div><div style="'+lb+'">Nom du serveur</div><input id="vo-nom" placeholder="Nom" value="'+vpnEsc(o.nom||'')+'" style="'+st+'">'
+      +'<div style="'+lb+'">Adresse (IP ou domaine)</div><input id="vo-ip" placeholder="Adresse (IP ou domaine)" value="'+vpnEsc(o.ip||'')+'" style="'+st+'">'
+      +'<div style="'+lb+'">Port (ex: 443)</div><input id="vo-port" placeholder="Port" value="'+vpnEsc(o.port||'')+'" style="'+st+'">'
+      +'<div style="'+gt+'">XRAY</div><div style="'+lb+'">UUID (le mot de passe du serveur)</div><input id="vo-uuid" placeholder="UUID" value="'+vpnEsc(x.uuid||'')+'" style="'+st+'">'
+      +'<div style="'+lb+'">SNI (le nom du domaine)</div><input id="vo-sni" placeholder="SNI (ex: exemple.com)" value="'+vpnEsc(x.sni||'')+'" style="'+st+'">'
+      +'<div style="'+lb+'">Chemin WebSocket (ex: /ws)</div><input id="vo-chemin" placeholder="Chemin WebSocket (ex: /ws)" value="'+vpnEsc(x.chemin||'')+'" style="'+st+'">'
       +'<button onclick="vpnOfficielValider()" style="width:100%;padding:14px;border:0;border-radius:12px;background:#1d4ed8;color:#fff;font-weight:700;font-size:1rem;margin-bottom:10px">Enregistrer</button>'
       +'<button onclick="$(\'vpn-off\').remove()" style="width:100%;padding:14px;border:1px solid #3b82f6;border-radius:12px;background:transparent;color:#60a5fa;font-weight:700;font-size:1rem">Fermer</button></div>';
     document.body.appendChild(d);
