@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261114-220326">
+<meta name="build" content="20261115-112100">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -494,7 +494,7 @@ function vpnConnecter(){
   var xr=null; try{ xr=JSON.parse(cle); }catch(e){}
   var src=(s&&s.ip&&s.cle)?s:o;
   if(xr&&xr.uuid&&src){ AppelNatif.vpnConnecter('xray|'+src.ip+'|'+src.port+'|'+xr.uuid+'|'+(xr.sni||'')+'|'+(xr.chemin||'')); }
-  else{ AppelNatif.vpnConnecter(vpnConfigTexte(cle)); }
+  else{ toast('WireGuard choisi, source: '+((s&&s.ip&&s.cle)?'perso':'officiel')); AppelNatif.vpnConnecter(vpnConfigTexte(cle)); }
   toast('Connexion…');
 }
 async function vpnAjouter(){
