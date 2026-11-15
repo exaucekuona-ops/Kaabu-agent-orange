@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261115-170212">
+<meta name="build" content="20261115-170729">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -214,6 +214,8 @@ html body #barre-bas.kc-bar,html body div.kc-bar{left:10px!important;right:10px!
 @keyframes kcPop{0%{transform:scale(.6)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
 html body #accueil .entete #titre-acc{background:linear-gradient(90deg,#ffffff,#ffd84d,#ff6b6b,#4db8ff,#ffffff);background-size:200% 100%;background-repeat:repeat-x;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:kcTitre 6s linear infinite}
 @keyframes kcTitre{from{background-position:0% 50%}to{background-position:200% 50%}}
+html body #accueil .entete{border-bottom:3px solid transparent!important;border-image:none!important;background:linear-gradient(90deg,#1e90ff,#f7d618,#ff4d5a,#1e90ff) 0 100%/200% 3px repeat-x,linear-gradient(135deg,#14212b 0%,#101b24 100%)!important;background-origin:border-box!important;background-clip:border-box!important;animation:kcLigne 4s linear infinite!important}
+@keyframes kcLigne{from{background-position:0 100%,0 0}to{background-position:200% 100%,0 0}}
 </style>
 <div id="accueil" class="ecran hidden">
   <div class="entete">
