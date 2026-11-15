@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261115-171920">
+<meta name="build" content="20261115-174206">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -214,6 +214,8 @@ html body #barre-bas.kc-bar,html body div.kc-bar{left:10px!important;right:10px!
 @keyframes kcPop{0%{transform:scale(.6)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
 html body #accueil .entete #titre-acc{background:linear-gradient(90deg,#ffffff,#ffd84d,#ff6b6b,#4db8ff,#ffffff);background-size:200% 100%;background-repeat:repeat-x;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:kcTitre 6s linear infinite}
 @keyframes kcTitre{from{background-position:0% 50%}to{background-position:200% 50%}}
+.kc-appel{animation:kcApp .45s cubic-bezier(.2,.8,.2,1) both}
+@keyframes kcApp{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
 html body #accueil .entete{border-image:none!important;position:relative!important;}
 html body #accueil .entete::after{content:'';position:absolute;left:0;right:0;bottom:-3px;height:3px;background:linear-gradient(90deg,#1e90ff,#00d4c8,#2ecc71,#f7d618,#ff8c1a,#ff4d5a,#c04dff,#1e90ff);background-size:200% 100%;animation:kcLigne 12s linear infinite}
 @keyframes kcLigne{from{background-position:0 0}to{background-position:200% 0}}
@@ -2452,7 +2454,7 @@ function ajouterAppelPrive(a){
   var fond = sortant ? "linear-gradient(135deg,#0b6b58,#0a5546)" : "#1b2a35";
   var cote = sortant ? "flex-end" : "flex-start";
   var pastille = manque ? "rgba(241,92,109,.2)" : "rgba(255,255,255,.12)";
-  $("prive-zone").insertAdjacentHTML("beforeend", '<div id="ap' + a.id + '" onclick="appeler(\'' + priveId + '\')" style="align-self:' + cote + ';display:flex;align-items:center;gap:12px;margin:5px 10px;padding:10px 14px 8px;border-radius:16px;background:' + fond + ';box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:pointer;max-width:80%"><div style="width:42px;height:42px;border-radius:50%;background:' + pastille + ';display:flex;align-items:center;justify-content:center;flex:none;color:' + coul + '"><i class="fa-solid fa-phone"></i></div><div style="min-width:0"><div style="font-weight:600;color:' + (manque ? "#f15c6d" : "inherit") + '">' + titre + '</div><div style="font-size:.82rem;color:' + coul + '">' + qui + '</div><div style="font-size:.78rem;opacity:.6;margin-top:1px">Appuyez pour rappeler · ' + h + '</div></div></div>');
+  $("prive-zone").insertAdjacentHTML("beforeend", '<div class="kc-appel" id="ap' + a.id + '" onclick="appeler(\'' + priveId + '\')" style="align-self:' + cote + ';display:flex;align-items:center;gap:12px;margin:5px 10px;padding:10px 14px 8px;border-radius:16px;background:' + fond + ';box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:pointer;max-width:80%"><div style="width:42px;height:42px;border-radius:50%;background:' + pastille + ';display:flex;align-items:center;justify-content:center;flex:none;color:' + coul + '"><i class="fa-solid fa-phone"></i></div><div style="min-width:0"><div style="font-weight:600;color:' + (manque ? "#f15c6d" : "inherit") + '">' + titre + '</div><div style="font-size:.82rem;color:' + coul + '">' + qui + '</div><div style="font-size:.78rem;opacity:.6;margin-top:1px">Appuyez pour rappeler · ' + h + '</div></div></div>');
   $("prive-zone").scrollTop = $("prive-zone").scrollHeight;
 }
 async function ouvrirPrive(id){
