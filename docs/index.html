@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261115-112100">
+<meta name="build" content="20261115-170212">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -475,13 +475,6 @@ function vpnXrayOut(lien){
   if(s.network==='ws'){ s.wsSettings={path:q.path||'/', headers:{Host:q.host||q.sni||m[2]}}; }
   return {tag:'proxy', protocol:'vless', settings:{vnext:[{address:m[2], port:parseInt(m[3],10), users:[{id:decodeURIComponent(m[1]), encryption:q.encryption||'none'}]}]}, streamSettings:s};
 }
-function vpnConfigTexte(t){
-  t=String(t||'').trim();
-  if(t.indexOf('\n')<0){
-    t=t.replace(/\s*(\[Interface\]|\[Peer\])\s*/g,'\n$1\n').replace(/\s+(PrivateKey|Address|DNS|MTU|ListenPort|PublicKey|PresharedKey|AllowedIPs|Endpoint|PersistentKeepalive)\s*=/gi,'\n$1 =');
-  }
-  return t.trim();
-}
 function vpnConnecter(){
   if(typeof AppelNatif==='undefined'||!AppelNatif.vpnConnecter){ toast('Disponible dans la nouvelle version de l app'); return; }
   var etat=''; try{ etat=String(AppelNatif.vpnEtat()); }catch(e){}
@@ -494,7 +487,7 @@ function vpnConnecter(){
   var xr=null; try{ xr=JSON.parse(cle); }catch(e){}
   var src=(s&&s.ip&&s.cle)?s:o;
   if(xr&&xr.uuid&&src){ AppelNatif.vpnConnecter('xray|'+src.ip+'|'+src.port+'|'+xr.uuid+'|'+(xr.sni||'')+'|'+(xr.chemin||'')); }
-  else{ toast('WireGuard choisi, source: '+((s&&s.ip&&s.cle)?'perso':'officiel')); AppelNatif.vpnConnecter(vpnConfigTexte(cle)); }
+  else{ toast('Config Xray invalide : UUID manquant'); return; }
   toast('Connexion…');
 }
 async function vpnAjouter(){
@@ -627,7 +620,7 @@ function vpnOfficiel(){
 }
 function vpnOfficielValider(){
   vpnOfficielSauver({nom:$('vo-nom').value,ip:$('vo-ip').value,port:$('vo-port').value,cle:JSON.stringify({uuid:$('vo-uuid').value.trim(),sni:$('vo-sni').value.trim(),chemin:$('vo-chemin').value.trim(),type:'ws'})}).then(function(ok){
-    if(ok){ $('vpn-off').remove(); }
+    var f=$('vpn-off'); if(ok&&f){ f.remove(); }
   });
 }
 function rendreServices(){
