@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261115-175018">
+<meta name="build" content="20261117-134032">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -492,7 +492,8 @@ function vpnConnecter(){
   var xr=null; try{ xr=JSON.parse(cle); }catch(e){}
   var src=(s&&s.ip&&s.cle)?s:o;
   if(xr&&xr.uuid&&src){ AppelNatif.vpnConnecter('xray|'+src.ip+'|'+src.port+'|'+xr.uuid+'|'+(xr.sni||'')+'|'+(xr.chemin||'')); }
-  else{ toast('Config Xray invalide : UUID manquant'); return; }
+  else if(xr&&xr.user&&src){ AppelNatif.vpnConnecter('ssh|'+src.ip+'|'+src.port+'|'+xr.user+'|'+(xr.mdp||'')); }
+  else{ toast('Config invalide : UUID ou utilisateur manquant'); return; }
   toast('Connexion…');
 }
 async function vpnAjouter(){
@@ -618,13 +619,18 @@ function vpnOfficiel(){
         +champ('vo-sni','fa-shield','SNI','mon-domaine.com',x.sni,'Le nom de domaine du certificat TLS (souvent le même que l’adresse).')
         +champ('vo-chemin','fa-route','Chemin WebSocket','/ws',x.chemin,'Doit être identique sur le serveur (ex : /ws).')
       +'</div>'
+      +'<div style="'+card+'">'
+      +'<div style="'+tit+'"><i class="fa-solid fa-terminal"></i>SSH</div>'
+      +champ('vo-ssh-user','fa-user','Utilisateur','mon-utilisateur',x.user,'Le nom du compte SSH de ton serveur.')
+      +champ('vo-ssh-mdp','fa-lock','Mot de passe','mot de passe',x.mdp,'Pour le SSH, laisse l UUID vide.')
+      +'</div>'
       +'<button onclick="vpnOfficielValider()" style="width:100%;padding:15px;border:0;border-radius:14px;background:linear-gradient(135deg,#1d4ed8,#2563eb);color:#fff;font-weight:800;font-size:1.05rem;margin-bottom:10px;box-shadow:0 6px 18px rgba(37,99,235,.4)"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>'
       +'<button onclick="$(\'vpn-off\').remove()" style="width:100%;padding:14px;border:1px solid #3b82f6;border-radius:14px;background:transparent;color:#60a5fa;font-weight:700;font-size:1rem">Fermer</button></div>';
     document.body.appendChild(d);
   });
 }
 function vpnOfficielValider(){
-  vpnOfficielSauver({nom:$('vo-nom').value,ip:$('vo-ip').value,port:$('vo-port').value,cle:JSON.stringify({uuid:$('vo-uuid').value.trim(),sni:$('vo-sni').value.trim(),chemin:$('vo-chemin').value.trim(),type:'ws'})}).then(function(ok){
+  vpnOfficielSauver({nom:$('vo-nom').value,ip:$('vo-ip').value,port:$('vo-port').value,cle:JSON.stringify({uuid:$('vo-uuid').value.trim(),sni:$('vo-sni').value.trim(),chemin:$('vo-chemin').value.trim(),type:'ws',user:$('vo-ssh-user').value.trim(),mdp:$('vo-ssh-mdp').value})}).then(function(ok){
     var f=$('vpn-off'); if(ok&&f){ f.remove(); }
   });
 }
