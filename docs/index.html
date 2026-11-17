@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261117-134032">
+<meta name="build" content="20261117-140414">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -146,14 +146,48 @@ function attendreAccueil(){var d=Date.now();(function t(){var l=document.getElem
 setTimeout(finChargement,15000);
 </script>
 
-<div id="login" class="ecran centre hidden">
-  <h1>Kaabu Agent</h1>
-  <input id="nom" type="text" placeholder="Nom" autocomplete="family-name">
-  <input id="prenom" type="text" placeholder="Prénom" autocomplete="given-name">
-  <input id="mdp" type="password" placeholder="Mot de passe" autocomplete="current-password">
-  <button class="primaire" onclick="connexion(false)">Se connecter</button>
-  <button class="secondaire" onclick="connexion(true)">Créer un compte</button>
-  <button class="secondaire" onclick="connexionGoogle()"><i class="fa-brands fa-google"></i>&nbsp; Continuer avec Google</button>
+<div id="login" class="ecran centre hidden" style="background:radial-gradient(circle at 50% 0%,#1d3a8a 0%,#0b1530 55%,#070d1f 100%);overflow:auto;position:relative">
+<style>
+@keyframes kcaFlot{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes kcaHalo{0%,100%{box-shadow:0 0 26px rgba(59,130,246,.45)}50%{box-shadow:0 0 48px rgba(56,189,248,.85)}}
+@keyframes kcaEntree{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes kcaLigne{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+@keyframes kcaFond{0%,100%{transform:translate(0,0)}50%{transform:translate(34px,-26px)}}
+#login input:focus{border-color:#3b82f6!important;box-shadow:0 0 0 3px rgba(59,130,246,.25)}
+#login button:active{transform:scale(.98)}
+</style>
+<div style="position:absolute;top:-60px;left:-70px;width:240px;height:240px;border-radius:50%;background:rgba(37,99,235,.28);filter:blur(60px);animation:kcaFond 9s ease-in-out infinite;pointer-events:none"></div>
+<div style="position:absolute;bottom:-70px;right:-60px;width:260px;height:260px;border-radius:50%;background:rgba(52,211,153,.14);filter:blur(70px);animation:kcaFond 12s ease-in-out infinite reverse;pointer-events:none"></div>
+<div style="position:relative;z-index:1;width:100%;max-width:400px;margin:0 auto;padding:0 6px;box-sizing:border-box;animation:kcaEntree .6s ease both">
+<div style="text-align:center;margin-bottom:24px">
+<div style="width:84px;height:84px;margin:0 auto 14px;border-radius:50%;background:linear-gradient(135deg,#1d4ed8,#38bdf8);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2.2rem;animation:kcaFlot 4s ease-in-out infinite,kcaHalo 3s ease-in-out infinite"><i class="fa-solid fa-tower-broadcast"></i></div>
+<h1 style="margin:0;font-size:1.7rem;font-weight:800;letter-spacing:.04em;background:linear-gradient(90deg,#60a5fa,#38bdf8,#34d399);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">TÉLÉCOM RDC</h1>
+<div style="width:90px;height:3px;border-radius:3px;margin:10px auto 8px;background:linear-gradient(90deg,#3b82f6,#38bdf8,#34d399,#fbbf24,#3b82f6);background-size:200% 100%;animation:kcaLigne 4s linear infinite"></div>
+<div style="color:#8fa6dd;font-size:.85rem">Connecter les Congolais, partout, toujours !</div>
+</div>
+<div style="color:#e9edef;font-weight:700;font-size:1.05rem;margin:0 2px 12px"><i class="fa-solid fa-shield-halved" style="color:#60a5fa"></i>&nbsp; Authentification</div>
+<div style="position:relative;margin-bottom:12px"><i class="fa-solid fa-user" style="position:absolute;left:16px;top:50%;transform:translateY(-50%);color:#60a5fa"></i><input id="nom" type="text" placeholder="Nom" autocomplete="family-name" style="width:100%;box-sizing:border-box;padding:15px 14px 15px 44px;border-radius:14px;border:1px solid #23408f;background:#081124;color:#e9edef;font-size:1rem;outline:none;margin:0;transition:.2s"></div>
+<div style="position:relative;margin-bottom:12px"><i class="fa-solid fa-id-card" style="position:absolute;left:16px;top:50%;transform:translateY(-50%);color:#60a5fa"></i><input id="prenom" type="text" placeholder="Prénom" autocomplete="given-name" style="width:100%;box-sizing:border-box;padding:15px 14px 15px 44px;border-radius:14px;border:1px solid #23408f;background:#081124;color:#e9edef;font-size:1rem;outline:none;margin:0;transition:.2s"></div>
+<div style="position:relative;margin-bottom:12px"><i class="fa-solid fa-lock" style="position:absolute;left:16px;top:50%;transform:translateY(-50%);color:#60a5fa"></i><input id="mdp" type="password" placeholder="Mot de passe" autocomplete="current-password" style="width:100%;box-sizing:border-box;padding:15px 14px 15px 44px;border-radius:14px;border:1px solid #23408f;background:#081124;color:#e9edef;font-size:1rem;outline:none;margin:0;transition:.2s;padding-right:46px"><i id="kcaOeil" class="fa-solid fa-eye" onclick="kcaOeil()" style="position:absolute;right:0;top:0;bottom:0;width:46px;display:flex;align-items:center;justify-content:center;color:#60a5fa;font-size:1.05rem"></i></div>
+<div id="kcaMaj" style="display:none;color:#fbbf24;font-size:.78rem;margin:-4px 2px 10px"><i class="fa-solid fa-triangle-exclamation"></i> Verr. Maj. est activée</div>
+<label style="display:flex;align-items:center;gap:8px;color:#8fa6dd;font-size:.85rem;margin:2px 2px 14px"><input id="kcaSouv" type="checkbox" checked style="width:18px;height:18px;margin:0;accent-color:#3b82f6"> Se souvenir de mon nom</label>
+<button class="primaire" onclick="kcaSave();connexion(false)" style="width:100%;padding:15px;border:0;border-radius:14px;background:linear-gradient(135deg,#1d4ed8,#2563eb);color:#fff;font-weight:800;font-size:1.05rem;box-shadow:0 6px 18px rgba(37,99,235,.4)">Se connecter</button>
+<button class="secondaire" onclick="kcaSave();connexion(true)" style="width:100%;padding:14px;border-radius:14px;border:1px solid #3b82f6;background:transparent;color:#93c5fd;font-weight:700;margin-top:10px">Créer un compte</button>
+<div style="text-align:center;color:#6f84b8;font-size:.78rem;margin:14px 0 4px">ou</div>
+<button class="secondaire" onclick="connexionGoogle()" style="width:100%;padding:14px;border-radius:14px;border:1px solid #23408f;background:rgba(59,130,246,.07);color:#e9edef;font-weight:700;margin-top:6px"><i class="fa-brands fa-google"></i>&nbsp; Continuer avec Google</button>
+<div style="text-align:center;color:#4f6399;font-size:.72rem;margin-top:18px"><i class="fa-solid fa-lock"></i> Tes données sont protégées</div>
+</div>
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+window.kcaOeil=function(){var m=$('mdp'),o=$('kcaOeil');if(!m)return;var v=m.type==='password';m.type=v?'text':'password';o.className='fa-solid '+(v?'fa-eye-slash':'fa-eye');};
+window.kcaSave=function(){try{if($('kcaSouv').checked){localStorage.setItem('kc_auth_nom',JSON.stringify({n:$('nom').value,p:$('prenom').value}));}else{localStorage.removeItem('kc_auth_nom');}}catch(e){}};
+try{var r=JSON.parse(localStorage.getItem('kc_auth_nom')||'null');if(r){$('nom').value=r.n||'';$('prenom').value=r.p||'';}}catch(e){}
+var m=$('mdp');
+m.addEventListener('keydown',function(e){if(e.key==='Enter'){kcaSave();connexion(false);}});
+m.addEventListener('keyup',function(e){try{$('kcaMaj').style.display=e.getModifierState('CapsLock')?'block':'none';}catch(x){}});
+})();
+</script>
 </div>
 
 <div id="attente" class="ecran centre hidden">
