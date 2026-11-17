@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261117-142651">
+<meta name="build" content="20261117-145616">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -1321,7 +1321,7 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
     const nat = natif();
     const { data, error } = await sb.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: nat ? RETOUR : window.location.origin, skipBrowserRedirect: nat }
+      options: { redirectTo: nat ? RETOUR : window.location.origin + window.location.pathname.replace(/index\.html$/,''), skipBrowserRedirect: nat }
     });
     if (error) return alert(error.message);
     if (nat) {
