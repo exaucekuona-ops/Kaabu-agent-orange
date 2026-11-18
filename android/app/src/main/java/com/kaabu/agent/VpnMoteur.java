@@ -15,6 +15,16 @@ public class VpnMoteur {
 
   public static void demarrer(final Context ctx, final String texte) {
     appCtx = ctx.getApplicationContext();
+    if (texte != null && texte.startsWith("ssh|")) {
+      try {
+        xray = true;
+        appCtx.startService(new android.content.Intent(appCtx, XrayService.class).putExtra("ssh", texte.substring(4)));
+      } catch (Throwable e) {
+        xray = false;
+        etat = "erreur:" + String.valueOf(e.getMessage());
+      }
+      return;
+    }
     if (texte == null || !texte.startsWith("xray|")) {
       xray = false;
       etat = "erreur:config xray invalide";

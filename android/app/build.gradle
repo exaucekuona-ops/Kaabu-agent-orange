@@ -45,6 +45,7 @@ dependencies {
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
     implementation files('libs/libv2ray.aar')
+    implementation 'org.connectbot:sshlib:2.2.43'
     implementation 'com.google.firebase:firebase-messaging:25.0.1'
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"

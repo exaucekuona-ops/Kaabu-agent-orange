@@ -7,12 +7,16 @@ import libv2ray.CoreCallbackHandler;
 import libv2ray.CoreController;
 import libv2ray.Libv2ray;
 import org.json.JSONObject;
+import com.trilead.ssh2.Connection;
+import com.trilead.ssh2.DynamicPortForwarder;
 
 public class XrayService extends VpnService {
   private static volatile String etat = "deconnecte";
   private static volatile long debut = 0;
   private CoreController ctrl = null;
   private ParcelFileDescriptor tun = null;
+  private Connection ssh = null;
+  private DynamicPortForwarder dpf = null;
 
   public static String etat() { return etat; }
   public static long duree() {
@@ -34,20 +38,38 @@ public class XrayService extends VpnService {
       + "{\"tag\":\"direct\",\"protocol\":\"freedom\"}]}";
   }
 
+  public static String configSsh(int portLocal) {
+    return "{\"log\":{\"loglevel\":\"warning\"},"
+      + "\"dns\":{\"servers\":[\"tcp://1.1.1.1\",\"tcp://8.8.8.8\"]},"
+      + "\"inbounds\":[{\"tag\":\"tun\",\"protocol\":\"tun\",\"settings\":{\"name\":\"xray0\",\"MTU\":1500}}],"
+      + "\"outbounds\":[{\"tag\":\"proxy\",\"protocol\":\"socks\",\"settings\":{\"servers\":[{\"address\":\"127.0.0.1\",\"port\":" + portLocal + "}]}},"
+      + "{\"tag\":\"direct\",\"protocol\":\"freedom\"}]}";
+  }
+
   @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
     if (intent != null && "STOP".equals(intent.getAction())) { arreter(); return START_NOT_STICKY; }
     final String cfg = intent == null ? null : intent.getStringExtra("config");
-    if (cfg == null) { etat = "erreur:config vide"; return START_NOT_STICKY; }
+    final String sshInfo = intent == null ? null : intent.getStringExtra("ssh");
+    if (cfg == null && sshInfo == null) { etat = "erreur:config vide"; return START_NOT_STICKY; }
     etat = "connexion";
     new Thread(new Runnable() {
-      public void run() { demarrer(cfg); }
+      public void run() { demarrer(cfg, sshInfo); }
     }).start();
     return START_NOT_STICKY;
   }
 
-  private void demarrer(String cfg) {
+  private void demarrer(String cfgIn, String sshInfo) {
     try {
+      String cfg = cfgIn;
+      if (sshInfo != null) {
+        String[] a = sshInfo.split("\\|", 4);
+        ssh = new Connection(a[0], Integer.parseInt(a[1].trim()));
+        ssh.connect(null, 15000, 15000);
+        if (!ssh.authenticateWithPassword(a[2], a[3])) { throw new Exception("SSH: nom ou mot de passe refuse"); }
+        dpf = ssh.createDynamicPortForwarder(10809);
+        cfg = configSsh(10809);
+      }
       Builder b = new Builder();
       b.setSession("ExauchVPN").addAddress("172.19.0.1", 30).addRoute("0.0.0.0", 0)
        .addDnsServer("1.1.1.1").addDnsServer("8.8.8.8").setMtu(1500);
@@ -70,6 +92,9 @@ public class XrayService extends VpnService {
   }
 
   private void nettoyer() {
+    try { if (dpf != null) { dpf.close(); } } catch (Throwable e) { }
+    try { if (ssh != null) { ssh.close(); } } catch (Throwable e) { }
+    dpf = null; ssh = null;
     try { if (ctrl != null) { ctrl.stopLoop(); } } catch (Throwable e) { }
     try { if (tun != null) { tun.close(); } } catch (Throwable e) { }
     ctrl = null; tun = null; debut = 0;
