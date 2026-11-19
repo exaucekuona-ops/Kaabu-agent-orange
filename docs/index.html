@@ -343,7 +343,7 @@ html body #accueil .entete::after{content:'';position:absolute;left:0;right:0;bo
 <div id="menuplus" class="admin hidden" style="background:transparent;z-index:30" onclick="fermerMenuPlus()">
   <div style="position:absolute;right:10px;top:60px;background:#233138;border-radius:10px;min-width:220px;padding:6px 0;box-shadow:0 6px 20px rgba(0,0,0,.55)" onclick="event.stopPropagation()">
     <div class="mi" onclick="fermerMenuPlus();ouvrirProfil()"><i class="fa-solid fa-circle-user"></i>Mon profil</div>
-    <div id="mi-reglages" class="mi hidden" onclick="fermerMenuPlus();ouvrirReglages()"><i class="fa-solid fa-gear"></i>Réglages de l'app</div>
+    <div id="mi-reglages" class="mi hidden" onclick="fermerMenuPlus();ouvrirOutils()"><i class="fa-solid fa-toolbox"></i>Outils</div>
     <div id="mi-admin" class="mi hidden" onclick="fermerMenuPlus();ouvrirAdmin()"><i class="fa-solid fa-user-shield"></i>Comptes</div>
     <div class="mi" onclick="fermerMenuPlus();rechercherMaj()"><i class="fa-solid fa-rotate"></i>Rechercher une mise à jour</div>
     <div class="mi" onclick="fermerMenuPlus();deconnexion()"><i class="fa-solid fa-right-from-bracket"></i>Se déconnecter</div>
@@ -811,7 +811,7 @@ function copierCode(code){
     montrer('accueil');
     await chargerAnnuaire();
     $('mi-admin').classList.toggle('hidden', !moi.is_admin);
-    $('mi-reglages').classList.toggle('hidden', !moi.is_admin);
+    $('mi-reglages').classList.remove('hidden');
     chargerMessages();
     ecouter();
     try { ecouterPrive(); chargerNonLus(); chargerAccueil(); setTimeout(chargerAccueil, 2500); } catch (e) {} attendreAccueil();
@@ -1876,17 +1876,24 @@ appliquerFond();
 function ouvrirParametres(){
   var o = document.createElement('div');
   o.style.cssText = 'position:fixed;inset:0;background:#0b141a;z-index:9999;overflow:auto;color:#e9edef';
-  var bt = 'padding:12px;font-size:16px;border:0;border-radius:8px;color:#fff;';
   var admin = (typeof moi !== 'undefined' && moi && moi.is_supreme);
+  var bt = 'padding:12px;font-size:15px;border:0;border-radius:8px;color:#e9edef;background:#202c33;cursor:pointer;';
+  var ti = 'color:#8696a0;font-size:.75rem;font-weight:700;letter-spacing:.06em;margin:20px 0 8px';
+  var ca = 'background:#111b21;border:1px solid #202c33;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px';
   o.innerHTML = '<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:#111b21;border-bottom:1px solid #202c33;font-size:1.2rem;font-weight:700"><i id="pm-retour" class="fa-solid fa-arrow-left" style="cursor:pointer"></i>Paramètres</div>' +
-    '<div style="padding:16px;display:flex;flex-direction:column;gap:12px">' +
-    '<div style="color:#00a884;font-size:.8rem;font-weight:700">ARRIÈRE-PLAN DES DISCUSSIONS</div>' +
-    '<div id="pm-apercu" style="height:180px;border-radius:12px;border:1px solid #202c33;background:var(--fond) center / cover no-repeat"></div>' +
-    '<button id="pm-choisir" style="' + bt + 'background:#00a884">Choisir mon image</button>' +
-    '<button id="pm-defaut" style="' + bt + 'background:#2a3942">Remettre le fond par défaut</button>' +
-    '<input id="pm-fichier" type="file" accept="image/*" hidden>' +
-    '<div id="pm-err" style="color:#ff6b6b"></div>' +
-    (admin ? '<div style="color:#00a884;font-size:.8rem;font-weight:700;margin-top:12px">ADMINISTRATION</div><button id="pm-admin" style="' + bt + 'background:#2a3942">Nom et logo de l\'app</button><div id="pm-ia"></div>' : '') +
+    '<div style="padding:0 16px 32px">' +
+    '<div style="' + ti + '">ARRIÈRE-PLAN</div>' +
+    '<div style="' + ca + '">' +
+      '<div id="pm-apercu" style="height:140px;border-radius:10px;border:1px solid #202c33;background:var(--fond) center / cover no-repeat"></div>' +
+      '<div style="display:flex;gap:8px"><button id="pm-choisir" style="flex:1;' + bt + '">Choisir une image</button><button id="pm-defaut" style="flex:1;' + bt + '">Fond par défaut</button></div>' +
+      '<input id="pm-fichier" type="file" accept="image/*" hidden><div id="pm-err" style="color:#ff6b6b;font-size:.85rem"></div>' +
+    '</div>' +
+    (admin ? '<div style="' + ti + '">NOM ET LOGO DE L\'APP</div><div style="' + ca + '">' +
+      '<input id="rg-nom" type="text" placeholder="Nom de l\'app" style="padding:12px;font-size:16px;border-radius:8px;border:0;background:#202c33;color:#e9edef">' +
+      '<div style="display:flex;align-items:center;gap:12px"><img id="rg-apercu" style="width:56px;height:56px;border-radius:12px;object-fit:cover;background:#202c33"><input id="rg-fichier" type="file" accept="image/*" style="flex:1;min-width:0;color:#8696a0"></div>' +
+      '<div id="rg-err" style="font-size:.85rem"></div>' +
+      '<button id="rg-ok" style="' + bt + 'background:#00a884;color:#fff">Enregistrer</button></div>' +
+      '<div id="pm-ia"></div>' : '') +
     '</div>';
   document.body.appendChild(o);
   var fi = o.querySelector('#pm-fichier'), err = o.querySelector('#pm-err');
@@ -1898,8 +1905,28 @@ function ouvrirParametres(){
     try { var d = await fondEnDataUrl(fi.files[0]); localStorage.setItem('fondPerso', d); appliquerFond(); err.textContent = ''; }
     catch (e) { err.textContent = 'Image illisible ou trop lourde.'; }
   };
-  if (admin) o.querySelector('#pm-admin').onclick = function(){ o.remove(); ouvrirReglages(); };
-  if (admin) chargerReglagesIA(o.querySelector('#pm-ia'));
+  if (admin) {
+    var nom = o.querySelector('#rg-nom'), ap = o.querySelector('#rg-apercu'), fg = o.querySelector('#rg-fichier'), er = o.querySelector('#rg-err');
+    var nouveau = null;
+    nom.value = $('titre-app').textContent;
+    var lg = $('logo-app'); if (!lg.classList.contains('hidden')) ap.src = lg.src;
+    fg.onchange = async function(){
+      if (!fg.files[0]) return;
+      try { nouveau = await logoEnDataUrl(fg.files[0], 192); ap.src = nouveau; er.textContent = ''; }
+      catch (e) { er.style.color = '#ff6b6b'; er.textContent = 'Image illisible.'; }
+    };
+    o.querySelector('#rg-ok').onclick = async function(){
+      er.style.color = '#ff6b6b';
+      var n = nom.value.trim();
+      if (!n) { er.textContent = 'Le nom ne peut pas être vide.'; return; }
+      var m = { app_name: n }; if (nouveau) m.app_logo = nouveau;
+      var r = await sb.from('config').update(m).eq('id',1).select();
+      if (r.error) { er.textContent = 'Erreur : ' + r.error.message; return; }
+      if (!r.data || !r.data.length) { er.textContent = 'Refusé : réservé à l\'admin (ou table config absente).'; return; }
+      er.style.color = '#00a884'; er.textContent = '✅ Enregistré'; chargerConfig();
+    };
+    chargerReglagesIA(o.querySelector('#pm-ia'));
+  }
 }
 async function chargerReglagesIA(zone){
   if (!zone) return;
@@ -1948,6 +1975,90 @@ async function chargerReglagesIA(zone){
   zone.querySelectorAll('.ia-delai').forEach(function(b){ b.onclick = function(){ sauver('ia_delai', Number(b.dataset.n)); }; });
   dessiner();
 }
+function ouvrirOutils(){
+  var o = document.createElement('div');
+  o.style.cssText = 'position:fixed;inset:0;background:#0b141a;z-index:9999;overflow:auto;color:#e9edef';
+  var bt = 'padding:12px;font-size:15px;border:0;border-radius:8px;color:#e9edef;cursor:pointer;';
+  var ti = 'color:#8696a0;font-size:.75rem;font-weight:700;letter-spacing:.06em;margin:20px 0 8px';
+  var ca = 'background:#111b21;border:1px solid #202c33;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px';
+  o.innerHTML = '<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:#111b21;border-bottom:1px solid #202c33;font-size:1.2rem;font-weight:700"><i id="ou-retour" class="fa-solid fa-arrow-left" style="cursor:pointer"></i>Outils</div>' +
+    '<div style="padding:0 16px 32px">' +
+    '<div style="' + ti + '">OPÉRATEUR</div>' +
+    '<div id="ou-ops" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px"></div>' +
+    '<div style="' + ti + '">RETRAIT</div>' +
+    '<div style="' + ca + '">' +
+      '<div style="display:flex;gap:8px"><button id="ou-usd" style="flex:1;' + bt + '">USD</button><button id="ou-cdf" style="flex:1;' + bt + '">CDF</button></div>' +
+      '<input id="ou-m" type="text" inputmode="decimal" placeholder="Solde du client" style="padding:12px;font-size:18px;border-radius:8px;border:0;background:#202c33;color:#e9edef">' +
+      '<div id="ou-res" style="display:flex;flex-direction:column;gap:8px"></div>' +
+    '</div></div>';
+  document.body.appendChild(o);
+  var OPS = [
+    {id:'airtel', nom:'Airtel', lettre:'A', couleur:'#e40000'},
+    {id:'orange', nom:'Orange', lettre:'O', couleur:'#ff7900'},
+    {id:'vodacom', nom:'Vodacom', lettre:'V', couleur:'#e60000'},
+    {id:'africell', nom:'Africell', lettre:'A', couleur:'#8e44ad'}
+  ];
+  var TARIFS = {
+    airtel: {
+      USD: { min: 0.1, t: [[10,9],[20,6.15],[50,3.3],[400,2],[2500,1]] },
+      CDF: { min: 100, t: [[30000,9],[60000,6.15],[150000,3.3],[1200000,2],[7000000,1]] }
+    }
+  };
+  var op = 'airtel', dev = 'USD', inp = o.querySelector('#ou-m'), res = o.querySelector('#ou-res'), zop = o.querySelector('#ou-ops');
+  function fmt(x){
+    return dev === 'USD' ? x.toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' USD'
+                         : Math.round(x).toLocaleString('fr-FR') + ' CDF';
+  }
+  function ligne(a, b, fort){
+    return '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px;background:' + (fort ? '#202c33' : '#0b141a') + ';border-radius:8px"><span style="color:#8696a0">' + a + '</span><span style="font-weight:' + (fort ? 700 : 600) + ';font-size:' + (fort ? '1.3rem' : '1rem') + '">' + b + '</span></div>';
+  }
+  function note(t, rouge){ res.innerHTML = '<div style="color:' + (rouge ? '#ff6b6b' : '#8696a0') + ';font-size:.9rem">' + t + '</div>'; }
+  // plus grand montant x tel que x + frais(x) <= solde (calcul en plus petite unité : centimes pour USD)
+  function chercher(c, S){
+    var k = dev === 'USD' ? 100 : 1, Si = Math.round(S * k), mini = Math.round(c.min * k);
+    for (var i = c.t.length - 1; i >= 0; i--) {
+      var hi = Math.round(c.t[i][0] * k), p = c.t[i][1], lo = i ? Math.round(c.t[i-1][0] * k) : 0;
+      var tot = function(x){ return x + Math.round(x * p / 100); };
+      var x = Math.min(hi, Math.floor(Si * 100 / (100 + p) + 1e-9));
+      while (x + 1 <= hi && tot(x + 1) <= Si) x++;
+      while (x > 0 && tot(x) > Si) x--;
+      if (x > lo && x >= mini) { var f = Math.round(x * p / 100); return { x: x / k, f: f / k, p: p, reste: (Si - x - f) / k, max: x === hi && i === c.t.length - 1 }; }
+    }
+    return null;
+  }
+  function rendreOps(){
+    zop.innerHTML = OPS.map(function(r){
+      return '<div class="ou-op" data-id="' + r.id + '" style="flex:none;width:78px;text-align:center;padding:10px 4px;border-radius:12px;background:#111b21;cursor:pointer;border:2px solid ' + (r.id === op ? '#00a884' : '#202c33') + '">' +
+        '<div style="position:relative;width:42px;height:42px;margin:0 auto 6px;border-radius:50%;overflow:hidden;background:' + r.couleur + ';color:#fff;font-weight:700;font-size:1.15rem;line-height:42px">' + r.lettre +
+        '<img src="logo-' + r.id + '.png" onerror="this.remove()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#fff"></div>' +
+        '<div style="font-size:.75rem">' + r.nom + '</div></div>';
+    }).join('');
+    zop.querySelectorAll('.ou-op').forEach(function(d){
+      d.onclick = function(){ op = d.dataset.id; inp.value = ''; rendreOps(); calculer(); };
+    });
+  }
+  function calculer(){
+    o.querySelector('#ou-usd').style.background = dev === 'USD' ? '#00a884' : '#202c33';
+    o.querySelector('#ou-cdf').style.background = dev === 'CDF' ? '#00a884' : '#202c33';
+    if (!TARIFS[op]) { var nm = OPS.filter(function(r){ return r.id === op; })[0].nom; note('Tarifs de ' + nm + ' bientôt disponibles.'); return; }
+    var S = parseFloat(inp.value.replace(',', '.').replace(/\s/g, ''));
+    if (!(S > 0)) { res.innerHTML = ''; return; }
+    var r = chercher(TARIFS[op][dev], S);
+    if (!r) { note('Solde trop petit pour un retrait.', true); return; }
+    res.innerHTML = ligne('Solde du client', fmt(S)) +
+      ligne('Montant à taper', fmt(r.x), true) +
+      ligne('Frais de retrait (' + String(r.p).replace('.', ',') + ' %)', fmt(r.f)) +
+      ligne('Reste après retrait', fmt(r.reste)) +
+      (r.max ? '<div style="color:#8696a0;font-size:.85rem">Maximum par retrait atteint.</div>' : '');
+  }
+  o.querySelector('#ou-retour').onclick = function(){ o.remove(); };
+  o.querySelector('#ou-usd').onclick = function(){ dev = 'USD'; inp.value = ''; calculer(); };
+  o.querySelector('#ou-cdf').onclick = function(){ dev = 'CDF'; inp.value = ''; calculer(); };
+  inp.oninput = calculer;
+  rendreOps();
+  calculer();
+}
+
 function ouvrirReglages(){
   var o = document.createElement('div');
   o.style.cssText = 'position:fixed;inset:0;background:#111b21;z-index:9999;display:flex;flex-direction:column;justify-content:center;padding:24px;gap:12px;color:#fff';
