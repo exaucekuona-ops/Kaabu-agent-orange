@@ -1978,23 +1978,55 @@ async function chargerReglagesIA(zone){
 function ouvrirOutils(){
   var o = document.createElement('div');
   o.style.cssText = 'position:fixed;inset:0;background:#0b141a;z-index:9999;overflow:auto;color:#e9edef';
+  function carte(id, ic, nom){
+    return '<div id="' + id + '" style="flex:1;text-align:center;padding:22px 8px;border-radius:20px;background:#111b21;border:1px solid #202c33;cursor:pointer">' +
+      '<div style="width:68px;height:68px;margin:0 auto 12px;border-radius:50%;background:#1d2b33;display:flex;align-items:center;justify-content:center;font-size:1.7rem;color:#00a884"><i class="fa-solid ' + ic + '"></i></div>' +
+      '<div style="font-weight:700">' + nom + '</div></div>';
+  }
+  o.innerHTML = '<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:#111b21;border-bottom:1px solid #202c33;font-size:1.2rem;font-weight:700"><i id="ou-retour" class="fa-solid fa-arrow-left" style="cursor:pointer"></i>Outils</div>' +
+    '<div style="display:flex;gap:12px;padding:16px">' + carte('ou-c-retrait', 'fa-wallet', 'Retrait') + carte('ou-c-notes', 'fa-note-sticky', 'Bloc-notes') + '</div>';
+  document.body.appendChild(o);
+  o.querySelector('#ou-retour').onclick = function(){ o.remove(); };
+  o.querySelector('#ou-c-retrait').onclick = function(){ ouvrirRetrait(); };
+  o.querySelector('#ou-c-notes').onclick = function(){ ouvrirBlocNotes(); };
+}
+function ouvrirBlocNotes(){
+  var o = document.createElement('div');
+  o.style.cssText = 'position:fixed;inset:0;background:#0b141a;z-index:10000;display:flex;flex-direction:column;color:#e9edef';
+  o.innerHTML = '<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:#111b21;border-bottom:1px solid #202c33;font-size:1.2rem;font-weight:700"><i id="bn-retour" class="fa-solid fa-arrow-left" style="cursor:pointer"></i><span style="flex:1">Bloc-notes</span><span id="bn-etat" style="font-size:.8rem;font-weight:400;color:#8696a0"></span></div>' +
+    '<textarea id="bn-texte" placeholder="Écris ici…" style="flex:1;margin:16px;padding:14px;font-size:16px;line-height:1.5;border-radius:12px;border:1px solid #202c33;background:#111b21;color:#e9edef;resize:none;outline:none"></textarea>';
+  document.body.appendChild(o);
+  var t = o.querySelector('#bn-texte'), etat = o.querySelector('#bn-etat'), minuterie = null;
+  try { t.value = localStorage.getItem('kc_blocnotes') || ''; } catch (e) {}
+  t.oninput = function(){
+    etat.textContent = '';
+    clearTimeout(minuterie);
+    minuterie = setTimeout(function(){
+      try { localStorage.setItem('kc_blocnotes', t.value); etat.textContent = '✅ Enregistré'; }
+      catch (e) { etat.textContent = 'Non enregistré'; }
+    }, 400);
+  };
+  o.querySelector('#bn-retour').onclick = function(){
+    try { localStorage.setItem('kc_blocnotes', t.value); } catch (e) {}
+    o.remove();
+  };
+}
+function ouvrirRetrait(){
+  var o = document.createElement('div');
+  o.style.cssText = 'position:fixed;inset:0;background:#0b141a;z-index:10000;overflow:auto;color:#e9edef';
   var bt = 'padding:12px;font-size:15px;border:0;border-radius:8px;color:#e9edef;cursor:pointer;';
   var ti = 'color:#8696a0;font-size:.75rem;font-weight:700;letter-spacing:.06em;margin:20px 0 8px';
   var ca = 'background:#111b21;border:1px solid #202c33;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px';
-  o.innerHTML = '<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:#111b21;border-bottom:1px solid #202c33;font-size:1.2rem;font-weight:700"><i id="ou-retour" class="fa-solid fa-arrow-left" style="cursor:pointer"></i>Outils</div>' +
-    '<div style="display:flex;background:#111b21;border-bottom:1px solid #202c33">' +
-      '<div id="ou-t-retrait" style="flex:1;text-align:center;padding:14px 0;font-weight:700;cursor:pointer">Retrait</div>' +
-      '<div id="ou-t-note" style="flex:1;text-align:center;padding:14px 0;font-weight:700;cursor:pointer">Note</div></div>' +
-    '<div id="ou-p-retrait" style="padding:0 16px 32px">' +
+  o.innerHTML = '<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:#111b21;border-bottom:1px solid #202c33;font-size:1.2rem;font-weight:700"><i id="rt-retour" class="fa-solid fa-arrow-left" style="cursor:pointer"></i>Retrait</div>' +
+    '<div style="padding:0 16px 32px">' +
     '<div style="' + ti + '">OPÉRATEUR</div>' +
-    '<div id="ou-ops" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px"></div>' +
-    '<div style="' + ti + '">RETRAIT</div>' +
+    '<div id="ou-ops" style="display:flex;gap:8px"></div>' +
+    '<div style="' + ti + '">SOLDE DU CLIENT</div>' +
     '<div style="' + ca + '">' +
       '<div style="display:flex;gap:8px"><button id="ou-usd" style="flex:1;' + bt + '">USD</button><button id="ou-cdf" style="flex:1;' + bt + '">CDF</button></div>' +
       '<input id="ou-m" type="text" inputmode="decimal" placeholder="Solde du client" style="padding:12px;font-size:18px;border-radius:8px;border:0;background:#202c33;color:#e9edef">' +
       '<div id="ou-res" style="display:flex;flex-direction:column;gap:8px"></div>' +
-    '</div></div>' +
-    '<div id="ou-p-note" style="padding:0 16px 32px;display:none"><div style="' + ti + '">NOTE</div><div style="' + ca + ';color:#8696a0">Bientôt disponible.</div></div>';
+    '</div></div>';
   document.body.appendChild(o);
   var OPS = [
     {id:'airtel', nom:'Airtel', lettre:'A', couleur:'#e40000'},
@@ -2032,10 +2064,10 @@ function ouvrirOutils(){
   }
   function rendreOps(){
     zop.innerHTML = OPS.map(function(r){
-      return '<div class="ou-op" data-id="' + r.id + '" style="flex:none;width:78px;text-align:center;padding:10px 4px;border-radius:12px;background:#111b21;cursor:pointer;border:2px solid ' + (r.id === op ? '#00a884' : '#202c33') + '">' +
+      return '<div class="ou-op" data-id="' + r.id + '" style="flex:1;min-width:0;text-align:center;padding:10px 2px;border-radius:12px;background:#111b21;cursor:pointer;border:2px solid ' + (r.id === op ? '#00a884' : '#202c33') + '">' +
         '<div style="position:relative;width:42px;height:42px;margin:0 auto 6px;border-radius:50%;overflow:hidden;background:' + r.couleur + ';color:#fff;font-weight:700;font-size:1.15rem;line-height:42px">' + r.lettre +
         '<img src="logo-' + r.id + '.png" onerror="this.remove()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#fff"></div>' +
-        '<div style="font-size:.75rem">' + r.nom + '</div></div>';
+        '<div style="font-size:.72rem">' + r.nom + '</div></div>';
     }).join('');
     zop.querySelectorAll('.ou-op').forEach(function(d){
       d.onclick = function(){ op = d.dataset.id; inp.value = ''; rendreOps(); calculer(); };
@@ -2055,18 +2087,10 @@ function ouvrirOutils(){
       ligne('Reste après retrait', fmt(r.reste)) +
       (r.max ? '<div style="color:#8696a0;font-size:.85rem">Maximum par retrait atteint.</div>' : '');
   }
-  o.querySelector('#ou-retour').onclick = function(){ o.remove(); };
+  o.querySelector('#rt-retour').onclick = function(){ o.remove(); };
   o.querySelector('#ou-usd').onclick = function(){ dev = 'USD'; inp.value = ''; calculer(); };
   o.querySelector('#ou-cdf').onclick = function(){ dev = 'CDF'; inp.value = ''; calculer(); };
   inp.oninput = calculer;
-  function onglet(n){
-    o.querySelector('#ou-p-retrait').style.display = n === 'retrait' ? '' : 'none';
-    o.querySelector('#ou-p-note').style.display = n === 'note' ? '' : 'none';
-    ['retrait', 'note'].forEach(function(k){ var t = o.querySelector('#ou-t-' + k); t.style.color = k === n ? '#e9edef' : '#8696a0'; t.style.borderBottom = '2px solid ' + (k === n ? '#00a884' : 'transparent'); });
-  }
-  o.querySelector('#ou-t-retrait').onclick = function(){ onglet('retrait'); };
-  o.querySelector('#ou-t-note').onclick = function(){ onglet('note'); };
-  onglet('retrait');
   rendreOps();
   calculer();
 }
