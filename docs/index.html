@@ -1982,7 +1982,10 @@ function ouvrirOutils(){
   var ti = 'color:#8696a0;font-size:.75rem;font-weight:700;letter-spacing:.06em;margin:20px 0 8px';
   var ca = 'background:#111b21;border:1px solid #202c33;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px';
   o.innerHTML = '<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:#111b21;border-bottom:1px solid #202c33;font-size:1.2rem;font-weight:700"><i id="ou-retour" class="fa-solid fa-arrow-left" style="cursor:pointer"></i>Outils</div>' +
-    '<div style="padding:0 16px 32px">' +
+    '<div style="display:flex;background:#111b21;border-bottom:1px solid #202c33">' +
+      '<div id="ou-t-retrait" style="flex:1;text-align:center;padding:14px 0;font-weight:700;cursor:pointer">Retrait</div>' +
+      '<div id="ou-t-note" style="flex:1;text-align:center;padding:14px 0;font-weight:700;cursor:pointer">Note</div></div>' +
+    '<div id="ou-p-retrait" style="padding:0 16px 32px">' +
     '<div style="' + ti + '">OPÉRATEUR</div>' +
     '<div id="ou-ops" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:4px"></div>' +
     '<div style="' + ti + '">RETRAIT</div>' +
@@ -1990,7 +1993,8 @@ function ouvrirOutils(){
       '<div style="display:flex;gap:8px"><button id="ou-usd" style="flex:1;' + bt + '">USD</button><button id="ou-cdf" style="flex:1;' + bt + '">CDF</button></div>' +
       '<input id="ou-m" type="text" inputmode="decimal" placeholder="Solde du client" style="padding:12px;font-size:18px;border-radius:8px;border:0;background:#202c33;color:#e9edef">' +
       '<div id="ou-res" style="display:flex;flex-direction:column;gap:8px"></div>' +
-    '</div></div>';
+    '</div></div>' +
+    '<div id="ou-p-note" style="padding:0 16px 32px;display:none"><div style="' + ti + '">NOTE</div><div style="' + ca + ';color:#8696a0">Bientôt disponible.</div></div>';
   document.body.appendChild(o);
   var OPS = [
     {id:'airtel', nom:'Airtel', lettre:'A', couleur:'#e40000'},
@@ -2055,6 +2059,14 @@ function ouvrirOutils(){
   o.querySelector('#ou-usd').onclick = function(){ dev = 'USD'; inp.value = ''; calculer(); };
   o.querySelector('#ou-cdf').onclick = function(){ dev = 'CDF'; inp.value = ''; calculer(); };
   inp.oninput = calculer;
+  function onglet(n){
+    o.querySelector('#ou-p-retrait').style.display = n === 'retrait' ? '' : 'none';
+    o.querySelector('#ou-p-note').style.display = n === 'note' ? '' : 'none';
+    ['retrait', 'note'].forEach(function(k){ var t = o.querySelector('#ou-t-' + k); t.style.color = k === n ? '#e9edef' : '#8696a0'; t.style.borderBottom = '2px solid ' + (k === n ? '#00a884' : 'transparent'); });
+  }
+  o.querySelector('#ou-t-retrait').onclick = function(){ onglet('retrait'); };
+  o.querySelector('#ou-t-note').onclick = function(){ onglet('note'); };
+  onglet('retrait');
   rendreOps();
   calculer();
 }
