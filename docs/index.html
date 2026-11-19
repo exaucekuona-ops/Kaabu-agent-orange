@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261118-093328">
+<meta name="build" content="20261119-204357">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -1984,11 +1984,12 @@ function ouvrirOutils(){
       '<div style="font-weight:700">' + nom + '</div></div>';
   }
   o.innerHTML = '<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:#111b21;border-bottom:1px solid #202c33;font-size:1.2rem;font-weight:700"><i id="ou-retour" class="fa-solid fa-arrow-left" style="cursor:pointer"></i>Outils</div>' +
-    '<div style="display:flex;gap:12px;padding:16px">' + carte('ou-c-retrait', 'fa-wallet', 'Retrait') + carte('ou-c-notes', 'fa-note-sticky', 'Bloc-notes') + '</div>';
+    '<div style="display:flex;gap:12px;padding:16px">' + carte('ou-c-retrait', 'fa-wallet', 'Retrait') + carte('ou-c-notes', 'fa-note-sticky', 'Bloc-notes') + carte('ou-c-suivi', 'fa-chart-line', 'Suivi') + '</div>';
   document.body.appendChild(o);
   o.querySelector('#ou-retour').onclick = function(){ o.remove(); };
   o.querySelector('#ou-c-retrait').onclick = function(){ ouvrirRetrait(); };
   o.querySelector('#ou-c-notes').onclick = function(){ ouvrirBlocNotes(); };
+  o.querySelector('#ou-c-suivi').onclick = function(){ ouvrirSuivi(); };
 }
 function ouvrirBlocNotes(){
   var cle = 'kc_notes', notes = [];
@@ -2070,6 +2071,223 @@ function ouvrirBlocNotes(){
     };
   }
   liste();
+}
+function ouvrirSuivi(){
+  var CLE = 'kc_suivi', VERT = '#00a884', ROUGE = '#f15c6d', GRIS = '#8696a0';
+  var MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var JOURS = ['dim.','lun.','mar.','mer.','jeu.','ven.','sam.'];
+  var CARTE = 'background:#111b21;border:1px solid #202c33;border-radius:16px;padding:16px;margin-bottom:14px';
+  var PETIT = 'font-size:.75rem;color:#8696a0';
+  var S = { depart: 0, devise: 'USD', objectifs: {}, ops: [] };
+  try { var br = JSON.parse(localStorage.getItem(CLE) || 'null'); if (br && br.ops) S = br; } catch (e) {}
+  if (!S.objectifs) S.objectifs = {};
+  function sauver(){ try { localStorage.setItem(CLE, JSON.stringify(S)); } catch (e) {} }
+  function pad(n){ return ('0' + n).slice(-2); }
+  function ymd(d){ return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  var auj = ymd(new Date()), mc = auj.slice(0, 7), sup = null;
+  function num(n){ return (Math.round(n * 100) / 100).toLocaleString('fr-FR'); }
+  function mt(n){ return num(n) + (S.devise === 'CDF' ? ' FC' : ' $'); }
+  function sg(n){ return (n > 0 ? '+' : n < 0 ? '−' : '') + mt(Math.abs(n)); }
+  function coul(n){ return n > 0 ? VERT : n < 0 ? ROUGE : GRIS; }
+  function echap(s){ return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function lire(v){ var n = parseFloat(String(v).replace(/\s/g, '').replace(',', '.')); return isNaN(n) ? null : n; }
+  function net(op){ return op.type === 'gain' ? op.m : -op.m; }
+  function totalAvant(date){ var t = S.depart; for (var i = 0; i < S.ops.length; i++) { if (S.ops[i].d < date) t += net(S.ops[i]); } return t; }
+  function soldeActuel(){ var t = S.depart; for (var i = 0; i < S.ops.length; i++) t += net(S.ops[i]); return t; }
+  function nomMois(k){ var p = k.split('-'); return MOIS[+p[1] - 1] + ' ' + p[0]; }
+  function decaler(k, n){ var p = k.split('-'), d = new Date(+p[0], +p[1] - 1 + n, 1); return d.getFullYear() + '-' + pad(d.getMonth() + 1); }
+  function jourTxt(d){ var p = d.split('-'); return JOURS[new Date(+p[0], +p[1] - 1, +p[2]).getDay()] + ' ' + p[2] + '/' + p[1]; }
+
+  function statsMois(k){
+    var p = k.split('-'), nb = new Date(+p[0], +p[1], 0).getDate(), i, d, op;
+    var jr = [], actif = [], g = 0, pe = 0, nbOps = 0, dernier = 0;
+    for (i = 0; i <= nb; i++) { jr.push(0); actif.push(false); }
+    for (i = 0; i < S.ops.length; i++) {
+      op = S.ops[i];
+      if (op.d.slice(0, 7) !== k) continue;
+      d = +op.d.slice(8, 10);
+      jr[d] += net(op); actif[d] = true; nbOps++;
+      if (d > dernier) dernier = d;
+      if (op.type === 'gain') g += op.m; else pe += op.m;
+    }
+    var fin = k === mc ? Math.max(+auj.slice(8, 10), dernier) : (k < mc ? nb : dernier);
+    var debut = totalAvant(k + '-01'), run = debut, pts = [{ x: 0, y: debut }];
+    var gagn = 0, perd = 0, meil = null, pire = null;
+    for (d = 1; d <= nb; d++) {
+      run += jr[d];
+      if (d <= fin) pts.push({ x: d, y: run });
+      if (actif[d]) {
+        if (jr[d] > 0) gagn++;
+        if (jr[d] < 0) perd++;
+        if (!meil || jr[d] > meil.v) meil = { d: d, v: jr[d] };
+        if (!pire || jr[d] < pire.v) pire = { d: d, v: jr[d] };
+      }
+    }
+    return { k: k, nb: nb, g: g, pe: pe, net: g - pe, debut: debut, pts: pts, gagn: gagn, perd: perd, meil: meil, pire: pire, nbOps: nbOps };
+  }
+
+  function courbe(st){
+    var W = 320, H = 150, gx = 8, gy = 16, pts = st.pts, i, mn = Infinity, mx = -Infinity;
+    for (i = 0; i < pts.length; i++) { if (pts[i].y < mn) mn = pts[i].y; if (pts[i].y > mx) mx = pts[i].y; }
+    if (mx === mn) { mx += 1; mn -= 1; }
+    var fin = pts[pts.length - 1].y, c = fin > st.debut ? VERT : fin < st.debut ? ROUGE : GRIS;
+    function X(x){ return gx + (x / st.nb) * (W - 2 * gx); }
+    function Y(v){ return gy + (1 - (v - mn) / (mx - mn)) * (H - 2 * gy); }
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;display:block"><defs><linearGradient id="su-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + c + '" stop-opacity=".35"/><stop offset="1" stop-color="' + c + '" stop-opacity="0"/></linearGradient></defs>';
+    for (i = 0; i < 4; i++) { var gyy = gy + i * (H - 2 * gy) / 3; s += '<line x1="' + gx + '" x2="' + (W - gx) + '" y1="' + gyy + '" y2="' + gyy + '" stroke="#202c33" stroke-width="1"/>'; }
+    s += '<line x1="' + gx + '" x2="' + (W - gx) + '" y1="' + Y(st.debut) + '" y2="' + Y(st.debut) + '" stroke="#8696a0" stroke-width="1" stroke-dasharray="4 4"/>';
+    if (pts.length > 1) {
+      var d = '';
+      for (i = 0; i < pts.length; i++) d += (i ? ' L ' : 'M ') + X(pts[i].x).toFixed(1) + ' ' + Y(pts[i].y).toFixed(1);
+      var lx = X(pts[pts.length - 1].x), ly = Y(fin);
+      s += '<path d="' + d + ' L ' + lx.toFixed(1) + ' ' + (H - gy) + ' L ' + X(0).toFixed(1) + ' ' + (H - gy) + ' Z" fill="url(#su-g)"/>';
+      s += '<path d="' + d + '" fill="none" stroke="' + c + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+      s += '<circle cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="8" fill="' + c + '" fill-opacity=".25"/><circle cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="4" fill="' + c + '"/>';
+    } else {
+      s += '<line x1="' + gx + '" x2="' + (W - gx) + '" y1="' + Y(st.debut) + '" y2="' + Y(st.debut) + '" stroke="' + GRIS + '" stroke-width="2.5"/>';
+    }
+    s += '<text x="' + gx + '" y="' + (H - 2) + '" font-size="9" fill="#8696a0">1</text><text x="' + (W - gx) + '" y="' + (H - 2) + '" font-size="9" fill="#8696a0" text-anchor="end">' + st.nb + '</text></svg>';
+    return s;
+  }
+
+  var o = document.createElement('div');
+  o.style.cssText = 'position:fixed;inset:0;background:#0b141a;z-index:10000;display:flex;flex-direction:column;color:#e9edef';
+  document.body.appendChild(o);
+
+  function feuille(titre, champs, bouton, cb){
+    var f = document.createElement('div');
+    f.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.6);display:flex;align-items:flex-end';
+    var h = '<div style="width:100%;background:#111b21;border-radius:20px 20px 0 0;padding:18px 16px 22px;box-sizing:border-box"><div style="font-size:1.1rem;font-weight:700;margin-bottom:12px">' + titre + '</div>';
+    for (var i = 0; i < champs.length; i++) {
+      var c = champs[i];
+      h += '<div style="' + PETIT + ';margin:8px 0 4px">' + c.label + '</div><input id="fe-' + i + '" type="' + (c.type || 'text') + '" ' + (c.mode ? 'inputmode="' + c.mode + '" ' : '') + 'placeholder="' + (c.ph || '') + '" style="width:100%;box-sizing:border-box;padding:12px 14px;font-size:16px;border-radius:12px;border:1px solid #202c33;background:#0b141a;color:#e9edef;outline:none">';
+    }
+    h += '<div id="fe-err" style="color:' + ROUGE + ';font-size:.85rem;min-height:20px;margin-top:8px"></div><div style="display:flex;gap:10px"><button id="fe-non" style="flex:1;padding:13px;border:0;border-radius:12px;font-size:15px;color:#e9edef;background:#202c33">Annuler</button><button id="fe-ok" style="flex:2;padding:13px;border:0;border-radius:12px;font-size:15px;font-weight:700;color:#fff;background:' + VERT + '">' + bouton + '</button></div></div>';
+    f.innerHTML = h;
+    o.appendChild(f);
+    var ins = [];
+    for (i = 0; i < champs.length; i++) { ins.push(f.querySelector('#fe-' + i)); if (champs[i].val !== undefined) ins[i].value = champs[i].val; }
+    f.querySelector('#fe-non').onclick = function(){ f.remove(); };
+    f.onclick = function(e){ if (e.target === f) f.remove(); };
+    f.querySelector('#fe-ok').onclick = function(){
+      var v = [];
+      for (var j = 0; j < ins.length; j++) v.push(ins[j].value);
+      var err = cb(v);
+      if (err) { f.querySelector('#fe-err').textContent = err; } else { f.remove(); dessiner(); }
+    };
+  }
+
+  function ajouter(type){
+    feuille(type === 'gain' ? '＋ Gain' : '− Perte', [
+      { label: 'Montant (' + (S.devise === 'CDF' ? 'FC' : '$') + ')', mode: 'decimal', ph: '0' },
+      { label: 'Date', type: 'date', val: auj },
+      { label: 'Note (facultatif)', ph: 'Ex : ventes de la journée' }
+    ], 'Enregistrer', function(v){
+      var m = lire(v[0]);
+      if (m === null || m <= 0) return 'Écris un montant plus grand que 0';
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(v[1])) return 'Choisis une date';
+      S.ops.push({ id: Date.now(), d: v[1], type: type, m: m, note: v[2].trim() });
+      mc = v[1].slice(0, 7);
+      sauver();
+      return null;
+    });
+  }
+
+  function dessiner(){
+    var ancien = o.querySelector('#su-corps'), pos = ancien ? ancien.scrollTop : 0;
+    var st = statsMois(mc), solde = soldeActuel(), i, h;
+    var pct = st.debut > 0 ? ' (' + (st.net >= 0 ? '+' : '−') + num(Math.abs(st.net / st.debut * 100)) + ' %)' : '';
+    h = '<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:#111b21;border-bottom:1px solid #202c33;font-size:1.2rem;font-weight:700"><i id="su-retour" class="fa-solid fa-arrow-left" style="cursor:pointer"></i><span style="flex:1">Suivi</span><span id="su-dev" style="font-size:.8rem;font-weight:700;padding:6px 12px;border-radius:20px;background:#202c33;cursor:pointer">' + S.devise + '</span></div>';
+    h += '<div id="su-corps" style="flex:1;overflow:auto;padding:14px 16px">';
+    h += '<div style="' + CARTE + '"><div style="' + PETIT + '">Mon solde (tous mes biens)</div><div style="font-size:2rem;font-weight:800;margin:4px 0">' + mt(solde) + '</div><div style="font-weight:700;color:' + coul(st.net) + '">' + (st.net > 0 ? '▲ ' : st.net < 0 ? '▼ ' : '') + sg(st.net) + pct + ' <span style="font-weight:400;color:#8696a0">en ' + MOIS[+mc.slice(5, 7) - 1] + '</span></div><div id="su-solde" style="margin-top:12px;display:inline-block;padding:9px 14px;border-radius:12px;background:#202c33;font-size:.9rem;cursor:pointer">✏️ Modifier mon solde</div></div>';
+    h += '<div style="' + CARTE + '"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><i id="su-prec" class="fa-solid fa-chevron-left" style="padding:6px 12px;cursor:pointer"></i><b style="text-transform:capitalize">' + nomMois(mc) + '</b><i id="su-suiv" class="fa-solid fa-chevron-right" style="padding:6px 12px;cursor:pointer"></i></div>' + courbe(st);
+    h += '<div style="text-align:center;font-weight:700;margin-top:8px;color:' + (st.nbOps ? coul(st.net) : GRIS) + '">' + (!st.nbOps ? 'Ajoute ton premier gain ou ta première perte' : st.net > 0 ? '📈 Ça monte : tu es en gain ce mois-ci' : st.net < 0 ? '📉 Ça baisse : tu es en perte ce mois-ci' : '➖ Équilibre : ni gain ni perte') + '</div></div>';
+    var act = st.gagn + st.perd;
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">';
+    var cases = [['Gains', mt(st.g), VERT], ['Pertes', mt(st.pe), ROUGE], ['Résultat', sg(st.net), coul(st.net)], ['Jours gagnants', st.gagn + ' / ' + act, '#e9edef']];
+    for (i = 0; i < cases.length; i++) h += '<div style="background:#111b21;border:1px solid #202c33;border-radius:14px;padding:12px"><div style="' + PETIT + '">' + cases[i][0] + '</div><div style="font-size:1.1rem;font-weight:700;color:' + cases[i][2] + '">' + cases[i][1] + '</div></div>';
+    h += '</div>';
+    if (st.meil) h += '<div style="' + CARTE + ';font-size:.9rem;line-height:1.7"><div>🏆 Meilleur jour : <b>' + pad(st.meil.d) + '/' + mc.slice(5, 7) + '</b> <span style="color:' + coul(st.meil.v) + '">' + sg(st.meil.v) + '</span></div><div>⚠️ Pire jour : <b>' + pad(st.pire.d) + '/' + mc.slice(5, 7) + '</b> <span style="color:' + coul(st.pire.v) + '">' + sg(st.pire.v) + '</span></div><div>📊 Moyenne par jour actif : <b style="color:' + coul(st.net / act) + '">' + sg(st.net / act) + '</b></div></div>';
+    var obj = S.objectifs[mc];
+    if (obj) {
+      var p = Math.max(0, Math.min(100, st.net / obj * 100));
+      h += '<div id="su-obj" style="' + CARTE + ';cursor:pointer"><div style="display:flex;justify-content:space-between"><b>🎯 Objectif du mois</b><span style="' + PETIT + '">Changer</span></div><div style="height:10px;border-radius:6px;background:#202c33;margin:10px 0 6px;overflow:hidden"><div style="height:100%;width:' + p + '%;background:' + VERT + '"></div></div><div style="font-size:.85rem;color:#aebac1">' + sg(st.net) + ' sur ' + mt(obj) + ' (' + num(Math.max(0, st.net / obj * 100)) + ' %)</div></div>';
+    } else {
+      h += '<div id="su-obj" style="' + CARTE + ';cursor:pointer;text-align:center;color:#8696a0">🎯 Définir un objectif pour ce mois</div>';
+    }
+    var lst = [];
+    for (i = 0; i < S.ops.length; i++) { if (S.ops[i].d.slice(0, 7) === mc) lst.push(S.ops[i]); }
+    lst.sort(function(a, b){ return a.d < b.d ? 1 : a.d > b.d ? -1 : b.id - a.id; });
+    if (lst.length) {
+      h += '<div style="font-weight:700;margin:4px 0 8px">Jour par jour</div><div style="' + CARTE + ';padding:6px 14px">';
+      var jc = '';
+      for (i = 0; i < lst.length; i++) {
+        var op = lst[i];
+        if (op.d !== jc) {
+          jc = op.d;
+          var tj = 0;
+          for (var k = 0; k < lst.length; k++) { if (lst[k].d === jc) tj += net(lst[k]); }
+          h += '<div style="display:flex;justify-content:space-between;padding:10px 0 4px;font-size:.8rem;color:#8696a0"><span>' + jourTxt(jc) + '</span><span style="color:' + coul(tj) + '">' + sg(tj) + '</span></div>';
+        }
+        h += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #1a252c"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (op.type === 'gain' ? '🟢 ' : '🔴 ') + echap(op.note || (op.type === 'gain' ? 'Gain' : 'Perte')) + '</span><b style="color:' + (op.type === 'gain' ? VERT : ROUGE) + '">' + (op.type === 'gain' ? '+' : '−') + mt(op.m) + '</b><span class="su-del" data-id="' + op.id + '" style="min-width:26px;text-align:center;cursor:pointer;color:' + (sup === op.id ? ROUGE : '#8696a0') + ';font-size:' + (sup === op.id ? '.75rem' : '1.1rem') + '">' + (sup === op.id ? 'Sûr ?' : '×') + '</span></div>';
+      }
+      h += '</div>';
+    }
+    var cles = {}, tout = 0;
+    cles[mc] = 1; cles[auj.slice(0, 7)] = 1;
+    for (i = 0; i < S.ops.length; i++) { cles[S.ops[i].d.slice(0, 7)] = 1; tout += net(S.ops[i]); }
+    var ks = Object.keys(cles).sort().reverse(), ms = [], gm = 1;
+    for (i = 0; i < ks.length; i++) { var sm = statsMois(ks[i]); ms.push(sm); if (Math.abs(sm.net) > gm) gm = Math.abs(sm.net); }
+    h += '<div style="font-weight:700;margin:4px 0 8px">Tous les mois</div><div style="' + CARTE + ';padding:6px 14px">';
+    for (i = 0; i < ms.length; i++) h += '<div class="su-mois" data-k="' + ms[i].k + '" style="padding:10px 0;' + (i ? 'border-top:1px solid #1a252c;' : '') + 'cursor:pointer"><div style="display:flex;justify-content:space-between;font-size:.9rem"><span style="text-transform:capitalize">' + nomMois(ms[i].k) + '</span><b style="color:' + coul(ms[i].net) + '">' + sg(ms[i].net) + '</b></div><div style="height:5px;border-radius:3px;background:#202c33;margin-top:6px;overflow:hidden"><div style="height:100%;width:' + Math.round(Math.abs(ms[i].net) / gm * 100) + '%;background:' + coul(ms[i].net) + '"></div></div></div>';
+    h += '<div style="display:flex;justify-content:space-between;padding:10px 0 6px;border-top:1px solid #202c33;font-weight:700"><span>Total depuis le début</span><span style="color:' + coul(tout) + '">' + sg(tout) + '</span></div></div>';
+    h += '</div>';
+    h += '<div style="display:flex;gap:10px;padding:10px 16px;background:#111b21;border-top:1px solid #202c33"><button id="su-gain" style="flex:1;padding:14px;border:0;border-radius:12px;font-size:16px;font-weight:700;color:#fff;background:' + VERT + '">＋ Gain</button><button id="su-perte" style="flex:1;padding:14px;border:0;border-radius:12px;font-size:16px;font-weight:700;color:#fff;background:' + ROUGE + '">− Perte</button></div>';
+    o.innerHTML = h;
+    var corps = o.querySelector('#su-corps');
+    if (corps) corps.scrollTop = pos;
+    o.querySelector('#su-retour').onclick = function(){ o.remove(); };
+    o.querySelector('#su-dev').onclick = function(){ S.devise = S.devise === 'USD' ? 'CDF' : 'USD'; sauver(); dessiner(); };
+    o.querySelector('#su-prec').onclick = function(){ mc = decaler(mc, -1); dessiner(); };
+    o.querySelector('#su-suiv').onclick = function(){ mc = decaler(mc, 1); dessiner(); };
+    o.querySelector('#su-gain').onclick = function(){ ajouter('gain'); };
+    o.querySelector('#su-perte').onclick = function(){ ajouter('perte'); };
+    o.querySelector('#su-solde').onclick = function(){
+      feuille('Mon solde (tous mes biens)', [{ label: 'Combien as-tu en tout maintenant ?', mode: 'decimal', val: Math.round(soldeActuel() * 100) / 100 }], 'Enregistrer', function(v){
+        var x = lire(v[0]);
+        if (x === null) return 'Écris un montant';
+        S.depart += x - soldeActuel();
+        sauver();
+        return null;
+      });
+    };
+    o.querySelector('#su-obj').onclick = function(){
+      feuille('🎯 Objectif de ' + nomMois(mc), [{ label: 'Combien veux-tu gagner ce mois ? (vide = enlever)', mode: 'decimal', val: S.objectifs[mc] || '' }], 'Enregistrer', function(v){
+        if (String(v[0]).trim() === '') { delete S.objectifs[mc]; sauver(); return null; }
+        var x = lire(v[0]);
+        if (x === null || x <= 0) return 'Écris un montant plus grand que 0';
+        S.objectifs[mc] = x;
+        sauver();
+        return null;
+      });
+    };
+    Array.prototype.forEach.call(o.querySelectorAll('.su-mois'), function(el){
+      el.onclick = function(){ mc = el.getAttribute('data-k'); sup = null; dessiner(); var c = o.querySelector('#su-corps'); if (c) c.scrollTop = 0; };
+    });
+    Array.prototype.forEach.call(o.querySelectorAll('.su-del'), function(el){
+      el.onclick = function(){
+        var id = +el.getAttribute('data-id');
+        if (sup === id) {
+          S.ops = S.ops.filter(function(x){ return x.id !== id; });
+          sup = null; sauver(); dessiner();
+        } else {
+          sup = id; dessiner();
+          setTimeout(function(){ if (sup === id && o.parentNode) { sup = null; dessiner(); } }, 3000);
+        }
+      };
+    });
+  }
+  dessiner();
 }
 function ouvrirRetrait(){
   var o = document.createElement('div');
