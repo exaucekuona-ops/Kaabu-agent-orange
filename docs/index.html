@@ -114,6 +114,22 @@
   #prive-zone .rang.autre:not(.rang.autre + .rang.autre) .bulle.autre { position: relative; border-top-left-radius: 4px; }
   #prive-zone .rang.autre:not(.rang.autre + .rang.autre) .bulle.autre::before { content: ""; position: absolute; top: 0; left: -8px; width: 0; height: 0; border-right: 8px solid #202c33; border-bottom: 8px solid transparent; }
   :root { --fond: url(fond.webp); }
+  #prive-zone .rang.moi + .rang.moi, #prive-zone .rang.autre + .rang.autre { margin-top: -2px; }
+  #prive-zone .rang.moi + .rang.autre, #prive-zone .rang.autre + .rang.moi { margin-top: 6px; }
+  #prive-zone .rang.arrive { animation: kc-arrive .22s ease-out; }
+  #prive-zone .rang.moi.arrive { transform-origin: right bottom; }
+  #prive-zone .rang.autre.arrive { transform-origin: left bottom; }
+  @keyframes kc-arrive { from { opacity: 0; transform: translateY(8px) scale(.94); } to { opacity: 1; transform: none; } }
+  #prive-zone .rang { position: relative; }
+  #prive-zone .rang.a-reac { margin-bottom: 14px; }
+  .kc-reac { position: absolute; bottom: -13px; font-size: .78rem; line-height: 1.3; background: #1b2730; border: 1px solid #2a3942; border-radius: 12px; padding: 1px 7px; box-shadow: 0 1px 2px rgba(0,0,0,.4); animation: kc-pop .18s ease-out; }
+  .rang.moi .kc-reac { right: 12px; }
+  .rang.autre .kc-reac { left: 12px; }
+  @keyframes kc-pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  #kc-barre-reac { display: none; justify-content: space-around; background: #111b21; border-radius: 30px; padding: 4px 6px; margin-bottom: 4px; animation: kc-arrive .2s ease-out; }
+  #menu.priv #kc-barre-reac { display: flex; }
+  #kc-barre-reac button { background: none; border: 0; padding: 4px 8px; font-size: 28px; width: auto; margin: 0; border-radius: 50%; }
+  #menu.seul #menu-copier, #menu.seul #menu-transf, #menu.seul #menu-modif, #menu.seul #menu-suppr { display: none; }
   #prive-zone, #zone { background: linear-gradient(rgba(11,20,26,.55), rgba(11,20,26,.55)), var(--fond) center / cover no-repeat; }
   .nom { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 2px; }
   .heure { float: right; margin: 8px 0 0 12px; font-size: 0.68rem; color: #8696a0; }
@@ -324,6 +340,7 @@ html body #accueil .entete::after{content:'';position:absolute;left:0;right:0;bo
 </div>
 <div id="menu" class="admin hidden" style="display:flex;align-items:flex-end;background:rgba(0,0,0,.6)" onclick="fermerMenu()">
   <div style="background:#202c33;width:100%;padding:8px 16px 24px;border-radius:16px 16px 0 0" onclick="event.stopPropagation()">
+    <div id="kc-barre-reac" data-id=""><button onclick="kcReagir(this.textContent)">👍</button><button onclick="kcReagir(this.textContent)">❤️</button><button onclick="kcReagir(this.textContent)">😂</button><button onclick="kcReagir(this.textContent)">😮</button><button onclick="kcReagir(this.textContent)">😢</button><button onclick="kcReagir(this.textContent)">🙏</button></div>
     <button id="menu-transf" class="secondaire" style="width:100%;margin-top:8px" onclick="transfererChoisi()">Transférer</button>
     <button id="menu-copier" class="secondaire" style="width:100%;margin-top:8px" onclick="copierChoisi()">Copier</button>
     <button id="menu-modif" class="secondaire" style="width:100%;margin-top:8px" onclick="commencerEdition()">Modifier</button>
@@ -1290,8 +1307,10 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
   let minP = null;
   function ouvrirMenuP(id) {
     const m = msgsP[id];
-    if (!m || (m.type && m.type !== 'texte')) return;
+    if (!m) return;
+    if (m.type && m.type !== 'texte') { kcMenuReacSeul(id); return; }
     const k = 'P' + id;
+    kcBarreReac(id);
     msgs[k] = Object.assign({}, m, { auteur: m.de, type: 'texte' });
     appuiLong = true;
     $('menu-copier').classList.remove('hidden');
@@ -1302,6 +1321,76 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
     $('menu').style.zIndex = 9999;
     $('menu').classList.remove('hidden');
   }
+
+  /* DEBUT-REAC */
+  function kcBarreReac(id) {
+    const mn = $('menu');
+    mn.classList.remove('seul');
+    mn.classList.add('priv');
+    let mien = '';
+    try { mien = ((msgsP[id] || {}).reactions || {})[moi.id] || ''; } catch (e) {}
+    Array.prototype.forEach.call($('kc-barre-reac').children, function (x) {
+      x.style.background = (x.textContent === mien) ? 'rgba(0,168,132,.35)' : 'none';
+    });
+    $('kc-barre-reac').setAttribute('data-id', id);
+  }
+  function kcMenuReacSeul(id) {
+    kcBarreReac(id);
+    $('menu').classList.add('seul');
+    $('menu').style.zIndex = 9999;
+    $('menu').classList.remove('hidden');
+  }
+  function kcRendreReac(id) {
+    const b = document.getElementById('p' + id);
+    if (!b) return;
+    const rang = b.closest('.rang');
+    if (!rang) return;
+    const vieux = rang.querySelector('.kc-reac');
+    if (vieux) vieux.remove();
+    let r = {};
+    try { r = (msgsP[id] && msgsP[id].reactions) || {}; } catch (e) {}
+    const ks = Object.keys(r);
+    if (!ks.length) { rang.classList.remove('a-reac'); return; }
+    const cnt = {};
+    ks.forEach(function (k) { cnt[r[k]] = (cnt[r[k]] || 0) + 1; });
+    const s = document.createElement('span');
+    s.className = 'kc-reac';
+    s.textContent = Object.keys(cnt).map(function (e) { return e + (cnt[e] > 1 ? ' ' + cnt[e] : ''); }).join(' ');
+    rang.appendChild(s);
+    rang.classList.add('a-reac');
+  }
+  async function kcReagir(emoji) {
+    const id = $('kc-barre-reac').getAttribute('data-id');
+    try { fermerMenu(); } catch (e) {}
+    const m = msgsP[id];
+    if (!m) return;
+    const avant = m.reactions || {};
+    const apres = Object.assign({}, avant);
+    if (apres[moi.id] === emoji) delete apres[moi.id]; else apres[moi.id] = emoji;
+    m.reactions = apres;
+    kcRendreReac(id);
+    try {
+      const res = await sb.rpc('reagir_prive', { p_id: String(id), p_emoji: emoji });
+      if (res.error) throw res.error;
+      if (res.data) { m.reactions = res.data; kcRendreReac(id); }
+    } catch (e) {
+      m.reactions = avant;
+      kcRendreReac(id);
+      alert('Réaction impossible : ' + (e.message || e));
+    }
+  }
+  function kcMajReac(m) {
+    if (typeof msgsP === 'undefined' || !msgsP[m.id]) return;
+    msgsP[m.id].reactions = m.reactions || {};
+    kcRendreReac(m.id);
+  }
+  try {
+    new MutationObserver(function () {
+      const mn = $('menu');
+      if (mn.classList.contains('hidden')) { mn.classList.remove('priv'); mn.classList.remove('seul'); }
+    }).observe($('menu'), { attributes: true, attributeFilter: ['class'] });
+  } catch (e) {}
+  /* FIN-REAC */
   (function () {
     const st = document.createElement('style');
     st.textContent = '#prive-zone .bulle{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}';
@@ -2974,7 +3063,7 @@ function fermerContact(){ $('contact').classList.add('hidden'); }
 function ajouterPrive(m){
   if (typeof msgsP !== 'undefined') msgsP[m.id] = m;
   if (!priveId || !((m.de === moi.id && m.a === priveId) || (m.de === priveId && m.a === moi.id))) return;
-  if ($('p' + m.id)) return;
+  if ($('p' + m.id)) { if (m.reactions && typeof kcRendreReac === 'function') kcRendreReac(m.id); return; }
   const estMoi = m.de === moi.id, d = new Date(m.created_at || Date.now());
   const h = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   const jk = d.toDateString();
@@ -2985,7 +3074,8 @@ function ajouterPrive(m){
     $('prive-zone').insertAdjacentHTML('beforeend', `<div class="jour-sep" data-jour="${jk}" style="align-self:center;margin:10px 0 6px;padding:4px 12px;border-radius:12px;background:#1b2730;color:#8696a0;font-size:.75rem;box-shadow:0 1px 2px rgba(0,0,0,.35)">${lib}</div>`);
   }
   $('prive-zone').insertAdjacentHTML('beforeend',
-    `<div class="rang ${estMoi ? 'moi' : 'autre'}"><div id="p${m.id}" class="bulle ${estMoi ? 'moi' : 'autre'}">${contenuP(m)}<span class="heure">${h}</span>${estMoi ? cochesP(m) : ''}</div></div>`);
+    `<div class="rang ${estMoi ? 'moi' : 'autre'}${Date.now() - d.getTime() < 20000 ? ' arrive' : ''}"><div id="p${m.id}" class="bulle ${estMoi ? 'moi' : 'autre'}">${contenuP(m)}<span class="heure">${h}</span>${estMoi ? cochesP(m) : ''}</div></div>`);
+  if (typeof kcRendreReac === 'function') kcRendreReac(m.id);
   $('prive-zone').scrollTop = $('prive-zone').scrollHeight;
 }
 
@@ -3849,7 +3939,7 @@ async function vocalP(btn){
     if(!ok) return;
     clearInterval(iv);
     sb.channel('lu-prive').on('postgres_changes',{event:'UPDATE',schema:'public',table:'prives'},function(p){
-      var m=p.new; if(m && m.de===moi.id && m.lu_at) majCoche(m.id);
+      var m=p.new; if(m && m.de===moi.id && m.lu_at) majCoche(m.id); if(m && m.reactions !== undefined && (m.de===moi.id || m.a===moi.id) && typeof kcMajReac==='function') kcMajReac(m);
     }).subscribe();
   },1000);
 })();
