@@ -4395,22 +4395,75 @@ function majCoche(id){
 <script id="bloc-version-js">
 (function(){
   var LIEN="https://github.com/exaucekuona-ops/Kaabu-agent-orange/releases/latest/download/telecom-rdc.apk";
-  function afficher(){
+  function afficher(min){
     if(document.getElementById("bloc-version")) return;
+    function g(i){return document.getElementById(i);}
+    var VER=String(min||0), P=(window.Capacitor&&Capacitor.Plugins)||{}, PO=window.AppelNatif;
+    if(!PO&&location.hash==="#test-maj"){
+      var fk={t0:0};
+      PO={majEtat:function(){if(!fk.t0)return "aucun|0|0";var f=Math.min(11000000,(Date.now()-fk.t0)/1000*700000);return (f>=11000000?"ok":"cours")+"|"+Math.floor(f)+"|11000000";},majDemarrer:function(){fk.t0=Date.now();return "demarre";},majChemin:function(){return "/test.apk";}};
+    }
     var d=document.createElement("div");
     d.id="bloc-version";
-    d.style.cssText="position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483647;background:#fff;color:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:sans-serif";
-    d.innerHTML="<div style='font-size:56px'>⬆️</div><h2 style='margin:12px 0'>Mise à jour obligatoire</h2><p style='margin:0 0 24px'>Cette version n'est plus acceptée. Installe la nouvelle version pour continuer.</p><button id='bv-dl' style='padding:14px 32px;font-size:18px;border:0;border-radius:24px;background:#0a7cff;color:#fff'>Télécharger</button><button id='bv-no' style='margin-top:14px;padding:10px 24px;font-size:16px;border:0;background:none;color:#666'>Annuler</button>";
+    d.style.cssText="position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483647;background:radial-gradient(circle at 50% 0%,#12263a 0%,#0b141a 60%);color:#e9edef;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:sans-serif;box-sizing:border-box";
+    d.innerHTML="<div style='width:92px;height:92px;border-radius:28px;background:linear-gradient(135deg,#0a7cff,#35b6ff);display:flex;align-items:center;justify-content:center;font-size:44px;box-shadow:0 10px 40px rgba(10,124,255,.45);margin-bottom:22px'>⬆️</div>"
+      +"<h2 style='margin:0 0 8px;font-size:24px;font-weight:800'>Mise à jour obligatoire</h2>"
+      +"<p style='margin:0 0 22px;color:#8696a0;font-size:15px;line-height:1.5;max-width:320px'>Une nouvelle version de Télécom RDC est prête. Installe-la pour continuer à utiliser l'application.</p>"
+      +"<div id='bv-box' style='display:none;width:100%;max-width:340px;box-sizing:border-box;margin:0 0 20px;padding:16px;border-radius:20px;background:#111b21;border:1px solid #202c33;align-items:center;gap:16px;text-align:left'>"
+      +"<div id='bv-ring' style='width:78px;height:78px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;background:conic-gradient(#0a7cff 0%,#202c33 0)'><div id='bv-pct' style='width:60px;height:60px;border-radius:50%;background:#111b21;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px'>0%</div></div>"
+      +"<div style='flex:1;min-width:0'><div id='bv-txt' style='font-weight:700;font-size:15px'>Connexion…</div>"
+      +"<div style='height:8px;border-radius:4px;background:#202c33;margin:9px 0;overflow:hidden'><div id='bv-bar' style='height:100%;width:0%;border-radius:4px;background:linear-gradient(90deg,#0a7cff,#35b6ff)'></div></div>"
+      +"<div id='bv-mo' style='font-size:13px;color:#8696a0'></div><div id='bv-vit' style='font-size:13px;color:#8696a0'></div></div></div>"
+      +"<button id='bv-dl' style='width:100%;max-width:340px;padding:15px;font-size:17px;font-weight:700;border:0;border-radius:16px;background:linear-gradient(135deg,#0a7cff,#2f9bff);color:#fff;box-shadow:0 8px 24px rgba(10,124,255,.35)'>Télécharger</button>"
+      +"<button id='bv-no' style='margin-top:12px;padding:12px 24px;font-size:15px;border:0;background:none;color:#8696a0'>Quitter</button>"
+      +"<p style='margin:16px 0 0;font-size:12px;color:#5f6f7a;max-width:300px;line-height:1.5'>Le téléchargement continue même si tu quittes l'application : une notification montre l'avancement.</p>"
+      +"<p id='bv-err' style='color:#f15c6d;font-size:13px;margin:10px 0 0'></p>";
     document.body.appendChild(d);
-    document.getElementById("bv-dl").onclick=function(){
-      (async function(){var b=document.getElementById("bv-dl");b.disabled=true;b.textContent="Téléchargement…";try{var P=Capacitor.Plugins;var box=document.getElementById("bv-box");if(!box){box=document.createElement("div");box.id="bv-box";box.style.cssText="width:100%;max-width:340px;margin:0 0 18px;padding:14px;border-radius:18px;background:#eef5ff;display:flex;align-items:center;gap:14px;text-align:left";box.innerHTML="<div id='bv-ring' style='width:76px;height:76px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;background:conic-gradient(#0a7cff 0%,#d5e3f7 0)'><div id='bv-pct' style='width:58px;height:58px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px'>0%</div></div><div style='flex:1;min-width:0'><div style='font-weight:600;font-size:15px'>Téléchargement en cours…</div><div style='height:8px;border-radius:4px;background:#d5e3f7;margin:8px 0'><div id='bv-bar' style='height:8px;border-radius:4px;background:#0a7cff;width:0%'></div></div><div id='bv-mo' style='font-size:13px;color:#555'>…</div><div id='bv-vit' style='font-size:13px;color:#555'></div></div>";b.parentNode.insertBefore(box,b);}
-var t0=Date.now();var hp=await P.Filesystem.addListener("progress",function(st){try{if(!st||!st.contentLength)return;var pc=Math.min(100,Math.round(st.bytes*100/st.contentLength));var el=(Date.now()-t0)/1000;var v=el>0?st.bytes/el/1048576:0;document.getElementById("bv-ring").style.background="conic-gradient(#0a7cff "+pc+"%,#d5e3f7 0)";document.getElementById("bv-pct").textContent=pc+"%";document.getElementById("bv-bar").style.width=pc+"%";document.getElementById("bv-mo").textContent=(st.bytes/1048576).toFixed(1)+" Mo / "+(st.contentLength/1048576).toFixed(1)+" Mo";document.getElementById("bv-vit").textContent=v.toFixed(2).replace(".",",")+" Mo/s";b.textContent="Téléchargement… "+pc+"%";}catch(e){}});
-var r;try{r=await P.Filesystem.downloadFile({url:LIEN,path:"telecom-rdc.apk",directory:"CACHE",progress:true});}finally{try{hp.remove();}catch(e){}}b.textContent="Installation…";await P.FileOpener.openFile({path:String(r.path).replace("file://",""),mimeType:"application/vnd.android.package-archive"});b.disabled=false;b.textContent="Installer";}catch(e){b.disabled=false;b.textContent="Réessayer";var m=document.getElementById("bv-err");if(!m){m=document.createElement("p");m.id="bv-err";m.style.cssText="color:#c00;font-size:13px;margin-top:12px";b.parentNode.appendChild(m);}m.textContent=String(e&&e.message||e);}})();
+    var dl=g("bv-dl"), box=g("bv-box"), tm=null, fini=false, auto=false, dernier=0, dt=Date.now();
+    function mo(n){return (n/1048576).toFixed(1).replace(".",",");}
+    function voir(s,f,t){
+      box.style.display="flex";
+      var pc=t>0?Math.min(100,Math.floor(f*100/t)):0;
+      g("bv-ring").style.background="conic-gradient(#0a7cff "+pc+"%,#202c33 0)";
+      g("bv-pct").textContent=pc+"%";
+      g("bv-bar").style.width=pc+"%";
+      g("bv-mo").textContent=t>0?mo(f)+" Mo / "+mo(t)+" Mo":"";
+      var now=Date.now(), el=(now-dt)/1000;
+      if(el>=1.5){var v=(f-dernier)/1048576/el;if(v>=0)g("bv-vit").textContent=v.toFixed(2).replace(".",",")+" Mo/s";dernier=f;dt=now;}
+      g("bv-txt").textContent=s==="pause"?"En attente du réseau…":s==="ok"?"Téléchargement terminé":"Téléchargement en cours…";
+      dl.textContent=s==="ok"?"Installer":"Téléchargement… "+pc+"%";
+      dl.disabled=s!=="ok";
+      dl.style.opacity=s==="ok"?"1":".7";
+    }
+    function installer(){
+      dl.disabled=true;dl.textContent="Installation…";
+      try{
+        Promise.resolve(P.FileOpener.openFile({path:String(PO.majChemin()),mimeType:"application/vnd.android.package-archive"})).then(function(){dl.disabled=false;dl.textContent="Installer";}).catch(function(e){dl.disabled=false;dl.textContent="Installer";g("bv-err").textContent=String(e&&e.message||e);});
+      }catch(e){dl.disabled=false;dl.textContent="Installer";g("bv-err").textContent=String(e&&e.message||e);}
+    }
+    function tick(){
+      var r;try{r=String(PO.majEtat(VER)).split("|");}catch(e){return;}
+      var s=r[0],f=+r[1]||0,t=+r[2]||0;
+      if(s==="aucun")return;
+      if(s==="echec"){fini=true;if(tm){clearInterval(tm);tm=null;}box.style.display="none";dl.disabled=false;dl.style.opacity="1";dl.textContent="Réessayer";g("bv-err").textContent="Le téléchargement a échoué. Vérifie ta connexion puis réessaie.";return;}
+      voir(s,f,t);
+      if(s==="ok"){fini=true;if(tm){clearInterval(tm);tm=null;}if(!auto&&document.visibilityState==="visible"){auto=true;installer();}}
+    }
+    function suivre(){if(tm)return;fini=false;tick();if(!fini)tm=setInterval(tick,800);}
+    dl.onclick=function(){
+      g("bv-err").textContent="";
+      var s0="";try{s0=String(PO.majEtat(VER)).split("|")[0];}catch(e){}
+      if(s0==="ok"){installer();return;}
+      dl.disabled=true;dl.textContent="Téléchargement…";
+      var rep="";try{rep=String(PO.majDemarrer(LIEN,VER));}catch(e){rep="erreur: "+(e&&e.message||e);}
+      if(rep.indexOf("erreur")===0){dl.disabled=false;dl.textContent="Réessayer";g("bv-err").textContent=rep;return;}
+      suivre();
     };
-    document.getElementById("bv-no").onclick=function(){
-      try{ Capacitor.Plugins.App.exitApp(); }catch(e){}
-    };
+    g("bv-no").onclick=function(){try{P.App.exitApp();}catch(e){}};
+    document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"&&!tm)suivre();});
+    try{var r0=String(PO.majEtat(VER)).split("|")[0];if(r0!=="aucun"&&r0!=="echec")suivre();}catch(e){}
   }
+  if(location.hash==="#test-maj") setTimeout(function(){ afficher(1); },300);
   async function verifier(){
     try{
       if(typeof sb==="undefined"||!window.Capacitor||!Capacitor.Plugins||!Capacitor.Plugins.App) return;
@@ -4419,7 +4472,7 @@ var r;try{r=await P.Filesystem.downloadFile({url:LIEN,path:"telecom-rdc.apk",dir
       if(!mien) return;
       var r=await sb.from("config").select("version_min").eq("id",1).single();
       var min=r&&r.data?r.data.version_min:0; try{ var gr=await fetch("https://api.github.com/repos/exaucekuona-ops/Kaabu-agent-orange/releases/latest"); var gj=await gr.json(); var mm=/versionCode\s+(\d+)/.exec(gj.body||""); if(mm) min=Math.max(min||0,parseInt(mm[1],10)); }catch(e){}
-      if(min&&mien<min) afficher();
+      if(min&&mien<min) afficher(min);
     }catch(e){}
   }
   verifier();

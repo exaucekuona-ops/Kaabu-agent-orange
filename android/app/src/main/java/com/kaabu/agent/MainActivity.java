@@ -9,6 +9,12 @@ import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.Bundle;
+import android.app.DownloadManager;
+import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Environment;
+import java.io.File;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import com.getcapacitor.BridgeActivity;
@@ -51,6 +57,80 @@ public class MainActivity extends BridgeActivity {
     public long vpnDuree() { return VpnMoteur.duree(); }
     @JavascriptInterface
     public String vpnOctets() { return VpnMoteur.octets(); }
+
+    @JavascriptInterface
+    public String majDemarrer(String url, String version) {
+      try {
+        SharedPreferences sp = getSharedPreferences("maj", Context.MODE_PRIVATE);
+        DownloadManager dm = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+        File f = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "telecom-rdc.apk");
+        long id = sp.getLong("id", -1);
+        if (id != -1 && version.equals(sp.getString("ver", ""))) {
+          Cursor c = dm.query(new DownloadManager.Query().setFilterById(id));
+          if (c != null) {
+            try {
+              if (c.moveToFirst()) {
+                int st = c.getInt(c.getColumnIndex(DownloadManager.COLUMN_STATUS));
+                if (st == DownloadManager.STATUS_RUNNING || st == DownloadManager.STATUS_PENDING || st == DownloadManager.STATUS_PAUSED) { return "reprise"; }
+                if (st == DownloadManager.STATUS_SUCCESSFUL && f.exists()) { return "reprise"; }
+              }
+            } finally {
+              c.close();
+            }
+          }
+        }
+        if (id != -1) { dm.remove(id); }
+        if (f.exists()) { f.delete(); }
+        DownloadManager.Request r = new DownloadManager.Request(Uri.parse(url));
+        r.setTitle("Telecom RDC : mise a jour");
+        r.setDescription("Telechargement de la nouvelle version");
+        r.setMimeType("application/vnd.android.package-archive");
+        r.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+        r.setAllowedOverMetered(true);
+        r.setAllowedOverRoaming(true);
+        r.setDestinationInExternalFilesDir(MainActivity.this, Environment.DIRECTORY_DOWNLOADS, "telecom-rdc.apk");
+        long nid = dm.enqueue(r);
+        sp.edit().putLong("id", nid).putString("ver", version).apply();
+        return "demarre";
+      } catch (Exception e) {
+        return "erreur: " + e.getMessage();
+      }
+    }
+
+    @JavascriptInterface
+    public String majEtat(String version) {
+      try {
+        SharedPreferences sp = getSharedPreferences("maj", Context.MODE_PRIVATE);
+        long id = sp.getLong("id", -1);
+        if (id == -1 || !version.equals(sp.getString("ver", ""))) { return "aucun|0|0"; }
+        DownloadManager dm = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+        Cursor c = dm.query(new DownloadManager.Query().setFilterById(id));
+        if (c == null) { return "aucun|0|0"; }
+        try {
+          if (!c.moveToFirst()) { return "aucun|0|0"; }
+          int st = c.getInt(c.getColumnIndex(DownloadManager.COLUMN_STATUS));
+          long fait = c.getLong(c.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
+          long total = c.getLong(c.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
+          if (st == DownloadManager.STATUS_SUCCESSFUL) {
+            File f = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "telecom-rdc.apk");
+            if (!f.exists()) { return "aucun|0|0"; }
+            return "ok|" + fait + "|" + total;
+          }
+          if (st == DownloadManager.STATUS_FAILED) { return "echec|0|0"; }
+          if (st == DownloadManager.STATUS_PAUSED) { return "pause|" + fait + "|" + total; }
+          return "cours|" + fait + "|" + total;
+        } finally {
+          c.close();
+        }
+      } catch (Exception e) {
+        return "aucun|0|0";
+      }
+    }
+
+    @JavascriptInterface
+    public String majChemin() {
+      return new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "telecom-rdc.apk").getAbsolutePath();
+    }
   }
 
   private String vpnEnAttente = null;
