@@ -2127,7 +2127,7 @@ function ouvrirSuivi(){
   }
 
   function courbe(st){
-    var H = 230, AX = 56, PAS = 34, top = 30, bas = 40, i, v, op, it, dt, fr;
+    var H = 230, AX = 56, PAS = 56, RAMPE = 0.6, top = 30, bas = 40, i, v, op, it, dt, fr;
     var Wc = PAS * st.nb + 14 + 90;
     var list = [];
     for (i = 0; i < S.ops.length; i++) {
@@ -2142,7 +2142,7 @@ function ouvrirSuivi(){
     var run = st.debut, P = [{ x: 0, y: run, s: false }];
     for (i = 0; i < list.length; i++) {
       it = list[i];
-      P.push({ x: Math.max(it.x - 0.03, P[P.length - 1].x), y: run, s: false });
+      P.push({ x: Math.max(it.x - RAMPE, P[P.length - 1].x), y: run, s: false });
       run += it.n;
       P.push({ x: it.x, y: run, s: true });
     }
@@ -2160,6 +2160,12 @@ function ouvrirSuivi(){
     for (v = Math.ceil(mn / pas) * pas; v <= mx; v += pas) ticks.push(v);
     function X(x){ return 14 + x * PAS; }
     function Y(y){ return top + (1 - (y - mn) / (mx - mn)) * (H - top - bas); }
+    function trace(p, q, nv){
+      var x0 = X(p.x), y0 = Y(p.y), x1 = X(q.x), y1 = Y(q.y), xm = (x0 + x1) / 2;
+      var r = nv ? 'M' + x0.toFixed(1) + ' ' + y0.toFixed(1) : '';
+      if (Math.abs(y1 - y0) < 0.05) return r + ' L' + x1.toFixed(1) + ' ' + y1.toFixed(1);
+      return r + ' C' + xm.toFixed(1) + ' ' + y0.toFixed(1) + ' ' + xm.toFixed(1) + ' ' + y1.toFixed(1) + ' ' + x1.toFixed(1) + ' ' + y1.toFixed(1);
+    }
     var L = P[P.length - 1], cf = L.y > st.debut ? VERT : L.y < st.debut ? ROUGE : GRIS, bot = H - bas;
     var ax = '<svg width="' + AX + '" height="' + H + '" style="flex:none">';
     for (i = 0; i < ticks.length; i++) ax += '<text x="' + (AX - 6) + '" y="' + (Y(ticks[i]) + 3).toFixed(1) + '" font-size="10" fill="#8696a0" text-anchor="end">' + num(ticks[i]) + '</text>';
@@ -2171,13 +2177,15 @@ function ouvrirSuivi(){
     for (i = 1; i <= st.nb; i++) s += '<text x="' + X(i - 0.5) + '" y="' + (H - 8) + '" font-size="10" fill="' + (st.k === auj.slice(0, 7) && i === +auj.slice(8, 10) ? '#e9edef' : '#8696a0') + '" text-anchor="middle">' + i + '</text>';
     if (P.length > 1) {
       var ar = 'M' + X(P[0].x).toFixed(1) + ' ' + Y(P[0].y).toFixed(1);
-      for (i = 1; i < P.length; i++) ar += ' L' + X(P[i].x).toFixed(1) + ' ' + Y(P[i].y).toFixed(1);
+      for (i = 1; i < P.length; i++) ar += trace(P[i - 1], P[i], false);
       ar += ' L' + X(L.x).toFixed(1) + ' ' + bot + ' L' + X(P[0].x).toFixed(1) + ' ' + bot + ' Z';
       s += '<path d="' + ar + '" fill="url(#su-g)"/>';
-      var cc = GRIS;
+      var cc = GRIS, dd;
       for (i = 1; i < P.length; i++) {
         if (P[i].y > P[i - 1].y) cc = VERT; else if (P[i].y < P[i - 1].y) cc = ROUGE;
-        s += '<line x1="' + X(P[i - 1].x).toFixed(1) + '" y1="' + Y(P[i - 1].y).toFixed(1) + '" x2="' + X(P[i].x).toFixed(1) + '" y2="' + Y(P[i].y).toFixed(1) + '" stroke="' + cc + '" stroke-width="2.5" stroke-linecap="round"/>';
+        dd = trace(P[i - 1], P[i], true);
+        s += '<path d="' + dd + '" fill="none" stroke="' + cc + '" stroke-width="8" stroke-opacity=".12" stroke-linecap="round"/>';
+        s += '<path d="' + dd + '" fill="none" stroke="' + cc + '" stroke-width="2.6" stroke-linecap="round"/>';
         if (P[i].s) s += '<circle cx="' + X(P[i].x).toFixed(1) + '" cy="' + Y(P[i].y).toFixed(1) + '" r="3.5" fill="' + cc + '"/>';
       }
     }
