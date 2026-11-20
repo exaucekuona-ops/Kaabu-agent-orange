@@ -2126,39 +2126,53 @@ function ouvrirSuivi(){
     return { k: k, nb: nb, g: g, pe: pe, net: g - pe, debut: debut, pts: pts, gagn: gagn, perd: perd, meil: meil, pire: pire, nbOps: nbOps };
   }
 
-  function courbe(st, H){
-    H = H || 150;
-    var W = 320, gx = 8, gy = 16, pts = st.pts, i, d, op;
-    var hs = [], bs = [], cs = [], mn = st.debut, mx = st.debut;
-    for (i = 0; i <= st.nb; i++) { hs.push(0); bs.push(0); }
+  function courbe(st){
+    var H = 210, AX = 56, PAS = 34, top = 28, bas = 40, pts = st.pts, i, d, op, v;
+    var Wc = Math.max(PAS * st.nb + 30, 260);
+    var act = [], mn = st.debut, mx = st.debut;
+    for (i = 0; i <= st.nb; i++) act.push(false);
     for (i = 0; i < S.ops.length; i++) {
       op = S.ops[i];
-      if (op.d.slice(0, 7) !== st.k) continue;
-      d = +op.d.slice(8, 10);
-      if (op.type === 'gain') hs[d] += op.m; else bs[d] += op.m;
+      if (op.d.slice(0, 7) === st.k) act[+op.d.slice(8, 10)] = true;
     }
-    for (d = 1; d < pts.length; d++) {
-      var o = pts[d - 1].y, c = pts[d].y;
-      var hi = Math.max(o, c, o + hs[d]), lo = Math.min(o, c, o - bs[d]);
-      cs.push({ d: d, o: o, c: c, hi: hi, lo: lo });
-      if (hi > mx) mx = hi;
-      if (lo < mn) mn = lo;
-    }
+    for (i = 0; i < pts.length; i++) { if (pts[i].y < mn) mn = pts[i].y; if (pts[i].y > mx) mx = pts[i].y; }
     if (mx === mn) { mx += 1; mn -= 1; }
-    function X(x){ return gx + (x - 0.5) / st.nb * (W - 2 * gx); }
-    function Y(v){ return gy + (1 - (v - mn) / (mx - mn)) * (H - 2 * gy); }
-    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;display:block">';
-    for (i = 0; i < 4; i++) { var gyy = gy + i * (H - 2 * gy) / 3; s += '<line x1="' + gx + '" x2="' + (W - gx) + '" y1="' + gyy + '" y2="' + gyy + '" stroke="#202c33" stroke-width="1"/>'; }
-    s += '<line x1="' + gx + '" x2="' + (W - gx) + '" y1="' + Y(st.debut) + '" y2="' + Y(st.debut) + '" stroke="#8696a0" stroke-width="1" stroke-dasharray="4 4"/>';
-    var bw = Math.max(2, Math.min(14, (W - 2 * gx) / st.nb * 0.6));
-    for (i = 0; i < cs.length; i++) {
-      var k = cs[i], col = k.c > k.o ? VERT : k.c < k.o ? ROUGE : GRIS, x = X(k.d);
-      var yh = Math.max(Math.abs(Y(k.o) - Y(k.c)), 2);
-      s += '<line x1="' + x.toFixed(1) + '" x2="' + x.toFixed(1) + '" y1="' + Y(k.hi).toFixed(1) + '" y2="' + Y(k.lo).toFixed(1) + '" stroke="' + col + '" stroke-width="1.5"/>';
-      s += '<rect x="' + (x - bw / 2).toFixed(1) + '" y="' + Y(Math.max(k.o, k.c)).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + yh.toFixed(1) + '" rx="1" fill="' + col + '"/>';
+    var marge = (mx - mn) * 0.12;
+    mn -= marge; mx += marge;
+    var brut = (mx - mn) / 5, p10 = Math.pow(10, Math.floor(Math.log(brut) / Math.LN10)), fr = brut / p10;
+    var pas = (fr <= 1 ? 1 : fr <= 2 ? 2 : fr <= 5 ? 5 : 10) * p10, ticks = [];
+    for (v = Math.ceil(mn / pas) * pas; v <= mx; v += pas) ticks.push(v);
+    function X(x){ return 14 + x * PAS; }
+    function Y(y){ return top + (1 - (y - mn) / (mx - mn)) * (H - top - bas); }
+    function coul2(j){ return pts[j].y > pts[j - 1].y ? VERT : pts[j].y < pts[j - 1].y ? ROUGE : GRIS; }
+    var ax = '<svg width="' + AX + '" height="' + H + '" style="flex:none">';
+    for (i = 0; i < ticks.length; i++) ax += '<text x="' + (AX - 6) + '" y="' + (Y(ticks[i]) + 3).toFixed(1) + '" font-size="10" fill="#8696a0" text-anchor="end">' + num(ticks[i]) + '</text>';
+    ax += '</svg>';
+    var s = '<svg width="' + Wc + '" height="' + H + '" style="display:block">';
+    for (i = 0; i < ticks.length; i++) s += '<line x1="0" x2="' + Wc + '" y1="' + Y(ticks[i]).toFixed(1) + '" y2="' + Y(ticks[i]).toFixed(1) + '" stroke="#202c33" stroke-width="1"/>';
+    s += '<line x1="0" x2="' + Wc + '" y1="' + Y(st.debut).toFixed(1) + '" y2="' + Y(st.debut).toFixed(1) + '" stroke="#8696a0" stroke-width="1" stroke-dasharray="4 4"/>';
+    for (d = 1; d <= st.nb; d++) s += '<text x="' + X(d) + '" y="' + (H - 8) + '" font-size="10" fill="' + (st.k === auj.slice(0, 7) && d === +auj.slice(8, 10) ? '#e9edef' : '#8696a0') + '" text-anchor="middle">' + d + '</text>';
+    var last = pts.length - 1;
+    for (d = 1; d <= last; d++) s += '<line x1="' + X(d - 1) + '" y1="' + Y(pts[d - 1].y).toFixed(1) + '" x2="' + X(d) + '" y2="' + Y(pts[d].y).toFixed(1) + '" stroke="' + coul2(d) + '" stroke-width="3" stroke-linecap="round"/>';
+    for (d = 1; d <= last; d++) {
+      if (!act[d] && d !== last) continue;
+      if (d === last) s += '<circle cx="' + X(d) + '" cy="' + Y(pts[d].y).toFixed(1) + '" r="9" fill="' + coul2(d) + '" fill-opacity=".25"/>';
+      s += '<circle cx="' + X(d) + '" cy="' + Y(pts[d].y).toFixed(1) + '" r="' + (d === last ? 5 : 4) + '" fill="' + coul2(d) + '"/>';
     }
-    s += '<text x="' + gx + '" y="' + (H - 2) + '" font-size="9" fill="#8696a0">1</text><text x="' + (W - gx) + '" y="' + (H - 2) + '" font-size="9" fill="#8696a0" text-anchor="end">' + st.nb + '</text></svg>';
-    return s;
+    var pic = 0, cre = 0;
+    for (d = 1; d <= last; d++) {
+      if (!act[d]) continue;
+      if (!pic || pts[d].y > pts[pic].y) pic = d;
+      if (!cre || pts[d].y < pts[cre].y) cre = d;
+    }
+    function etiq(j, txt, c, haut){
+      var x = Math.max(44, Math.min(Wc - 44, X(j)));
+      return '<text x="' + x.toFixed(1) + '" y="' + (Y(pts[j].y) + (haut ? -12 : 20)).toFixed(1) + '" font-size="11" font-weight="700" fill="' + c + '" text-anchor="middle">' + txt + '</text>';
+    }
+    if (pic && pts[pic].y > st.debut) s += etiq(pic, 'Pic (Hausse)', VERT, true);
+    if (cre && pts[cre].y < st.debut) s += etiq(cre, 'Creux (Baisse)', ROUGE, false);
+    s += '</svg>';
+    return '<div style="display:flex;align-items:flex-start;margin-top:6px">' + ax + '<div id="su-scroll" style="flex:1;overflow-x:auto;-webkit-overflow-scrolling:touch">' + s + '</div></div>';
   }
 
   var o = document.createElement('div');
@@ -2257,6 +2271,8 @@ function ouvrirSuivi(){
     o.innerHTML = h;
     var corps = o.querySelector('#su-corps');
     if (corps) corps.scrollTop = pos;
+    var sc = o.querySelector("#su-scroll");
+    if (sc) sc.scrollLeft = st.k === auj.slice(0, 7) ? sc.scrollWidth * (+auj.slice(8, 10) / st.nb) - sc.clientWidth + 40 : 0;
     o.querySelector('#su-retour').onclick = function(){ o.remove(); };
     o.querySelector('#su-dev').onclick = function(){ S.devise = S.devise === 'USD' ? 'CDF' : 'USD'; sauver(); dessiner(); };
     o.querySelector('#su-prec').onclick = function(){ mc = decaler(mc, -1); dessiner(); };
