@@ -809,9 +809,9 @@ function copierCode(code){
       finChargement(); return montrer('attente');
     }
     montrer('accueil');
-    await chargerAnnuaire();
-    $('mi-admin').classList.toggle('hidden', !moi.is_admin);
+    $('mi-admin').classList.toggle('hidden', !(moi.is_admin || moi.is_supreme));
     $('mi-reglages').classList.remove('hidden');
+    await chargerAnnuaire();
     chargerMessages();
     ecouter();
     try { ecouterPrive(); chargerNonLus(); chargerAccueil(); setTimeout(chargerAccueil, 2500); } catch (e) {} attendreAccueil();
