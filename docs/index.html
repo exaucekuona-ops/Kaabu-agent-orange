@@ -2126,25 +2126,36 @@ function ouvrirSuivi(){
     return { k: k, nb: nb, g: g, pe: pe, net: g - pe, debut: debut, pts: pts, gagn: gagn, perd: perd, meil: meil, pire: pire, nbOps: nbOps };
   }
 
-  function courbe(st){
-    var W = 320, H = 150, gx = 8, gy = 16, pts = st.pts, i, mn = Infinity, mx = -Infinity;
-    for (i = 0; i < pts.length; i++) { if (pts[i].y < mn) mn = pts[i].y; if (pts[i].y > mx) mx = pts[i].y; }
+  function courbe(st, H){
+    H = H || 150;
+    var W = 320, gx = 8, gy = 16, pts = st.pts, i, d, op;
+    var hs = [], bs = [], cs = [], mn = st.debut, mx = st.debut;
+    for (i = 0; i <= st.nb; i++) { hs.push(0); bs.push(0); }
+    for (i = 0; i < S.ops.length; i++) {
+      op = S.ops[i];
+      if (op.d.slice(0, 7) !== st.k) continue;
+      d = +op.d.slice(8, 10);
+      if (op.type === 'gain') hs[d] += op.m; else bs[d] += op.m;
+    }
+    for (d = 1; d < pts.length; d++) {
+      var o = pts[d - 1].y, c = pts[d].y;
+      var hi = Math.max(o, c, o + hs[d]), lo = Math.min(o, c, o - bs[d]);
+      cs.push({ d: d, o: o, c: c, hi: hi, lo: lo });
+      if (hi > mx) mx = hi;
+      if (lo < mn) mn = lo;
+    }
     if (mx === mn) { mx += 1; mn -= 1; }
-    var fin = pts[pts.length - 1].y, c = fin > st.debut ? VERT : fin < st.debut ? ROUGE : GRIS;
-    function X(x){ return gx + (x / st.nb) * (W - 2 * gx); }
+    function X(x){ return gx + (x - 0.5) / st.nb * (W - 2 * gx); }
     function Y(v){ return gy + (1 - (v - mn) / (mx - mn)) * (H - 2 * gy); }
-    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;display:block"><defs><linearGradient id="su-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + c + '" stop-opacity=".35"/><stop offset="1" stop-color="' + c + '" stop-opacity="0"/></linearGradient></defs>';
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;display:block">';
     for (i = 0; i < 4; i++) { var gyy = gy + i * (H - 2 * gy) / 3; s += '<line x1="' + gx + '" x2="' + (W - gx) + '" y1="' + gyy + '" y2="' + gyy + '" stroke="#202c33" stroke-width="1"/>'; }
     s += '<line x1="' + gx + '" x2="' + (W - gx) + '" y1="' + Y(st.debut) + '" y2="' + Y(st.debut) + '" stroke="#8696a0" stroke-width="1" stroke-dasharray="4 4"/>';
-    if (pts.length > 1) {
-      var d = '';
-      for (i = 0; i < pts.length; i++) d += (i ? ' L ' : 'M ') + X(pts[i].x).toFixed(1) + ' ' + Y(pts[i].y).toFixed(1);
-      var lx = X(pts[pts.length - 1].x), ly = Y(fin);
-      s += '<path d="' + d + ' L ' + lx.toFixed(1) + ' ' + (H - gy) + ' L ' + X(0).toFixed(1) + ' ' + (H - gy) + ' Z" fill="url(#su-g)"/>';
-      s += '<path d="' + d + '" fill="none" stroke="' + c + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
-      s += '<circle cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="8" fill="' + c + '" fill-opacity=".25"/><circle cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="4" fill="' + c + '"/>';
-    } else {
-      s += '<line x1="' + gx + '" x2="' + (W - gx) + '" y1="' + Y(st.debut) + '" y2="' + Y(st.debut) + '" stroke="' + GRIS + '" stroke-width="2.5"/>';
+    var bw = Math.max(2, Math.min(14, (W - 2 * gx) / st.nb * 0.6));
+    for (i = 0; i < cs.length; i++) {
+      var k = cs[i], col = k.c > k.o ? VERT : k.c < k.o ? ROUGE : GRIS, x = X(k.d);
+      var yh = Math.max(Math.abs(Y(k.o) - Y(k.c)), 2);
+      s += '<line x1="' + x.toFixed(1) + '" x2="' + x.toFixed(1) + '" y1="' + Y(k.hi).toFixed(1) + '" y2="' + Y(k.lo).toFixed(1) + '" stroke="' + col + '" stroke-width="1.5"/>';
+      s += '<rect x="' + (x - bw / 2).toFixed(1) + '" y="' + Y(Math.max(k.o, k.c)).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + yh.toFixed(1) + '" rx="1" fill="' + col + '"/>';
     }
     s += '<text x="' + gx + '" y="' + (H - 2) + '" font-size="9" fill="#8696a0">1</text><text x="' + (W - gx) + '" y="' + (H - 2) + '" font-size="9" fill="#8696a0" text-anchor="end">' + st.nb + '</text></svg>';
     return s;
