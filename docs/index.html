@@ -126,10 +126,6 @@
   .rang.moi .kc-reac { right: 12px; }
   .rang.autre .kc-reac { left: 12px; }
   @keyframes kc-pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-  #kc-barre-reac { display: none; justify-content: space-around; background: #111b21; border-radius: 30px; padding: 4px 6px; margin-bottom: 4px; animation: kc-arrive .2s ease-out; }
-  #menu.priv #kc-barre-reac { display: flex; }
-  #kc-barre-reac button { background: none; border: 0; padding: 4px 8px; font-size: 28px; width: auto; margin: 0; border-radius: 50%; }
-  #menu.seul #menu-copier, #menu.seul #menu-transf, #menu.seul #menu-modif, #menu.seul #menu-suppr { display: none; }
   #prive-zone, #zone { background: linear-gradient(rgba(11,20,26,.55), rgba(11,20,26,.55)), var(--fond) center / cover no-repeat; }
   .nom { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 2px; }
   .heure { float: right; margin: 8px 0 0 12px; font-size: 0.68rem; color: #8696a0; }
@@ -340,7 +336,6 @@ html body #accueil .entete::after{content:'';position:absolute;left:0;right:0;bo
 </div>
 <div id="menu" class="admin hidden" style="display:flex;align-items:flex-end;background:rgba(0,0,0,.6)" onclick="fermerMenu()">
   <div style="background:#202c33;width:100%;padding:8px 16px 24px;border-radius:16px 16px 0 0" onclick="event.stopPropagation()">
-    <div id="kc-barre-reac" data-id=""><button onclick="kcReagir(this.textContent)">👍</button><button onclick="kcReagir(this.textContent)">❤️</button><button onclick="kcReagir(this.textContent)">😂</button><button onclick="kcReagir(this.textContent)">😮</button><button onclick="kcReagir(this.textContent)">😢</button><button onclick="kcReagir(this.textContent)">🙏</button></div>
     <button id="menu-transf" class="secondaire" style="width:100%;margin-top:8px" onclick="transfererChoisi()">Transférer</button>
     <button id="menu-copier" class="secondaire" style="width:100%;margin-top:8px" onclick="copierChoisi()">Copier</button>
     <button id="menu-modif" class="secondaire" style="width:100%;margin-top:8px" onclick="commencerEdition()">Modifier</button>
@@ -1308,9 +1303,9 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
   function ouvrirMenuP(id) {
     const m = msgsP[id];
     if (!m) return;
-    if (m.type && m.type !== 'texte') { kcMenuReacSeul(id); return; }
+    kcSelectionner(id);
+    return;
     const k = 'P' + id;
-    kcBarreReac(id);
     msgs[k] = Object.assign({}, m, { auteur: m.de, type: 'texte' });
     appuiLong = true;
     $('menu-copier').classList.remove('hidden');
@@ -1323,22 +1318,106 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
   }
 
   /* DEBUT-REAC */
-  function kcBarreReac(id) {
-    const mn = $('menu');
-    mn.classList.remove('seul');
-    mn.classList.add('priv');
-    let mien = '';
-    try { mien = ((msgsP[id] || {}).reactions || {})[moi.id] || ''; } catch (e) {}
-    Array.prototype.forEach.call($('kc-barre-reac').children, function (x) {
-      x.style.background = (x.textContent === mien) ? 'rgba(0,168,132,.35)' : 'none';
-    });
-    $('kc-barre-reac').setAttribute('data-id', id);
+  var kcSel = null, kcT0 = 0;
+  const KC_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+  function kcIcone(d, flip) {
+    return '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"' + (flip ? ' style="transform:scaleX(-1)"' : '') + '><path d="' + d + '"/></svg>';
   }
-  function kcMenuReacSeul(id) {
-    kcBarreReac(id);
-    $('menu').classList.add('seul');
-    $('menu').style.zIndex = 9999;
-    $('menu').classList.remove('hidden');
+  function kcMonter() {
+    if (document.getElementById('kc-ov')) return;
+    const st = document.createElement('style');
+    st.textContent =
+      '#prive-zone .rang.kc-sel{background:rgba(0,168,132,.22);box-shadow:0 0 0 100vw rgba(0,168,132,.22);clip-path:inset(-3px -100vw -16px -100vw)}' +
+      '#kc-ov{position:fixed;inset:0;z-index:100000;display:none}' +
+      '#kc-haut{position:fixed;left:0;right:0;top:0;z-index:100002;display:none;align-items:center;gap:6px;background:#111b21;color:#e9edef;padding:calc(env(safe-area-inset-top,0px) + 8px) 8px 8px;box-shadow:0 2px 8px rgba(0,0,0,.5);animation:kc-arrive .18s ease-out}' +
+      '#kc-haut button{background:none;border:0;color:#e9edef;padding:10px;width:auto;margin:0;display:flex;align-items:center;border-radius:50%}' +
+      '#kc-haut button:active{background:rgba(255,255,255,.12)}' +
+      '#kc-haut .kc-n{font-size:1.25rem;font-weight:600;flex:1;padding-left:6px}' +
+      '#kc-flot{position:fixed;z-index:100001;display:none;align-items:center;background:#233138;border-radius:30px;padding:4px 6px;box-shadow:0 4px 16px rgba(0,0,0,.55);animation:kc-pop .16s ease-out}' +
+      '#kc-flot button{background:none;border:0;padding:3px 6px;font-size:28px;line-height:1.2;width:auto;margin:0;border-radius:50%;transition:transform .12s}' +
+      '#kc-flot button:active{transform:scale(1.35)}' +
+      '#kc-flot button.kc-mien{background:rgba(0,168,132,.4)}';
+    document.head.appendChild(st);
+    const ov = document.createElement('div');
+    ov.id = 'kc-ov';
+    ov.addEventListener('click', function () { if (Date.now() - kcT0 > 450) kcFermerSel(); });
+    document.body.appendChild(ov);
+    const haut = document.createElement('div');
+    haut.id = 'kc-haut';
+    haut.innerHTML =
+      '<button id="kc-b-ret">' + kcIcone('M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z') + '</button>' +
+      '<div class="kc-n">1</div>' +
+      '<button id="kc-b-copier">' + kcIcone('M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z') + '</button>' +
+      '<button id="kc-b-transf">' + kcIcone('M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z', true) + '</button>';
+    document.body.appendChild(haut);
+    const flot = document.createElement('div');
+    flot.id = 'kc-flot';
+    flot.innerHTML = KC_EMOJIS.map(function (e) { return '<button data-e="' + e + '">' + e + '</button>'; }).join('');
+    document.body.appendChild(flot);
+    flot.addEventListener('click', function (e) {
+      const b = e.target.closest('button');
+      if (b) kcReagirSel(b.getAttribute('data-e'));
+    });
+    haut.addEventListener('click', function (e) {
+      const b = e.target.closest('button');
+      if (!b) return;
+      if (b.id === 'kc-b-ret') { kcFermerSel(); return; }
+      const s = kcSel;
+      if (!s) return;
+      const m = msgsP[s.id];
+      kcFermerSel();
+      if (!m) return;
+      const k = 'P' + s.id;
+      msgs[k] = Object.assign({}, m, { auteur: m.de, type: 'texte' });
+      choisi = k;
+      if (b.id === 'kc-b-copier') copierChoisi();
+      else if (b.id === 'kc-b-transf') transfererChoisi();
+    });
+  }
+  function kcSelectionner(id) {
+    const m = msgsP[id];
+    const b = document.getElementById('p' + id);
+    if (!m || !b) return;
+    kcMonter();
+    kcFermerSel();
+    const rang = b.closest('.rang');
+    if (!rang) return;
+    kcSel = { id: id, rang: rang, moi: m.de === moi.id };
+    try { appuiLong = true; } catch (e) {}
+    kcT0 = Date.now();
+    rang.classList.add('kc-sel');
+    const texte = !(m.type && m.type !== 'texte');
+    $('kc-b-copier').style.display = texte ? 'flex' : 'none';
+    $('kc-b-transf').style.display = (texte && !String(m.contenu || '').startsWith('§')) ? 'flex' : 'none';
+    let mien = '';
+    try { mien = (m.reactions || {})[moi.id] || ''; } catch (e) {}
+    Array.prototype.forEach.call($('kc-flot').children, function (x) {
+      x.classList.toggle('kc-mien', x.getAttribute('data-e') === mien);
+    });
+    $('kc-ov').style.display = 'block';
+    $('kc-haut').style.display = 'flex';
+    const fl = $('kc-flot');
+    fl.style.display = 'flex';
+    const r = b.getBoundingClientRect();
+    const w = fl.offsetWidth, h = fl.offsetHeight;
+    const hautH = $('kc-haut').offsetHeight;
+    let top = r.top - h - 8;
+    if (top < hautH + 6) top = r.bottom + 8;
+    if (top + h > window.innerHeight - 8) top = Math.max(hautH + 6, window.innerHeight - h - 8);
+    let left = kcSel.moi ? r.right - w : r.left;
+    left = Math.max(8, Math.min(left, window.innerWidth - w - 8));
+    fl.style.top = top + 'px';
+    fl.style.left = left + 'px';
+    if (navigator.vibrate) { try { navigator.vibrate(15); } catch (e) {} }
+  }
+  function kcFermerSel() {
+    if (!kcSel) return;
+    try { kcSel.rang.classList.remove('kc-sel'); } catch (e) {}
+    kcSel = null;
+    ['kc-ov', 'kc-haut', 'kc-flot'].forEach(function (i) {
+      const x = document.getElementById(i);
+      if (x) x.style.display = 'none';
+    });
   }
   function kcRendreReac(id) {
     const b = document.getElementById('p' + id);
@@ -1359,9 +1438,10 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
     rang.appendChild(s);
     rang.classList.add('a-reac');
   }
-  async function kcReagir(emoji) {
-    const id = $('kc-barre-reac').getAttribute('data-id');
-    try { fermerMenu(); } catch (e) {}
+  async function kcReagirSel(emoji) {
+    if (!kcSel) return;
+    const id = kcSel.id;
+    kcFermerSel();
     const m = msgsP[id];
     if (!m) return;
     const avant = m.reactions || {};
@@ -1386,9 +1466,8 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
   }
   try {
     new MutationObserver(function () {
-      const mn = $('menu');
-      if (mn.classList.contains('hidden')) { mn.classList.remove('priv'); mn.classList.remove('seul'); }
-    }).observe($('menu'), { attributes: true, attributeFilter: ['class'] });
+      if ($('prive').classList.contains('hidden')) kcFermerSel();
+    }).observe($('prive'), { attributes: true, attributeFilter: ['class'] });
   } catch (e) {}
   /* FIN-REAC */
   (function () {
