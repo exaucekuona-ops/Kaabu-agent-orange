@@ -147,7 +147,7 @@
 <style>.roue-charge{width:42px;height:42px;border:4px solid #202c33;border-top-color:#00a884;border-radius:50%;animation:roue-tourne .8s linear infinite}@keyframes roue-tourne{to{transform:rotate(360deg)}}</style>
 <script>
 function finChargement(){if(window.chTimer)clearInterval(window.chTimer);var e=document.getElementById('ecran-charge');if(!e)return;e.style.opacity='0';setTimeout(function(){if(e.parentNode)e.parentNode.removeChild(e);},300);}
-function attendreAccueil(){var d=Date.now();(function t(){var l=document.getElementById('liste-conv');var ok=window.chAccueilOk&&document.readyState==='complete';if(ok||Date.now()-d>10000){setTimeout(finChargement,400);return;}setTimeout(t,200);})();}
+function imgsPretes(l){try{var m=l?l.querySelectorAll('img'):[];for(var k=0;k<m.length;k++){if(!m[k].complete)return false;}}catch(e){}return true;}function attendreAccueil(){var d=Date.now();(function t(){var l=document.getElementById('liste-conv');var ok=window.chAccueilOk&&document.readyState==='complete'&&imgsPretes(l);if(ok||Date.now()-d>10000){setTimeout(finChargement,400);return;}setTimeout(t,200);})();}
 setTimeout(finChargement,15000);
 </script>
 
