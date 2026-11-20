@@ -2127,52 +2127,77 @@ function ouvrirSuivi(){
   }
 
   function courbe(st){
-    var H = 210, AX = 56, PAS = 34, top = 28, bas = 40, pts = st.pts, i, d, op, v;
-    var Wc = Math.max(PAS * st.nb + 30, 260);
-    var act = [], mn = st.debut, mx = st.debut;
-    for (i = 0; i <= st.nb; i++) act.push(false);
+    var H = 230, AX = 56, PAS = 34, top = 30, bas = 40, i, v, op, it, dt, fr;
+    var Wc = PAS * st.nb + 14 + 90;
+    var list = [];
     for (i = 0; i < S.ops.length; i++) {
       op = S.ops[i];
-      if (op.d.slice(0, 7) === st.k) act[+op.d.slice(8, 10)] = true;
+      if (op.d.slice(0, 7) !== st.k) continue;
+      fr = 0.5;
+      dt = new Date(op.id);
+      if (ymd(dt) === op.d) fr = Math.min(0.98, Math.max(0.02, (dt.getHours() * 60 + dt.getMinutes()) / 1440));
+      list.push({ x: +op.d.slice(8, 10) - 1 + fr, n: net(op), id: op.id });
     }
-    for (i = 0; i < pts.length; i++) { if (pts[i].y < mn) mn = pts[i].y; if (pts[i].y > mx) mx = pts[i].y; }
+    list.sort(function(a, b){ return a.x - b.x || a.id - b.id; });
+    var run = st.debut, P = [{ x: 0, y: run, s: false }];
+    for (i = 0; i < list.length; i++) {
+      it = list[i];
+      P.push({ x: Math.max(it.x - 0.03, P[P.length - 1].x), y: run, s: false });
+      run += it.n;
+      P.push({ x: it.x, y: run, s: true });
+    }
+    var fim = P[P.length - 1].x;
+    if (st.k === auj.slice(0, 7)) { var nw = new Date(); fim = Math.max(fim, +auj.slice(8, 10) - 1 + (nw.getHours() * 60 + nw.getMinutes()) / 1440); }
+    else if (st.k < auj.slice(0, 7)) fim = st.nb;
+    if (fim > P[P.length - 1].x) P.push({ x: fim, y: run, s: false });
+    var mn = st.debut, mx = st.debut;
+    for (i = 0; i < P.length; i++) { if (P[i].y < mn) mn = P[i].y; if (P[i].y > mx) mx = P[i].y; }
     if (mx === mn) { mx += 1; mn -= 1; }
-    var marge = (mx - mn) * 0.12;
+    var marge = (mx - mn) * 0.15;
     mn -= marge; mx += marge;
-    var brut = (mx - mn) / 5, p10 = Math.pow(10, Math.floor(Math.log(brut) / Math.LN10)), fr = brut / p10;
-    var pas = (fr <= 1 ? 1 : fr <= 2 ? 2 : fr <= 5 ? 5 : 10) * p10, ticks = [];
+    var brut = (mx - mn) / 5, p10 = Math.pow(10, Math.floor(Math.log(brut) / Math.LN10)), fq = brut / p10;
+    var pas = (fq <= 1 ? 1 : fq <= 2 ? 2 : fq <= 5 ? 5 : 10) * p10, ticks = [];
     for (v = Math.ceil(mn / pas) * pas; v <= mx; v += pas) ticks.push(v);
     function X(x){ return 14 + x * PAS; }
     function Y(y){ return top + (1 - (y - mn) / (mx - mn)) * (H - top - bas); }
-    function coul2(j){ return pts[j].y > pts[j - 1].y ? VERT : pts[j].y < pts[j - 1].y ? ROUGE : GRIS; }
+    var L = P[P.length - 1], cf = L.y > st.debut ? VERT : L.y < st.debut ? ROUGE : GRIS, bot = H - bas;
     var ax = '<svg width="' + AX + '" height="' + H + '" style="flex:none">';
     for (i = 0; i < ticks.length; i++) ax += '<text x="' + (AX - 6) + '" y="' + (Y(ticks[i]) + 3).toFixed(1) + '" font-size="10" fill="#8696a0" text-anchor="end">' + num(ticks[i]) + '</text>';
     ax += '</svg>';
-    var s = '<svg width="' + Wc + '" height="' + H + '" style="display:block">';
+    var s = '<svg width="' + Wc + '" height="' + H + '" style="display:block"><defs><linearGradient id="su-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + cf + '" stop-opacity=".35"/><stop offset="1" stop-color="' + cf + '" stop-opacity="0"/></linearGradient></defs>';
     for (i = 0; i < ticks.length; i++) s += '<line x1="0" x2="' + Wc + '" y1="' + Y(ticks[i]).toFixed(1) + '" y2="' + Y(ticks[i]).toFixed(1) + '" stroke="#202c33" stroke-width="1"/>';
+    for (i = 0; i <= st.nb; i++) s += '<line x1="' + X(i) + '" x2="' + X(i) + '" y1="' + top + '" y2="' + bot + '" stroke="#1a252c" stroke-width="1"/>';
     s += '<line x1="0" x2="' + Wc + '" y1="' + Y(st.debut).toFixed(1) + '" y2="' + Y(st.debut).toFixed(1) + '" stroke="#8696a0" stroke-width="1" stroke-dasharray="4 4"/>';
-    for (d = 1; d <= st.nb; d++) s += '<text x="' + X(d) + '" y="' + (H - 8) + '" font-size="10" fill="' + (st.k === auj.slice(0, 7) && d === +auj.slice(8, 10) ? '#e9edef' : '#8696a0') + '" text-anchor="middle">' + d + '</text>';
-    var last = pts.length - 1;
-    for (d = 1; d <= last; d++) s += '<line x1="' + X(d - 1) + '" y1="' + Y(pts[d - 1].y).toFixed(1) + '" x2="' + X(d) + '" y2="' + Y(pts[d].y).toFixed(1) + '" stroke="' + coul2(d) + '" stroke-width="3" stroke-linecap="round"/>';
-    for (d = 1; d <= last; d++) {
-      if (!act[d] && d !== last) continue;
-      if (d === last) s += '<circle cx="' + X(d) + '" cy="' + Y(pts[d].y).toFixed(1) + '" r="9" fill="' + coul2(d) + '" fill-opacity=".25"/>';
-      s += '<circle cx="' + X(d) + '" cy="' + Y(pts[d].y).toFixed(1) + '" r="' + (d === last ? 5 : 4) + '" fill="' + coul2(d) + '"/>';
+    for (i = 1; i <= st.nb; i++) s += '<text x="' + X(i - 0.5) + '" y="' + (H - 8) + '" font-size="10" fill="' + (st.k === auj.slice(0, 7) && i === +auj.slice(8, 10) ? '#e9edef' : '#8696a0') + '" text-anchor="middle">' + i + '</text>';
+    if (P.length > 1) {
+      var ar = 'M' + X(P[0].x).toFixed(1) + ' ' + Y(P[0].y).toFixed(1);
+      for (i = 1; i < P.length; i++) ar += ' L' + X(P[i].x).toFixed(1) + ' ' + Y(P[i].y).toFixed(1);
+      ar += ' L' + X(L.x).toFixed(1) + ' ' + bot + ' L' + X(P[0].x).toFixed(1) + ' ' + bot + ' Z';
+      s += '<path d="' + ar + '" fill="url(#su-g)"/>';
+      var cc = GRIS;
+      for (i = 1; i < P.length; i++) {
+        if (P[i].y > P[i - 1].y) cc = VERT; else if (P[i].y < P[i - 1].y) cc = ROUGE;
+        s += '<line x1="' + X(P[i - 1].x).toFixed(1) + '" y1="' + Y(P[i - 1].y).toFixed(1) + '" x2="' + X(P[i].x).toFixed(1) + '" y2="' + Y(P[i].y).toFixed(1) + '" stroke="' + cc + '" stroke-width="2.5" stroke-linecap="round"/>';
+        if (P[i].s) s += '<circle cx="' + X(P[i].x).toFixed(1) + '" cy="' + Y(P[i].y).toFixed(1) + '" r="3.5" fill="' + cc + '"/>';
+      }
     }
-    var pic = 0, cre = 0;
-    for (d = 1; d <= last; d++) {
-      if (!act[d]) continue;
-      if (!pic || pts[d].y > pts[pic].y) pic = d;
-      if (!cre || pts[d].y < pts[cre].y) cre = d;
+    var pic = null, cre = null;
+    for (i = 0; i < P.length; i++) { if (!P[i].s) continue; if (!pic || P[i].y > pic.y) pic = P[i]; if (!cre || P[i].y < cre.y) cre = P[i]; }
+    function etiq(p, txt, c, haut){
+      var x = Math.max(44, Math.min(Wc - 44, X(p.x)));
+      return '<text x="' + x.toFixed(1) + '" y="' + (Y(p.y) + (haut ? -12 : 20)).toFixed(1) + '" font-size="11" font-weight="700" fill="' + c + '" text-anchor="middle">' + txt + '</text>';
     }
-    function etiq(j, txt, c, haut){
-      var x = Math.max(44, Math.min(Wc - 44, X(j)));
-      return '<text x="' + x.toFixed(1) + '" y="' + (Y(pts[j].y) + (haut ? -12 : 20)).toFixed(1) + '" font-size="11" font-weight="700" fill="' + c + '" text-anchor="middle">' + txt + '</text>';
+    if (pic && pic.y > st.debut) s += etiq(pic, 'Pic (Hausse)', VERT, true);
+    if (cre && cre.y < st.debut) s += etiq(cre, 'Creux (Baisse)', ROUGE, false);
+    if (P.length > 1) {
+      var lx = X(L.x), ly = Y(L.y), tw = 12 + num(L.y).length * 6.2;
+      s += '<line x1="' + lx.toFixed(1) + '" x2="' + (Wc - 4) + '" y1="' + ly.toFixed(1) + '" y2="' + ly.toFixed(1) + '" stroke="' + cf + '" stroke-width="1" stroke-dasharray="3 3" stroke-opacity=".7"/>';
+      s += '<circle cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="6" fill="' + cf + '" fill-opacity=".3"><animate attributeName="r" values="6;13;6" dur="1.8s" repeatCount="indefinite"/><animate attributeName="fill-opacity" values=".35;0;.35" dur="1.8s" repeatCount="indefinite"/></circle>';
+      s += '<circle cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="4.5" fill="' + cf + '"/>';
+      s += '<rect x="' + (lx + 10).toFixed(1) + '" y="' + (ly - 10).toFixed(1) + '" width="' + tw.toFixed(1) + '" height="20" rx="5" fill="' + cf + '"/><text x="' + (lx + 10 + tw / 2).toFixed(1) + '" y="' + (ly + 4).toFixed(1) + '" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">' + num(L.y) + '</text>';
     }
-    if (pic && pts[pic].y > st.debut) s += etiq(pic, 'Pic (Hausse)', VERT, true);
-    if (cre && pts[cre].y < st.debut) s += etiq(cre, 'Creux (Baisse)', ROUGE, false);
     s += '</svg>';
-    return '<div style="display:flex;align-items:flex-start;margin-top:6px">' + ax + '<div id="su-scroll" style="flex:1;overflow-x:auto;-webkit-overflow-scrolling:touch">' + s + '</div></div>';
+    return '<div style="display:flex;align-items:flex-start;margin-top:6px">' + ax + '<div id="su-scroll" data-px="' + X(L.x).toFixed(0) + '" style="flex:1;overflow-x:auto;-webkit-overflow-scrolling:touch">' + s + '</div></div>';
   }
 
   var o = document.createElement('div');
@@ -2267,18 +2292,18 @@ function ouvrirSuivi(){
     for (i = 0; i < ms.length; i++) h += '<div class="su-mois" data-k="' + ms[i].k + '" style="padding:10px 0;' + (i ? 'border-top:1px solid #1a252c;' : '') + 'cursor:pointer"><div style="display:flex;justify-content:space-between;font-size:.9rem"><span style="text-transform:capitalize">' + nomMois(ms[i].k) + '</span><b style="color:' + coul(ms[i].net) + '">' + sg(ms[i].net) + '</b></div><div style="height:5px;border-radius:3px;background:#202c33;margin-top:6px;overflow:hidden"><div style="height:100%;width:' + Math.round(Math.abs(ms[i].net) / gm * 100) + '%;background:' + coul(ms[i].net) + '"></div></div></div>';
     h += '<div style="display:flex;justify-content:space-between;padding:10px 0 6px;border-top:1px solid #202c33;font-weight:700"><span>Total depuis le début</span><span style="color:' + coul(tout) + '">' + sg(tout) + '</span></div></div>';
     h += '</div>';
-    h += '<div style="display:flex;gap:10px;padding:10px 16px;background:#111b21;border-top:1px solid #202c33"><button id="su-gain" style="flex:1;padding:14px;border:0;border-radius:12px;font-size:16px;font-weight:700;color:#fff;background:' + VERT + '">＋ Gain</button><button id="su-perte" style="flex:1;padding:14px;border:0;border-radius:12px;font-size:16px;font-weight:700;color:#fff;background:' + ROUGE + '">− Perte</button></div>';
+    
     o.innerHTML = h;
     var corps = o.querySelector('#su-corps');
     if (corps) corps.scrollTop = pos;
     var sc = o.querySelector("#su-scroll");
-    if (sc) sc.scrollLeft = st.k === auj.slice(0, 7) ? sc.scrollWidth * (+auj.slice(8, 10) / st.nb) - sc.clientWidth + 40 : 0;
+    if (sc) sc.scrollLeft = (+sc.getAttribute("data-px")) - sc.clientWidth + 100;
     o.querySelector('#su-retour').onclick = function(){ o.remove(); };
     o.querySelector('#su-dev').onclick = function(){ S.devise = S.devise === 'USD' ? 'CDF' : 'USD'; sauver(); dessiner(); };
     o.querySelector('#su-prec').onclick = function(){ mc = decaler(mc, -1); dessiner(); };
     o.querySelector('#su-suiv').onclick = function(){ mc = decaler(mc, 1); dessiner(); };
-    o.querySelector('#su-gain').onclick = function(){ ajouter('gain'); };
-    o.querySelector('#su-perte').onclick = function(){ ajouter('perte'); };
+    
+    
     o.querySelector('#su-solde').onclick = function(){
       feuille('Mon solde (tous mes biens)', [{ label: 'Combien as-tu en tout maintenant ?', mode: 'decimal', val: Math.round(soldeActuel() * 100) / 100 }], 'Enregistrer', function(v){
         var x = lire(v[0]);
