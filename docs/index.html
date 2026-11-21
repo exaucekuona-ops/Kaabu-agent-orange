@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261121-084205">
+<meta name="build" content="20261121-085723">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -3191,7 +3191,7 @@ function ajouterPrive(m){
     $('prive-zone').insertAdjacentHTML('beforeend', `<div class="jour-sep" data-jour="${jk}" style="align-self:center;margin:10px 0 6px;padding:4px 12px;border-radius:12px;background:#1b2730;color:#8696a0;font-size:.75rem;box-shadow:0 1px 2px rgba(0,0,0,.35)">${lib}</div>`);
   }
   $('prive-zone').insertAdjacentHTML('beforeend',
-    `<div class="rang ${estMoi ? 'moi' : 'autre'}${Date.now() - d.getTime() < 20000 ? ' arrive' : ''}"><div id="p${m.id}" class="bulle ${estMoi ? 'moi' : 'autre'}">${kcCitation(m)}${contenuP(m)}<span class="heure">${h}${estMoi ? cochesP(m) : ''}</span></div></div>`);
+    `<div class="rang ${estMoi ? 'moi' : 'autre'}${Date.now() - d.getTime() < 20000 ? ' arrive' : ''}" data-t="${d.getTime()}"><div id="p${m.id}" class="bulle ${estMoi ? 'moi' : 'autre'}">${kcCitation(m)}${contenuP(m)}<span class="heure">${h}${estMoi ? cochesP(m) : ''}</span></div></div>`);
   if (typeof kcRendreReac === 'function') kcRendreReac(m.id);
   $('prive-zone').scrollTop = $('prive-zone').scrollHeight;
 }
@@ -3209,11 +3209,42 @@ function kcCarteAppel(a, sortant, repondu, manque, h){
   var svg = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="' + coul + '" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(1 4) scale(.7)" fill="' + coul + '" stroke="none"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></g>' + fl + '</svg>';
   return '<div class="rang ' + cote + ' kc-appel" id="ap' + a.id + '" onclick="appeler(\'' + priveId + '\')" style="cursor:pointer">'
     + '<div class="bulle ' + cote + '" style="padding:4px">'
-    + '<div style="display:flex;align-items:center;gap:12px;min-width:210px;padding:8px 12px 8px 8px;border-radius:8px;background:rgba(255,255,255,.07)">'
-    + '<div style="width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex:none">' + svg + '</div>'
+    + '<div style="display:flex;align-items:center;gap:10px;padding:6px 10px 6px 6px;border-radius:8px;background:rgba(255,255,255,.07)">'
+    + '<div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex:none">' + svg + '</div>'
     + '<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:1rem;color:#e9edef">Appel vocal</div>'
-    + '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-top:2px"><span style="font-size:.9rem;color:' + (rouge ? "#f15c6d" : "rgba(233,237,239,.7)") + '">' + sub + '</span><span style="font-size:.68rem;color:rgba(233,237,239,.6)">' + h + '</span></div></div>'
+    + '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:1px"><span style="font-size:.9rem;color:' + (rouge ? "#f15c6d" : "rgba(233,237,239,.7)") + '">' + sub + '</span><span style="font-size:.68rem;color:rgba(233,237,239,.6)">' + h + '</span></div></div>'
     + '</div></div></div>';
+}
+function kcPlacerAppel(a, d, jk, h, sortant, repondu, manque){
+  var z = $("prive-zone"), ts = d.getTime(), kids = z.children, next = null, i;
+  function tDe(el){ return el.dataset && el.dataset.t ? +el.dataset.t : 0; }
+  for (i = 0; i < kids.length; i++) { if (tDe(kids[i]) > ts) { next = kids[i]; break; } }
+  if (!next) return false;
+  var bas = z.scrollHeight - z.scrollTop - z.clientHeight < 200;
+  var tmp = document.createElement("div");
+  tmp.innerHTML = kcCarteAppel(a, sortant, repondu, manque, h);
+  var card = tmp.firstChild; card.dataset.t = ts;
+  var sepNext = next.previousElementSibling;
+  if (sepNext && !sepNext.classList.contains("jour-sep")) sepNext = null;
+  var jn = new Date(tDe(next)).toDateString();
+  if (jn === jk) z.insertBefore(card, next);
+  else {
+    var prevEl = next.previousElementSibling;
+    while (prevEl && !tDe(prevEl)) prevEl = prevEl.previousElementSibling;
+    if (prevEl && new Date(tDe(prevEl)).toDateString() === jk) z.insertBefore(card, prevEl.nextSibling);
+    else {
+      var hier = new Date(Date.now() - 864e5);
+      var lib = jk === new Date().toDateString() ? "Aujourd'hui" : (jk === hier.toDateString() ? "Hier" : d.toLocaleDateString("fr-FR"));
+      var zj = z.querySelectorAll(".jour-sep"), sep;
+      if (zj.length) sep = zj[0].cloneNode(true);
+      else { sep = document.createElement("div"); sep.className = "jour-sep"; sep.style.cssText = "align-self:center;margin:10px 0 6px"; }
+      sep.dataset.jour = jk; sep.textContent = lib;
+      var ref = sepNext || next;
+      z.insertBefore(sep, ref); z.insertBefore(card, ref);
+    }
+  }
+  if (bas && !window.__histP) z.scrollTop = z.scrollHeight;
+  return true;
 }
 function ajouterAppelPrive(a){
   if (!priveId || $('ap' + a.id)) return;
@@ -3224,6 +3255,7 @@ function ajouterAppelPrive(a){
   var d = new Date(a.created_at || Date.now());
   var h = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   var jk = d.toDateString();
+  if (kcPlacerAppel(a, d, jk, h, sortant, repondu, manque)) return;
   var zj = $("prive-zone").querySelectorAll(".jour-sep");
   if (!zj.length || zj[zj.length-1].dataset.jour !== jk) {
     var hier = new Date(Date.now() - 864e5);
