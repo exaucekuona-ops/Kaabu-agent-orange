@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261120-191105">
+<meta name="build" content="20261121-084205">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -109,10 +109,11 @@
   .bulle { max-width: 100%; padding: 6px 9px 4px; align-self: auto; }
   .bulle.moi { align-self: auto; }
   .bulle.autre { align-self: auto; }
-  #prive-zone .rang.moi:not(.rang.moi + .rang.moi) .bulle.moi { position: relative; border-top-right-radius: 4px; }
-  #prive-zone .rang.moi:not(.rang.moi + .rang.moi) .bulle.moi::after { content: ""; position: absolute; top: 0; right: -8px; width: 0; height: 0; border-left: 8px solid #144d37; border-bottom: 8px solid transparent; }
-  #prive-zone .rang.autre:not(.rang.autre + .rang.autre) .bulle.autre { position: relative; border-top-left-radius: 4px; }
-  #prive-zone .rang.autre:not(.rang.autre + .rang.autre) .bulle.autre::before { content: ""; position: absolute; top: 0; left: -8px; width: 0; height: 0; border-right: 8px solid #202c33; border-bottom: 8px solid transparent; }
+  #prive-zone .bulle { border-radius: 9px; }
+  #prive-zone .rang.moi:not(.rang.moi + .rang.moi) .bulle.moi { position: relative; border-top-right-radius: 0; }
+  #prive-zone .rang.moi:not(.rang.moi + .rang.moi) .bulle.moi::after { content: ""; position: absolute; top: 0; right: -8px; width: 9px; height: 10px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 10'%3E%3Cpath d='M0 0H9Q4.5 2.5 1 10H0Z' fill='%23144d37'/%3E%3C/svg%3E") no-repeat; }
+  #prive-zone .rang.autre:not(.rang.autre + .rang.autre) .bulle.autre { position: relative; border-top-left-radius: 0; }
+  #prive-zone .rang.autre:not(.rang.autre + .rang.autre) .bulle.autre::before { content: ""; position: absolute; top: 0; left: -8px; width: 9px; height: 10px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 10'%3E%3Cpath d='M9 0H0Q4.5 2.5 8 10H9Z' fill='%23202c33'/%3E%3C/svg%3E") no-repeat; }
   :root { --fond: url(fond.webp); }
   #prive-zone .rang.moi + .rang.moi, #prive-zone .rang.autre + .rang.autre { margin-top: -2px; }
   #prive-zone .rang.moi + .rang.autre, #prive-zone .rang.autre + .rang.moi { margin-top: 6px; }
@@ -266,7 +267,7 @@ html body #barre-bas.kc-bar,html body div.kc-bar{left:10px!important;right:10px!
 @keyframes kcPop{0%{transform:scale(.6)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
 html body #accueil .entete #titre-acc{background:linear-gradient(90deg,#ffffff,#ffd84d,#ff6b6b,#4db8ff,#ffffff);background-size:200% 100%;background-repeat:repeat-x;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:kcTitre 6s linear infinite}
 @keyframes kcTitre{from{background-position:0% 50%}to{background-position:200% 50%}}
-.kc-appel{animation:kcApp .45s cubic-bezier(.2,.8,.2,1) both}
+.kc-appel{}
 @keyframes kcApp{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
 html body #accueil .entete{border-image:none!important;position:relative!important;}
 html body #accueil .entete::after{content:'';position:absolute;left:0;right:0;bottom:-3px;height:3px;background:linear-gradient(90deg,#1e90ff,#00d4c8,#2ecc71,#f7d618,#ff8c1a,#ff4d5a,#c04dff,#1e90ff);background-size:200% 100%;animation:kcLigne 12s linear infinite}
@@ -406,7 +407,7 @@ html body #accueil .entete::after{content:'';position:absolute;left:0;right:0;bo
     <span style="display:flex;align-items:center;gap:22px"><i class="fa-solid fa-video" style="cursor:pointer" onclick="alert('Appel vidéo bientôt disponible')"></i><span id="prive-appel"></span><i class="fa-solid fa-ellipsis-vertical" style="cursor:pointer;padding:0 4px" onclick="menuPrive()"></i></span>
   </div>
   <div id="prive-zone" class="zone" onscroll="var b=document.getElementById('prive-bas');b.style.display=(this.scrollHeight-this.scrollTop-this.clientHeight>300)?'flex':'none'"></div>
-  <button id="prive-bas" onclick="var z=document.getElementById('prive-zone');z.scrollTo({top:z.scrollHeight,behavior:'smooth'})" style="display:none;position:absolute;right:14px;bottom:84px;z-index:6;width:42px;height:42px;border-radius:50%;border:0;background:#202c33;color:#00a884;font-size:1rem;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.5)"><i class="fa-solid fa-chevron-down"></i></button>
+  <button id="prive-bas" onclick="var z=document.getElementById('prive-zone');z.scrollTo({top:z.scrollHeight,behavior:'smooth'})" style="display:none;position:absolute;right:14px;bottom:84px;z-index:6;width:46px;height:46px;border-radius:50%;border:0;background:#1f2c34;color:#e9edef;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.5)"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6.5l6 6 6-6"/><path d="M6 12l6 6 6-6"/></svg></button>
   <div class="barre" id="prive-saisie">
     <div class="pilule"><textarea id="prive-texte" rows="1" placeholder="Message privé" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea></div>
     <button class="envoi" onclick="envoyerPrive()"><i class="fa-solid fa-paper-plane"></i></button>
@@ -1347,7 +1348,7 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
     haut.innerHTML =
       '<button id="kc-b-ret">' + kcIcone('M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z') + '</button>' +
       '<div class="kc-n">1</div>' +
-      '<button id="kc-b-rep">' + kcIcon('M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z') + '</button>' + '<button id="kc-b-copier">' + kcIcone('M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z') + '</button>' +
+      '<button id="kc-b-rep">' + kcIcone('M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z') + '</button>' + '<button id="kc-b-copier">' + kcIcone('M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z') + '</button>' +
       '<button id="kc-b-transf">' + kcIcone('M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z', true) + '</button>';
     document.body.appendChild(haut);
     const flot = document.createElement('div');
@@ -1485,6 +1486,42 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
     }, { passive: true });
     ['touchend', 'touchmove', 'touchcancel'].forEach(t => pz.addEventListener(t, () => clearTimeout(minP), { passive: true }));
     pz.addEventListener('contextmenu', e => { if (e.target.closest('.bulle')) e.preventDefault(); });
+    /* DEBUT-GLISSER */
+    let gEl = null, gId = '', gX0 = 0, gY0 = 0, gDx = 0, gHz = false, gIc = null;
+    pz.addEventListener('touchstart', e => {
+      const b = e.target.closest('.bulle');
+      if (!b || !b.id || b.id[0] !== 'p') { gEl = null; return; }
+      gEl = b.closest('.rang'); if (!gEl) return;
+      gId = b.id.slice(1);
+      gX0 = e.touches[0].clientX; gY0 = e.touches[0].clientY; gDx = 0; gHz = false;
+    }, { passive: true });
+    pz.addEventListener('touchmove', e => {
+      if (!gEl) return;
+      const x = e.touches[0].clientX - gX0, y = e.touches[0].clientY - gY0;
+      if (!gHz && Math.abs(y) > Math.abs(x) && Math.abs(y) > 10) { gEl = null; return; }
+      if (x > 10 && Math.abs(x) > Math.abs(y)) {
+        if (!gHz) {
+          gHz = true;
+          gIc = document.createElement('span');
+          gIc.style.cssText = 'position:absolute;left:-44px;top:50%;margin-top:-16px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.14);color:#e9edef;display:flex;align-items:center;justify-content:center;pointer-events:none';
+          gIc.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>';
+          gEl.appendChild(gIc);
+        }
+        gDx = Math.min(x, 80);
+        gEl.style.transition = 'none';
+        gEl.style.transform = 'translateX(' + gDx + 'px)';
+        gIc.style.opacity = Math.min(1, gDx / 60);
+      }
+    }, { passive: true });
+    ['touchend', 'touchcancel'].forEach(t => pz.addEventListener(t, e => {
+      if (!gEl) return;
+      const r = gEl, ok = e.type === 'touchend' && gHz && gDx >= 60, id = gId;
+      gEl = null;
+      r.style.transition = 'transform .15s'; r.style.transform = '';
+      if (gIc) { gIc.remove(); gIc = null; }
+      if (ok) { try { navigator.vibrate(15); } catch (x) {} repondreChoisi(id); }
+    }, { passive: true }));
+    /* FIN-GLISSER */
   })();
 
   async function envoyer() {
@@ -3159,6 +3196,25 @@ function ajouterPrive(m){
   $('prive-zone').scrollTop = $('prive-zone').scrollHeight;
 }
 
+function kcCarteAppel(a, sortant, repondu, manque, h){
+  var rouge = manque && !sortant;
+  var coul = rouge ? "#f15c6d" : "#e9edef";
+  var cote = sortant ? "moi" : "autre";
+  var dur = a.dur || 0, sub;
+  if (repondu) {
+    var mn = Math.floor(dur / 60);
+    sub = dur < 60 ? (dur + " s") : (mn < 60 ? (mn + " min") : (Math.floor(mn / 60) + " h " + (mn % 60) + " min"));
+  } else sub = sortant ? "Pas de réponse" : "Manqué";
+  var fl = sortant ? '<path d="M14 3h6v6M20 3l-7 7"/>' : '<path d="M14 3v6h6M14 9l7-7"/>';
+  var svg = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="' + coul + '" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(1 4) scale(.7)" fill="' + coul + '" stroke="none"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></g>' + fl + '</svg>';
+  return '<div class="rang ' + cote + ' kc-appel" id="ap' + a.id + '" onclick="appeler(\'' + priveId + '\')" style="cursor:pointer">'
+    + '<div class="bulle ' + cote + '" style="padding:4px">'
+    + '<div style="display:flex;align-items:center;gap:12px;min-width:210px;padding:8px 12px 8px 8px;border-radius:8px;background:rgba(255,255,255,.07)">'
+    + '<div style="width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex:none">' + svg + '</div>'
+    + '<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:1rem;color:#e9edef">Appel vocal</div>'
+    + '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-top:2px"><span style="font-size:.9rem;color:' + (rouge ? "#f15c6d" : "rgba(233,237,239,.7)") + '">' + sub + '</span><span style="font-size:.68rem;color:rgba(233,237,239,.6)">' + h + '</span></div></div>'
+    + '</div></div></div>';
+}
 function ajouterAppelPrive(a){
   if (!priveId || $('ap' + a.id)) return;
   var sortant = a.de === moi.id, repondu = !!a.rep || !!a.dur, manque = !sortant && !repondu;
@@ -3179,7 +3235,7 @@ function ajouterAppelPrive(a){
   var fond = sortant ? "linear-gradient(135deg,#0b6b58,#0a5546)" : "#1b2a35";
   var cote = sortant ? "flex-end" : "flex-start";
   var pastille = manque ? "rgba(241,92,109,.2)" : "rgba(255,255,255,.12)";
-  $("prive-zone").insertAdjacentHTML("beforeend", '<div class="kc-appel" id="ap' + a.id + '" onclick="appeler(\'' + priveId + '\')" style="align-self:' + cote + ';display:flex;align-items:center;gap:12px;margin:5px 10px;padding:10px 14px 8px;border-radius:16px;background:' + fond + ';box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:pointer;max-width:80%"><div style="width:42px;height:42px;border-radius:50%;background:' + pastille + ';display:flex;align-items:center;justify-content:center;flex:none;color:' + coul + '"><i class="fa-solid fa-phone"></i></div><div style="min-width:0"><div style="font-weight:600;color:' + (manque ? "#f15c6d" : "inherit") + '">' + titre + '</div><div style="font-size:.82rem;color:' + coul + '">' + qui + '</div><div style="font-size:.78rem;opacity:.6;margin-top:1px">Appuyez pour rappeler · ' + h + '</div></div></div>');
+    $("prive-zone").insertAdjacentHTML("beforeend", kcCarteAppel(a, sortant, repondu, manque, h));
   $("prive-zone").scrollTop = $("prive-zone").scrollHeight;
 }
 async function ouvrirPrive(id){
@@ -3213,10 +3269,10 @@ var kcRep = null;
 function kcNomRep(de){ var n = ''; try{ n = (de === moi.id) ? 'Vous' : (nomDe(de) || 'Contact'); }catch(e){ n = 'Contact'; } return n; }
 function kcResume(m){ var t = m.type || 'texte'; if (t === 'photo' || t === 'image') return '📷 Photo'; if (t === 'vocal' || t === 'audio') return '🎤 Message vocal'; if (t !== 'texte') return '📎 Fichier'; return String(m.contenu || '').slice(0, 120); }
 function kcRepFermer(){ kcRep = null; var b = document.getElementById('kc-rep-bandeau'); if (b) b.remove(); }
-function repondreChoisi(){
-  var m = null; try{ m = msgsP[kcSel.id]; }catch(e){}
+function repondreChoisi(idOpt){
+  var m = null; try{ m = msgsP[idOpt || kcSel.id]; }catch(e){}
   if (!m) return;
-  kcFermerSel();
+  try{ kcFermerSel(); }catch(e){}
   kcRep = { id: m.id, de: m.de, texte: kcResume(m) };
   var old = document.getElementById('kc-rep-bandeau'); if (old) old.remove();
   var bar = document.getElementById('prive-saisie'); if (!bar || !bar.parentNode) return;
@@ -4062,7 +4118,7 @@ async function vocalP(btn){
 
 /* DEBUT-WA */
 function svgCoche(d){
-  return '<svg viewBox="0 0 18 11" width="17" height="11" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 6l3.2 3.2L11 1.5"/>'+(d?'<path d="M7.6 8.6l.6.6L16 1.5"/>':'')+'</svg>';
+  return '<svg viewBox="0 0 19.4 12" width="19" height="12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+(d?'<path d="M1.6 6.6L5 10L12.6 1.6"/><path d="M7.5 7.3L10.2 10L17.8 1.6"/>':'<path d="M6.8 6.6L10.2 10L17.8 1.6"/>')+'</svg>';
 }
 function cochesP(m){
   var lu=!!m.lu_at;
