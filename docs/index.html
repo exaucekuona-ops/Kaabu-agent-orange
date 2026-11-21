@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261121-085723">
+<meta name="build" content="20261121-144736">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -268,6 +268,7 @@ html body #barre-bas.kc-bar,html body div.kc-bar{left:10px!important;right:10px!
 html body #accueil .entete #titre-acc{background:linear-gradient(90deg,#ffffff,#ffd84d,#ff6b6b,#4db8ff,#ffffff);background-size:200% 100%;background-repeat:repeat-x;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:kcTitre 6s linear infinite}
 @keyframes kcTitre{from{background-position:0% 50%}to{background-position:200% 50%}}
 .kc-appel{}
+.kc-lien{color:#7be0b0;text-decoration:underline;word-break:break-all}
 @keyframes kcApp{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
 html body #accueil .entete{border-image:none!important;position:relative!important;}
 html body #accueil .entete::after{content:'';position:absolute;left:0;right:0;bottom:-3px;height:3px;background:linear-gradient(90deg,#1e90ff,#00d4c8,#2ecc71,#f7d618,#ff8c1a,#ff4d5a,#c04dff,#1e90ff);background-size:200% 100%;animation:kcLigne 12s linear infinite}
@@ -3982,8 +3983,23 @@ function repId(){ var r=window.repA?String(window.repA.id):null; annulerReponse(
 </style>
 <script>
 function defP(){ if(window.__histP) return; var z=document.getElementById('prive-zone'); z.scrollTop=z.scrollHeight; }
+/* DEBUT-LIENS */
+function kcLiens(h){
+  return h.replace(/(https?:\/\/[^\s<"]+|www\.[^\s<"]+)|(\+?\d[\d \-.]{7,}\d)/gi,function(t,u,p){
+    if(u){
+      var fin='',m=u.match(/[.,;:!?)]+$/);
+      if(m){ fin=m[0]; u=u.slice(0,-fin.length); }
+      var href=/^www\./i.test(u)?'https://'+u:u;
+      return '<a class="kc-lien" href="'+href+'" target="_blank" rel="noopener">'+u+'</a>'+fin;
+    }
+    var n=p.replace(/\D/g,'');
+    if(n.length<9||n.length>15) return t;
+    return '<a class="kc-lien" href="tel:'+(p.charAt(0)==='+'?'+':'')+n+'">'+p+'</a>';
+  });
+}
+/* FIN-LIENS */
 function contenuP(m){
-  if(!m.type||m.type==='texte') return esc(m.contenu);
+  if(!m.type||m.type==='texte') return kcLiens(esc(m.contenu));
   setTimeout(function(){ afficherMediaP(m); },0);
   return '<span id="pm'+m.id+'">…</span>';
 }
