@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261121-144736">
+<meta name="build" content="20261121-150007">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -1235,9 +1235,12 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
   function msgFlash(t) { const d = document.createElement('div'); d.textContent = t; d.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#202c33;color:#fff;padding:8px 16px;border-radius:16px;z-index:99999;font-size:14px'; document.body.appendChild(d); setTimeout(() => d.remove(), 1800); }
   async function transfererChoisi() {
     fermerMenu();
-    const m = msgs[choisi];
-    if (!m || m.type !== 'texte') return;
+    const kcId = String(choisi);
+    const mp = (typeof msgsP !== 'undefined' && kcId.charAt(0) === 'P') ? msgsP[kcId.slice(1)] : null;
+    const m = mp || msgs[choisi];
+    if (!m || (!mp && m.type !== 'texte')) return;
     transfTexte = m.contenu || '';
+    window.kcTransfType = mp ? (mp.type || 'texte') : 'texte';
     await chargerAnnuaire();
     const l = Object.values(tels).filter(p => p.id !== moi.id).sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
     $('transf-liste').innerHTML = l.map(p => '<div class="ligne" style="cursor:pointer" data-id="' + p.id + '" onclick="envoyerTransfert(this.dataset.id)"><div style="display:flex;align-items:center;gap:10px">' + avatarDe(p.id, p.nom) + '<div>' + esc(p.nom) + '</div></div></div>').join('') || '<p style="padding:16px">Aucun contact.</p>';
@@ -1247,7 +1250,9 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
   async function envoyerTransfert(id) {
     $('transf').classList.add('hidden');
     if (!transfTexte) return;
-    const { error } = await sb.from('prives').insert({ de: moi.id, a: id, contenu: transfTexte });
+    const o = { de: moi.id, a: id, contenu: transfTexte };
+    if (window.kcTransfType && window.kcTransfType !== 'texte') o.type = window.kcTransfType;
+    const { error } = await sb.from('prives').insert(o);
     msgFlash(error ? 'Erreur : ' + error.message : 'Message transféré');
   }
 
@@ -1391,7 +1396,7 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
     rang.classList.add('kc-sel');
     const texte = !(m.type && m.type !== 'texte');
     $('kc-b-copier').style.display = texte ? 'flex' : 'none';
-    $('kc-b-transf').style.display = (texte && !String(m.contenu || '').startsWith('§')) ? 'flex' : 'none';
+    $('kc-b-transf').style.display = !String(m.contenu || '').startsWith('§') ? 'flex' : 'none';
     let mien = '';
     try { mien = (m.reactions || {})[moi.id] || ''; } catch (e) {}
     Array.prototype.forEach.call($('kc-flot').children, function (x) {
