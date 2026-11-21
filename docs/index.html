@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261121-213934">
+<meta name="build" content="20261121-221915">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -269,6 +269,7 @@ html body #accueil .entete #titre-acc{background:linear-gradient(90deg,#ffffff,#
 @keyframes kcTitre{from{background-position:0% 50%}to{background-position:200% 50%}}
 .kc-appel{}
 .kc-lien{color:#7be0b0;text-decoration:underline;word-break:break-all}
+.kc-transf-lbl{font-size:.72rem;opacity:.7;font-style:italic;margin-bottom:2px}.kc-etoile{color:#ffd84d}.kc-supprime{opacity:.7;font-style:italic}
 @keyframes kcApp{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
 html body #accueil .entete{border-image:none!important;position:relative!important;}
 html body #accueil .entete::after{content:'';position:absolute;left:0;right:0;bottom:-3px;height:3px;background:linear-gradient(90deg,#1e90ff,#00d4c8,#2ecc71,#f7d618,#ff8c1a,#ff4d5a,#c04dff,#1e90ff);background-size:200% 100%;animation:kcLigne 12s linear infinite}
@@ -1253,11 +1254,11 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
   async function envoyerTransfert(id) {
     if (!transfTexte) return null;
     let error;
-    if (id === '__groupe__') ({ error } = await sb.from('messages').insert({ auteur: moi.id, type: window.kcTransfType || 'texte', contenu: transfTexte, groupe_id: null }));
+    if (id === '__groupe__') ({ error } = await kcInsTransf('messages', { auteur: moi.id, type: window.kcTransfType || 'texte', contenu: transfTexte, groupe_id: null }));
     else {
       const o = { de: moi.id, a: id, contenu: transfTexte };
       if (window.kcTransfType && window.kcTransfType !== 'texte') o.type = window.kcTransfType;
-      ({ error } = await sb.from('prives').insert(o));
+      ({ error } = await kcInsTransf('prives', o));
     }
     return error || null;
   }
@@ -1400,6 +1401,89 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
   function kcIcone(d, flip) {
     return '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"' + (flip ? ' style="transform:scaleX(-1)"' : '') + '><path d="' + d + '"/></svg>';
   }
+  /* DEBUT-PLUS */
+function kcTransfLabel(m){ return m && m.transfere ? '<div class="kc-transf-lbl">↪ Transféré</div>' : ''; }
+function kcEtoiles(){ try{ return JSON.parse(localStorage.getItem('kc_etoiles')||'{}'); }catch(e){ return {}; } }
+function kcMarquerEtoile(id){
+  var b=document.getElementById('p'+id); if(!b) return;
+  var h=b.querySelector('.heure'); if(!h) return;
+  var s=h.querySelector('.kc-etoile'), on=!!kcEtoiles()[String(id)];
+  if(on&&!s){ s=document.createElement('span'); s.className='kc-etoile'; s.textContent='★ '; h.insertBefore(s,h.firstChild); }
+  else if(!on&&s) s.remove();
+}
+function kcEtoile(m){
+  var e=kcEtoiles(), id=String(m.id);
+  if(e[id]){ delete e[id]; msgFlash('Retiré des importants'); }
+  else { e[id]={ t:(m.type&&m.type!=='texte')?('['+m.type+']'):String(m.contenu||'').slice(0,120), de:m.de, a:m.a, at:m.created_at }; msgFlash('Ajouté aux importants ⭐'); }
+  try{ localStorage.setItem('kc_etoiles',JSON.stringify(e)); }catch(x){}
+  kcMarquerEtoile(id);
+}
+function kcMasques(){ try{ return JSON.parse(localStorage.getItem('kc_masques')||'[]'); }catch(e){ return []; } }
+function kcMasqSet(){ if(!window.kcMS) window.kcMS=new Set(kcMasques()); return window.kcMS; }
+function kcEstMasque(id){ return kcMasqSet().has(String(id)); }
+async function kcMasquesCharger(){
+  try{
+    var r=await sb.from('messages_masques').select('message_id').eq('user_id',moi.id).limit(2000);
+    if(r.error||!r.data) return;
+    var S=kcMasqSet(); r.data.forEach(function(x){ S.add(String(x.message_id)); });
+    localStorage.setItem('kc_masques',JSON.stringify(Array.from(S)));
+  }catch(e){}
+}
+setTimeout(kcMasquesCharger,5000);
+async function kcSupprPourMoi(m, ok){
+  if(!ok && !confirm("Supprimer ce message pour vous ? Il restera visible chez l'autre personne.")) return;
+  var id=String(m.id), S=kcMasqSet(); S.add(id);
+  try{ localStorage.setItem('kc_masques',JSON.stringify(Array.from(S))); }catch(e){}
+  var b=document.getElementById('p'+id), r=b&&b.closest('.rang'); if(r) r.remove();
+  try{ await sb.from('messages_masques').insert({ user_id:moi.id, message_id:id }); }catch(e){}
+  msgFlash('Message supprimé pour vous');
+}
+function kcInfos(m){
+  var f=function(x){ return x ? new Date(x).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—'; };
+  var rows=(m.de===moi.id)?[['Envoyé',f(m.created_at)],['Reçu',f(m.recu_at)],['Lu',f(m.lu_at)]]:[['Reçu',f(m.created_at)],['Lu',f(m.lu_at)]];
+  var o=document.getElementById('kc-info'); if(o) o.remove();
+  o=document.createElement('div'); o.id='kc-info';
+  o.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center';
+  o.onclick=function(){ o.remove(); };
+  o.innerHTML='<div style="background:#202c33;color:#e9edef;border-radius:16px;padding:18px 22px;min-width:240px"><div style="font-weight:700;margin-bottom:10px">Infos du message</div>'+rows.map(function(r){ return '<div style="display:flex;justify-content:space-between;gap:24px;padding:6px 0"><span style="opacity:.7">'+r[0]+'</span><span>'+r[1]+'</span></div>'; }).join('')+'</div>';
+  document.body.appendChild(o);
+}
+async function kcInsTransf(table, o){
+  var r=await sb.from(table).insert(Object.assign({},o,{ transfere:true }));
+  if(r.error && /transfere/i.test(r.error.message||'')) r=await sb.from(table).insert(o);
+  return r;
+}
+function kcMajSupprime(m){
+  var b=document.getElementById('p'+m.id); if(!b||b.getAttribute('data-supp')) return;
+  b.setAttribute('data-supp','1');
+  var h=b.querySelector('.heure'), t=document.createElement('div');
+  t.innerHTML='<i class="kc-supprime">🚫 Ce message a été supprimé</i>';
+  while(b.firstChild) b.removeChild(b.firstChild);
+  b.appendChild(t.firstChild); if(h) b.appendChild(h);
+}
+async function kcSupprPourTous(m){
+  try{
+    var r=await sb.rpc('supprimer_pour_tous',{ p_id:String(m.id) });
+    if(r.error) throw r.error;
+    if(r.data===false){ msgFlash('Impossible de supprimer ce message'); return; }
+    kcMajSupprime({ id:m.id });
+    msgFlash('Message supprimé pour tous');
+  }catch(e){ msgFlash('Suppression impossible : '+(e.message||e)); }
+}
+function kcSupprMenu(m){
+  var o=document.getElementById('kc-sup'); if(o) o.remove();
+  o=document.createElement('div'); o.id='kc-sup';
+  o.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center';
+  o.onclick=function(e){ if(e.target===o) o.remove(); };
+  var mien=(m.de===moi.id), deja=!!m.supprime;
+  var bt=function(id,t){ return '<button id="'+id+'" style="display:block;width:100%;text-align:right;background:none;border:0;color:#00a884;font-size:1rem;padding:12px 4px">'+t+'</button>'; };
+  o.innerHTML='<div style="background:#233138;color:#e9edef;border-radius:20px;padding:22px 20px 10px;width:min(88vw,340px)"><div style="margin-bottom:14px">Supprimer le message ?</div>'+(mien&&!deja?bt('kc-sup-tous','Supprimer pour tous'):'')+bt('kc-sup-moi','Supprimer pour moi')+bt('kc-sup-non','Annuler')+'</div>';
+  document.body.appendChild(o);
+  document.getElementById('kc-sup-non').onclick=function(){ o.remove(); };
+  document.getElementById('kc-sup-moi').onclick=function(){ o.remove(); kcSupprPourMoi(m,true); };
+  var t=document.getElementById('kc-sup-tous'); if(t) t.onclick=function(){ o.remove(); kcSupprPourTous(m); };
+}
+/* FIN-PLUS */
   function kcMonter() {
     if (document.getElementById('kc-ov')) return;
     const st = document.createElement('style');
@@ -1425,7 +1509,7 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
       '<button id="kc-b-ret">' + kcIcone('M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z') + '</button>' +
       '<div class="kc-n">1</div>' +
       '<button id="kc-b-rep">' + kcIcone('M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z') + '</button>' + '<button id="kc-b-copier">' + kcIcone('M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z') + '</button>' +
-      '<button id="kc-b-transf">' + kcIcone('M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z', true) + '</button>';
+      '<button id="kc-b-transf">' + kcIcone('M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z', true) + '</button>' + '<button id="kc-b-star">' + kcIcone('M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z') + '</button>' + '<button id="kc-b-info">' + kcIcone('M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z') + '</button>' + '<button id="kc-b-del">' + kcIcone('M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z') + '</button>';
     document.body.appendChild(haut);
     const flot = document.createElement('div');
     flot.id = 'kc-flot';
@@ -1449,7 +1533,7 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
       choisi = k;
       if (b.id === 'kc-b-rep') repondreChoisi();
       else if (b.id === 'kc-b-copier') copierChoisi();
-      else if (b.id === 'kc-b-transf') transfererChoisi();
+      else if (b.id === 'kc-b-transf') transfererChoisi(); else if (b.id === 'kc-b-star') kcEtoile(m); else if (b.id === 'kc-b-info') kcInfos(m); else if (b.id === 'kc-b-del') kcSupprMenu(m);
     });
   }
   function kcSelectionner(id) {
@@ -3254,7 +3338,7 @@ async function ouvrirContact(id){
 function fermerContact(){ $('contact').classList.add('hidden'); }
 
 function ajouterPrive(m){
-  if (typeof msgsP !== 'undefined') msgsP[m.id] = m;
+  if (typeof msgsP !== 'undefined') msgsP[m.id] = m; if (kcEstMasque(m.id)) return;
   if (!priveId || !((m.de === moi.id && m.a === priveId) || (m.de === priveId && m.a === moi.id))) return;
   if ($('p' + m.id)) { if (m.reactions && typeof kcRendreReac === 'function') kcRendreReac(m.id); return; }
   const estMoi = m.de === moi.id, d = new Date(m.created_at || Date.now());
@@ -3267,8 +3351,8 @@ function ajouterPrive(m){
     $('prive-zone').insertAdjacentHTML('beforeend', `<div class="jour-sep" data-jour="${jk}" style="align-self:center;margin:10px 0 6px;padding:4px 12px;border-radius:12px;background:#1b2730;color:#8696a0;font-size:.75rem;box-shadow:0 1px 2px rgba(0,0,0,.35)">${lib}</div>`);
   }
   $('prive-zone').insertAdjacentHTML('beforeend',
-    `<div class="rang ${estMoi ? 'moi' : 'autre'}${Date.now() - d.getTime() < 20000 ? ' arrive' : ''}" data-t="${d.getTime()}"><div id="p${m.id}" class="bulle ${estMoi ? 'moi' : 'autre'}">${kcCitation(m)}${contenuP(m)}<span class="heure">${h}${estMoi ? cochesP(m) : ''}</span></div></div>`);
-  if (typeof kcRendreReac === 'function') kcRendreReac(m.id);
+    `<div class="rang ${estMoi ? 'moi' : 'autre'}${Date.now() - d.getTime() < 20000 ? ' arrive' : ''}" data-t="${d.getTime()}"><div id="p${m.id}" class="bulle ${estMoi ? 'moi' : 'autre'}">${kcTransfLabel(m)}${kcCitation(m)}${contenuP(m)}<span class="heure">${h}${estMoi ? cochesP(m) : ''}</span></div></div>`);
+  if (typeof kcRendreReac === 'function') kcRendreReac(m.id); kcMarquerEtoile(m.id);
   $('prive-zone').scrollTop = $('prive-zone').scrollHeight;
 }
 
@@ -4076,6 +4160,7 @@ function kcLiens(h){
 }
 /* FIN-LIENS */
 function contenuP(m){
+  if(m && m.supprime) return '<i class="kc-supprime">🚫 Ce message a été supprimé</i>';
   if(!m.type||m.type==='texte') return kcLiens(esc(m.contenu));
   setTimeout(function(){ afficherMediaP(m); },0);
   return '<span id="pm'+m.id+'">…</span>';
@@ -4235,7 +4320,7 @@ async function vocalP(btn){
     if(!ok) return;
     clearInterval(iv);
     sb.channel('lu-prive').on('postgres_changes',{event:'UPDATE',schema:'public',table:'prives'},function(p){
-      var m=p.new; if(m && m.de===moi.id && m.lu_at) majCoche(m.id); else if(m && m.de===moi.id && m.recu_at) majRecu(m.id); if(m && m.a===moi.id && !m.recu_at) kcMarquerRecu(); if(m && m.reactions !== undefined && (m.de===moi.id || m.a===moi.id) && typeof kcMajReac==='function') kcMajReac(m);
+      var m=p.new; if(m && m.de===moi.id && m.lu_at) majCoche(m.id); else if(m && m.de===moi.id && m.recu_at) majRecu(m.id); if(m && m.a===moi.id && !m.recu_at) kcMarquerRecu(); if(m && m.supprime) kcMajSupprime(m); if(m && m.reactions !== undefined && (m.de===moi.id || m.a===moi.id) && typeof kcMajReac==='function') kcMajReac(m);
     }).subscribe();
   },1000);
 })();
