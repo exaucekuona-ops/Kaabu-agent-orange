@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261121-150007">
+<meta name="build" content="20261121-151822">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -334,7 +334,10 @@ html body #accueil .entete::after{content:'';position:absolute;left:0;right:0;bo
 
 <div id="transf" class="admin hidden">
   <div class="entete"><strong>Transférer à…</strong><i class="fa-solid fa-xmark" style="cursor:pointer" onclick="$('transf').classList.add('hidden')"></i></div>
-  <div id="transf-liste"></div>
+  <style>.kc-rond{width:22px;height:22px;border-radius:50%;border:2px solid #8696a0;flex:none;box-sizing:border-box}.kc-rond.on{background:#00a884;border-color:#00a884;box-shadow:inset 0 0 0 4px #0b141a}</style>
+  <input id="transf-q" type="search" placeholder="Rechercher…" oninput="transfDessiner()" style="width:calc(100% - 24px);margin:8px 12px;box-sizing:border-box">
+  <div id="transf-liste" style="padding-bottom:90px"></div>
+  <div id="transf-bas" style="display:none;position:fixed;left:0;right:0;bottom:0;padding:10px 14px;background:#202c33;align-items:center;justify-content:space-between;gap:10px;z-index:10001"><div id="transf-n" style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div><button onclick="transfEnvoyer()" style="width:48px;height:48px;border-radius:50%;border:0;background:#00a884;color:#fff;font-size:20px"><i class="fa-solid fa-paper-plane"></i></button></div>
 </div>
 <div id="menu" class="admin hidden" style="display:flex;align-items:flex-end;background:rgba(0,0,0,.6)" onclick="fermerMenu()">
   <div style="background:#202c33;width:100%;padding:8px 16px 24px;border-radius:16px 16px 0 0" onclick="event.stopPropagation()">
@@ -1243,18 +1246,85 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
     window.kcTransfType = mp ? (mp.type || 'texte') : 'texte';
     await chargerAnnuaire();
     const l = Object.values(tels).filter(p => p.id !== moi.id).sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
-    $('transf-liste').innerHTML = l.map(p => '<div class="ligne" style="cursor:pointer" data-id="' + p.id + '" onclick="envoyerTransfert(this.dataset.id)"><div style="display:flex;align-items:center;gap:10px">' + avatarDe(p.id, p.nom) + '<div>' + esc(p.nom) + '</div></div></div>').join('') || '<p style="padding:16px">Aucun contact.</p>';
+    await transfConstruire(l);
     $('transf').style.zIndex = 10000;
     $('transf').classList.remove('hidden');
   }
   async function envoyerTransfert(id) {
-    $('transf').classList.add('hidden');
-    if (!transfTexte) return;
-    const o = { de: moi.id, a: id, contenu: transfTexte };
-    if (window.kcTransfType && window.kcTransfType !== 'texte') o.type = window.kcTransfType;
-    const { error } = await sb.from('prives').insert(o);
-    msgFlash(error ? 'Erreur : ' + error.message : 'Message transféré');
+    if (!transfTexte) return null;
+    let error;
+    if (id === '__groupe__') ({ error } = await sb.from('messages').insert({ auteur: moi.id, type: window.kcTransfType || 'texte', contenu: transfTexte, groupe_id: null }));
+    else {
+      const o = { de: moi.id, a: id, contenu: transfTexte };
+      if (window.kcTransfType && window.kcTransfType !== 'texte') o.type = window.kcTransfType;
+      ({ error } = await sb.from('prives').insert(o));
+    }
+    return error || null;
   }
+  /* DEBUT-TRANSF-ECRAN */
+  var transfSel = {};
+  function transfNom(id) { const p = tels[id] || annuaire[id] || {}; return p.nom || ''; }
+  function transfLigne(id, nom) {
+    const av = id === '__groupe__' ? '<div style="width:44px;height:44px;border-radius:50%;background:#1f2c34;display:flex;align-items:center;justify-content:center;font-size:20px">👥</div>' : avatarDe(id, nom);
+    return '<div class="ligne" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between" data-id="' + esc(id) + '" onclick="transfCocher(this.dataset.id)"><div style="display:flex;align-items:center;gap:10px">' + av + '<div>' + esc(nom) + '</div></div><span class="kc-rond' + (transfSel[id] ? ' on' : '') + '"></span></div>';
+  }
+  async function transfConstruire(l) {
+    transfSel = {};
+    window.kcTransfL = l;
+    window.kcTransfRec = [];
+    window.kcTransfCnt = {};
+    $('transf-q').value = '';
+    try {
+      const r = await sb.from('prives').select('de,a,created_at').or('de.eq.' + moi.id + ',a.eq.' + moi.id).order('created_at', { ascending: false }).limit(300);
+      const vus = {};
+      (r.data || []).forEach(x => {
+        const o = x.de === moi.id ? x.a : x.de;
+        if (!o || o === moi.id) return;
+        window.kcTransfCnt[o] = (window.kcTransfCnt[o] || 0) + 1;
+        if (!vus[o]) { vus[o] = 1; window.kcTransfRec.push(o); }
+      });
+    } catch (e) {}
+    transfDessiner();
+  }
+  function transfDessiner() {
+    const q = ($('transf-q').value || '').trim().toLowerCase();
+    const ok = n => !q || String(n || '').toLowerCase().includes(q);
+    const cnt = window.kcTransfCnt || {};
+    const rec = (window.kcTransfRec || []).filter(id => transfNom(id));
+    const freq = rec.slice().sort((a, b) => (cnt[b] || 0) - (cnt[a] || 0)).slice(0, 5);
+    const recents = rec.filter(id => !freq.includes(id));
+    const dans = {}; rec.forEach(id => { dans[id] = 1; });
+    const autres = (window.kcTransfL || []).filter(p => !dans[p.id]);
+    const sec = (t, h) => h ? '<div style="padding:14px 16px 6px;color:#8696a0;font-size:.85rem">' + t + '</div>' + h : '';
+    let h1 = ok('Groupe général') ? transfLigne('__groupe__', 'Groupe général') : '';
+    h1 += freq.filter(id => ok(transfNom(id))).map(id => transfLigne(id, transfNom(id))).join('');
+    const h2 = recents.filter(id => ok(transfNom(id))).map(id => transfLigne(id, transfNom(id))).join('');
+    const h3 = autres.filter(p => ok(p.nom)).map(p => transfLigne(p.id, p.nom)).join('');
+    $('transf-liste').innerHTML = sec('Contacts fréquents', h1) + sec('Discussions récentes', h2) + sec('Autres contacts', h3) || '<p style="padding:16px">Aucun résultat.</p>';
+    transfBarre();
+  }
+  function transfCocher(id) {
+    if (transfSel[id]) delete transfSel[id]; else transfSel[id] = 1;
+    const e = $('transf-liste').querySelector('[data-id="' + id + '"] .kc-rond');
+    if (e) e.classList.toggle('on', !!transfSel[id]);
+    transfBarre();
+  }
+  function transfBarre() {
+    const ids = Object.keys(transfSel);
+    $('transf-bas').style.display = ids.length ? 'flex' : 'none';
+    $('transf-n').textContent = ids.map(id => id === '__groupe__' ? 'Groupe général' : transfNom(id)).join(', ');
+  }
+  async function transfEnvoyer() {
+    const ids = Object.keys(transfSel);
+    if (!ids.length) return;
+    $('transf').classList.add('hidden');
+    $('transf-bas').style.display = 'none';
+    let echec = 0;
+    for (const id of ids) { const e = await envoyerTransfert(id); if (e) echec++; }
+    transfSel = {};
+    msgFlash(echec ? 'Erreur : ' + echec + ' envoi(s) échoué(s)' : (ids.length > 1 ? 'Message transféré à ' + ids.length + ' discussions' : 'Message transféré'));
+  }
+  /* FIN-TRANSF-ECRAN */
 
   function copierChoisi() {
     fermerMenu();
