@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261121-151822">
+<meta name="build" content="20261121-213934">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -3405,7 +3405,9 @@ async function envoyerPrive(){
   const t = $('prive-texte').value.trim();
   if (!t || !priveId) return;
   var repEnv = kcRep; kcRepFermer(); $('prive-texte').value = ''; $('prive-texte').style.height = '';
+  const kcTmp = kcBulleAttente(t);
   const { data, error } = await sb.from('prives').insert({ de: moi.id, a: priveId, contenu: t, rep: repEnv || null }).select();
+  if (kcTmp) kcTmp.remove();
   if (error) { alert('Message non envoyé : ' + error.message); return; }
   if (data && data[0]) ajouterPrive(data[0]);
 }
@@ -4233,7 +4235,7 @@ async function vocalP(btn){
     if(!ok) return;
     clearInterval(iv);
     sb.channel('lu-prive').on('postgres_changes',{event:'UPDATE',schema:'public',table:'prives'},function(p){
-      var m=p.new; if(m && m.de===moi.id && m.lu_at) majCoche(m.id); if(m && m.reactions !== undefined && (m.de===moi.id || m.a===moi.id) && typeof kcMajReac==='function') kcMajReac(m);
+      var m=p.new; if(m && m.de===moi.id && m.lu_at) majCoche(m.id); else if(m && m.de===moi.id && m.recu_at) majRecu(m.id); if(m && m.a===moi.id && !m.recu_at) kcMarquerRecu(); if(m && m.reactions !== undefined && (m.de===moi.id || m.a===moi.id) && typeof kcMajReac==='function') kcMajReac(m);
     }).subscribe();
   },1000);
 })();
@@ -4244,9 +4246,33 @@ function svgCoche(d){
   return '<svg viewBox="0 0 19.4 12" width="19" height="12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+(d?'<path d="M1.6 6.6L5 10L12.6 1.6"/><path d="M7.5 7.3L10.2 10L17.8 1.6"/>':'<path d="M6.8 6.6L10.2 10L17.8 1.6"/>')+'</svg>';
 }
 function cochesP(m){
-  var lu=!!m.lu_at;
-  return '<span class="coches'+(lu?' lu':'')+'" id="c'+m.id+'">'+svgCoche(lu)+'</span>';
+  var lu=!!m.lu_at, rc=!!m.recu_at;
+  return '<span class="coches'+(lu?' lu':'')+'" id="c'+m.id+'">'+svgCoche(lu||rc)+'</span>';
 }
+/* DEBUT-COCHES */
+function kcMarquerRecu(){
+  try{
+    if(window.kcRecuT && Date.now()-window.kcRecuT<2000) return;
+    window.kcRecuT=Date.now();
+    sb.rpc('marquer_recu').then(function(){},function(){});
+  }catch(e){}
+}
+setTimeout(kcMarquerRecu,4000);
+document.addEventListener('visibilitychange',function(){ if(!document.hidden) kcMarquerRecu(); });
+function majRecu(id){
+  var e=document.getElementById('c'+id); if(!e||e.classList.contains('lu')) return;
+  e.innerHTML=svgCoche(true);
+}
+function kcBulleAttente(t){
+  try{
+    var z=$('prive-zone'); if(!z) return null;
+    var h=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    var d=document.createElement('div'); d.className='rang moi';
+    d.innerHTML='<div class="bulle moi">'+esc(t)+'<span class="heure">'+h+'<span class="coches att"><svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6" cy="6" r="4.8"/><path d="M6 3.2V6l2 1.2"/></svg></span></span></div>';
+    z.appendChild(d); z.scrollTop=z.scrollHeight; return d;
+  }catch(e){ return null; }
+}
+/* FIN-COCHES */
 function majCoche(id){
   var e=document.getElementById('c'+id); if(!e) return;
   e.className='coches lu'; e.innerHTML=svgCoche(true);
