@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261123-102918">
+<meta name="build" content="20261123-155424">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -2636,8 +2636,9 @@ function ouvrirSuivi(){
     return { k: k, nb: nb, g: g, pe: pe, net: g - pe, debut: debut, pts: pts, gagn: gagn, perd: perd, meil: meil, pire: pire, nbOps: nbOps };
   }
 
+  var zoomPas = 56;
   function courbe(st){
-    var H = 230, AX = 56, PAS = 56, RAMPE = 0.6, top = 30, bas = 40, i, v, op, it, dt, fr;
+    var H = 230, AX = 56, PAS = zoomPas, RAMPE = 0.6, top = 30, bas = 40, i, v, op, it, dt, fr;
     var Wc = PAS * st.nb + 14 + 90;
     var list = [];
     for (i = 0; i < S.ops.length; i++) {
@@ -2839,6 +2840,30 @@ function ouvrirSuivi(){
         return null;
       });
     };
+    var zsc = o.querySelector('#su-scroll');
+    if (zsc) {
+      var zd0 = 0, zdn = 0, zp0 = zoomPas, zcx = 0;
+      var zecart = function(e){ var a = e.touches[0], b = e.touches[1]; return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); };
+      zsc.style.touchAction = 'pan-x';
+      zsc.addEventListener('touchstart', function(e){
+        if (e.touches.length === 2) { zd0 = zecart(e); zdn = zd0; zp0 = zoomPas; zcx = (zsc.scrollLeft + zsc.clientWidth / 2 - 14) / zoomPas; }
+      }, { passive: true });
+      zsc.addEventListener('touchmove', function(e){
+        if (e.touches.length === 2 && zd0) { zdn = zecart(e); e.preventDefault(); }
+      }, { passive: false });
+      zsc.addEventListener('touchend', function(e){
+        if (!zd0 || e.touches.length > 1) return;
+        var np = Math.max(24, Math.min(140, Math.round(zp0 * zdn / zd0)));
+        zd0 = 0;
+        if (np === zoomPas) return;
+        zoomPas = np;
+        dessiner();
+        setTimeout(function(){
+          var n2 = o.querySelector('#su-scroll');
+          if (n2) n2.scrollLeft = 14 + zcx * zoomPas - n2.clientWidth / 2;
+        }, 0);
+      });
+    }
     o.querySelector('#su-calc').onclick = function(){
       feuille('🧮 Calculer mon solde', [
         { label: 'Cash (argent en main)', mode: 'decimal', val: '' },
