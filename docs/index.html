@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261123-155424">
+<meta name="build" content="20261123-220805">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -2494,12 +2494,159 @@ function ouvrirOutils(){
       '<div style="font-weight:700">' + nom + '</div></div>';
   }
   o.innerHTML = '<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:#111b21;border-bottom:1px solid #202c33;font-size:1.2rem;font-weight:700"><i id="ou-retour" class="fa-solid fa-arrow-left" style="cursor:pointer"></i>Outils</div>' +
-    '<div style="display:flex;gap:12px;padding:16px">' + carte('ou-c-retrait', 'fa-wallet', 'Retrait') + carte('ou-c-notes', 'fa-note-sticky', 'Bloc-notes') + carte('ou-c-suivi', 'fa-chart-line', 'Suivi') + '</div>';
+    '<div style="display:flex;gap:12px;padding:16px">' + carte('ou-c-retrait', 'fa-wallet', 'Retrait') + carte('ou-c-notes', 'fa-note-sticky', 'Bloc-notes') + carte('ou-c-suivi', 'fa-chart-line', 'Suivi') + carte('ou-c-trades', 'fa-book', 'Trades') + '</div>';
   document.body.appendChild(o);
   o.querySelector('#ou-retour').onclick = function(){ o.remove(); };
   o.querySelector('#ou-c-retrait').onclick = function(){ ouvrirRetrait(); };
   o.querySelector('#ou-c-notes').onclick = function(){ ouvrirBlocNotes(); };
   o.querySelector('#ou-c-suivi').onclick = function(){ ouvrirSuivi(); };
+o.querySelector('#ou-c-trades').onclick = function(){ ouvrirTrades(); };
+}
+function ouvrirTrades(){
+  var cle = 'kc_trades', T = [], onglet = 'journal';
+  try { T = JSON.parse(localStorage.getItem(cle) || '[]'); } catch (e) { T = []; }
+  var o = document.createElement('div');
+  o.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;color:#e9edef;font-family:monospace;background:radial-gradient(circle at 50% 0%,#0d2a35,#070d14 70%)';
+  document.body.appendChild(o);
+  function sauver(){ try { localStorage.setItem(cle, JSON.stringify(T)); } catch (e) {} }
+  function echap(s){ return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function vue(){
+    var noms = [['journal', 'Journal'], ['outils', 'Outils'], ['idees', 'Idées']];
+    var h = '<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid #00e5ff55;font-size:1.2rem;font-weight:700;letter-spacing:3px;text-shadow:0 0 8px #00e5ff"><i id="tr-retour" class="fa-solid fa-arrow-left" style="cursor:pointer"></i>TRADES</div><div style="display:flex;gap:8px;padding:10px 16px">';
+    for (var i = 0; i < noms.length; i++) {
+      var on = noms[i][0] === onglet;
+      h += '<div class="tr-tab" data-t="' + noms[i][0] + '" style="flex:1;text-align:center;padding:9px 0;border-radius:10px;cursor:pointer;border:1px solid ' + (on ? '#00e5ff' : '#1c3a45') + ';color:' + (on ? '#00e5ff' : '#8696a0') + ';box-shadow:' + (on ? '0 0 12px #00e5ff55' : 'none') + '">' + noms[i][1] + '</div>';
+    }
+    o.innerHTML = h + '</div><div id="tr-corps" style="flex:1;overflow:auto;padding:0 16px 20px"></div>';
+    o.querySelector('#tr-retour').onclick = function(){ o.remove(); };
+    Array.prototype.forEach.call(o.querySelectorAll('.tr-tab'), function(el){
+      el.onclick = function(){ onglet = el.getAttribute('data-t'); vue(); };
+    });
+    var corps = o.querySelector('#tr-corps');
+    var f = { journal: window.trVueJournal, outils: window.trVueOutils, idees: window.trVueIdees }[onglet];
+    if (typeof f === 'function') f(corps, { T: T, sauver: sauver, echap: echap, refaire: vue });
+    else corps.innerHTML = '<div style="color:#8696a0;text-align:center;margin-top:40px">Bientôt...</div>';
+  }
+  vue();
+}
+function trVueJournal(corps, c){
+  var T = c.T, g = 0, pnl = 0, n = T.length;
+  for (var i = 0; i < n; i++) { if (T[i].gagne) g++; pnl += T[i].pnl; }
+  var taux = n ? Math.round(g * 100 / n) : 0;
+  function boite(titre, val, coul){
+    return '<div style="flex:1;padding:10px 4px;text-align:center;border-radius:12px;border:1px solid ' + coul + '55;background:#0a1a22;box-shadow:0 0 10px ' + coul + '22"><div style="font-size:.65rem;color:#8696a0">' + titre + '</div><div style="font-size:1.1rem;font-weight:700;color:' + coul + ';text-shadow:0 0 6px ' + coul + '">' + val + '</div></div>';
+  }
+  var ch = 'width:100%;box-sizing:border-box;padding:10px;margin-bottom:8px;border-radius:10px;border:1px solid #1c3a45;background:#060f15;color:#e9edef;font-family:monospace';
+  var h = '<div style="display:flex;gap:8px;margin-bottom:12px">' + boite('TRADES', n, '#00e5ff') + boite('GAGNÉS', taux + '%', '#00ff9d') + boite('BILAN $', (pnl >= 0 ? '+' : '') + pnl.toFixed(2), pnl >= 0 ? '#00ff9d' : '#ff4d6d') + '</div>';
+  h += '<div style="padding:12px;border-radius:14px;border:1px solid #00e5ff55;background:#0a1a22;margin-bottom:14px">' +
+    '<div style="display:flex;gap:8px"><select id="tj-sens" style="' + ch + '"><option>Achat</option><option>Vente</option></select><input id="tj-paire" value="EUR/USD OTC" style="' + ch + '"></div>' +
+    '<div style="display:flex;gap:8px"><input id="tj-mise" type="number" placeholder="Mise $" style="' + ch + '"><input id="tj-pay" type="number" placeholder="Gain %" value="92" style="' + ch + '"></div>' +
+    '<select id="tj-res" style="' + ch + '"><option value="1">Gagné</option><option value="0">Perdu</option></select>' +
+    '<input id="tj-raison" placeholder="Pourquoi ce trade ?" style="' + ch + '">' +
+    '<div id="tj-ok" style="text-align:center;padding:11px;border-radius:10px;background:linear-gradient(90deg,#00e5ff,#00ff9d);color:#031016;font-weight:700;cursor:pointer">ENREGISTRER</div></div>';
+  if (!n) h += '<div style="color:#8696a0;text-align:center;margin-top:20px">Aucun trade noté.</div>';
+  for (var k = n - 1; k >= 0; k--) {
+    var t = T[k], co = t.gagne ? '#00ff9d' : '#ff4d6d';
+    h += '<div style="border-left:3px solid ' + co + ';background:#0a1a22;border-radius:10px;padding:10px 12px;margin-bottom:8px;position:relative"><div style="display:flex;justify-content:space-between"><b>' + t.sens + ' · ' + c.echap(t.paire) + '</b><b style="color:' + co + '">' + (t.pnl >= 0 ? '+' : '') + t.pnl.toFixed(2) + ' $</b></div><div style="font-size:.72rem;color:#8696a0;margin:3px 0">' + new Date(t.date).toLocaleString('fr-FR') + '</div><div style="font-size:.85rem;color:#aebac1;padding-right:24px">' + c.echap(t.raison || '—') + '</div><i class="fa-solid fa-trash tj-sup" data-id="' + t.id + '" style="position:absolute;right:12px;bottom:10px;color:#8696a0;cursor:pointer"></i></div>';
+  }
+  corps.innerHTML = h;
+  corps.querySelector('#tj-ok').onclick = function(){
+    var mise = parseFloat(corps.querySelector('#tj-mise').value);
+    var pay = parseFloat(corps.querySelector('#tj-pay').value);
+    if (!(mise > 0)) { alert('Mise invalide'); return; }
+    if (!(pay > 0)) pay = 92;
+    var gagne = corps.querySelector('#tj-res').value === '1';
+    T.push({ id: Date.now(), date: Date.now(), sens: corps.querySelector('#tj-sens').value, paire: corps.querySelector('#tj-paire').value, mise: mise, gagne: gagne, pnl: gagne ? mise * pay / 100 : -mise, raison: corps.querySelector('#tj-raison').value.trim() });
+    c.sauver(); c.refaire();
+  };
+  Array.prototype.forEach.call(corps.querySelectorAll('.tj-sup'), function(el){
+    el.onclick = function(){
+      if (!confirm('Supprimer ce trade ?')) return;
+      var id = Number(el.getAttribute('data-id'));
+      for (var j = T.length - 1; j >= 0; j--) if (T[j].id === id) T.splice(j, 1);
+      c.sauver(); c.refaire();
+    };
+  });
+}
+function trVueOutils(corps, c){
+  var ch = 'width:100%;box-sizing:border-box;padding:10px;margin-bottom:8px;border-radius:10px;border:1px solid #1c3a45;background:#060f15;color:#e9edef;font-family:monospace';
+  var liste = ['Je suis calme, je ne cherche pas à me refaire', 'Ma mise est dans ma limite', 'Je peux écrire la raison de ce trade', 'Je n\u2019ai pas atteint ma perte max du jour'];
+  function carte(titre, contenu){
+    return '<div style="padding:12px;border-radius:14px;border:1px solid #00e5ff55;background:#0a1a22;margin-bottom:12px"><div style="color:#00e5ff;font-weight:700;margin-bottom:8px;text-shadow:0 0 6px #00e5ff">' + titre + '</div>' + contenu + '</div>';
+  }
+  var h = carte('SEUIL DE RENTABILITÉ',
+    '<input id="to-pay" type="number" placeholder="Gain % (ex 92)" value="92" style="' + ch + '"><div id="to-seuil" style="color:#00ff9d;font-weight:700"></div><div style="font-size:.75rem;color:#8696a0;margin-top:4px">Sous ce taux de trades gagnés, tu perds ton argent.</div>');
+  h += carte('GESTION DU RISQUE',
+    '<input id="to-cap" type="number" placeholder="Ton capital $" style="' + ch + '"><div style="display:flex;gap:8px"><input id="to-ris" type="number" placeholder="Risque/trade %" value="2" style="' + ch + '"><input id="to-jour" type="number" placeholder="Perte max/jour %" value="5" style="' + ch + '"></div><div id="to-risque" style="line-height:1.7"></div>');
+  var cases = '';
+  for (var i = 0; i < liste.length; i++) {
+    cases += '<label style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><input type="checkbox" class="to-chk">' + liste[i] + '</label>';
+  }
+  h += carte('AVANT CHAQUE TRADE', cases + '<div id="to-pret" style="font-weight:700;margin-top:6px"></div>');
+  corps.innerHTML = h;
+  function maj(){
+    var pay = parseFloat(corps.querySelector('#to-pay').value);
+    corps.querySelector('#to-seuil').textContent = pay > 0 ? 'Il faut gagner au moins ' + (10000 / (100 + pay)).toFixed(1) + ' % de tes trades' : '';
+    var cap = parseFloat(corps.querySelector('#to-cap').value);
+    var r = parseFloat(corps.querySelector('#to-ris').value);
+    var j = parseFloat(corps.querySelector('#to-jour').value);
+    var s = corps.querySelector('#to-risque');
+    if (cap > 0 && r > 0 && j > 0) {
+      s.innerHTML = 'Mise max : <b>' + (cap * r / 100).toFixed(2) + ' $</b><br>Perte max du jour : <b>' + (cap * j / 100).toFixed(2) + ' $</b> (puis tu arrêtes)<br>Après 5 pertes de suite : <b>' + (cap * Math.pow(1 - r / 100, 5)).toFixed(2) + ' $</b>';
+    } else s.textContent = '';
+    var ok = corps.querySelectorAll('.to-chk:checked').length === liste.length;
+    var p = corps.querySelector('#to-pret');
+    p.textContent = ok ? '✅ Tu peux trader' : '⛔ Coche tout avant de trader';
+    p.style.color = ok ? '#00ff9d' : '#ff4d6d';
+  }
+  Array.prototype.forEach.call(corps.querySelectorAll('input'), function(el){ el.oninput = maj; el.onchange = maj; });
+  maj();
+}
+function trVueIdees(corps, c){
+  var cle = 'kc_trades_idees', N = [], edit = null;
+  try { N = JSON.parse(localStorage.getItem(cle) || '[]'); } catch (e) { N = []; }
+  var types = ['Stratégie', 'Erreur', 'Leçon', 'Idée'];
+  var coul = { 'Stratégie': '#00e5ff', 'Erreur': '#ff4d6d', 'Leçon': '#00ff9d', 'Idée': '#ffd166' };
+  var ch = 'width:100%;box-sizing:border-box;padding:10px;margin-bottom:8px;border-radius:10px;border:1px solid #1c3a45;background:#060f15;color:#e9edef;font-family:monospace';
+  function sauver(){ try { localStorage.setItem(cle, JSON.stringify(N)); } catch (e) {} }
+  function ea(s){ return c.echap(s).replace(/"/g, '&quot;'); }
+  function dessiner(){
+    var cur = null, opts = '', i;
+    for (i = 0; i < N.length; i++) if (N[i].id === edit) cur = N[i];
+    for (i = 0; i < types.length; i++) opts += '<option' + (cur && cur.type === types[i] ? ' selected' : '') + '>' + types[i] + '</option>';
+    var h = '<div style="padding:12px;border-radius:14px;border:1px solid #00e5ff55;background:#0a1a22;margin-bottom:14px">' +
+      '<select id="id-type" style="' + ch + '">' + opts + '</select>' +
+      '<input id="id-titre" placeholder="Titre" value="' + ea(cur ? cur.titre : '') + '" style="' + ch + '">' +
+      '<textarea id="id-texte" rows="5" placeholder="Ce que tu as capté du trading..." style="' + ch + '">' + c.echap(cur ? cur.texte : '') + '</textarea>' +
+      '<div id="id-ok" style="text-align:center;padding:11px;border-radius:10px;background:linear-gradient(90deg,#00e5ff,#00ff9d);color:#031016;font-weight:700;cursor:pointer">' + (cur ? 'MODIFIER' : 'AJOUTER') + '</div></div>';
+    if (!N.length) h += '<div style="color:#8696a0;text-align:center;margin-top:20px">Aucune idée notée.</div>';
+    for (i = N.length - 1; i >= 0; i--) {
+      var n = N[i], co = coul[n.type] || '#00e5ff';
+      h += '<div style="border-left:3px solid ' + co + ';background:#0a1a22;border-radius:10px;padding:10px 12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="color:' + co + ';font-size:.72rem;font-weight:700">' + n.type.toUpperCase() + '</span><span><i class="fa-solid fa-pen id-mod" data-id="' + n.id + '" style="color:#8696a0;cursor:pointer;margin-right:16px"></i><i class="fa-solid fa-trash id-sup" data-id="' + n.id + '" style="color:#8696a0;cursor:pointer"></i></span></div><div style="font-weight:700;margin:4px 0">' + c.echap(n.titre || 'Sans titre') + '</div><div style="font-size:.72rem;color:#8696a0;margin-bottom:4px">' + new Date(n.date).toLocaleString('fr-FR') + '</div><div style="font-size:.85rem;color:#aebac1;white-space:pre-wrap">' + c.echap(n.texte) + '</div></div>';
+    }
+    corps.innerHTML = h;
+    corps.querySelector('#id-ok').onclick = function(){
+      var titre = corps.querySelector('#id-titre').value.trim();
+      var texte = corps.querySelector('#id-texte').value.trim();
+      var type = corps.querySelector('#id-type').value;
+      if (!titre && !texte) { alert('Écris quelque chose'); return; }
+      if (cur) { cur.type = type; cur.titre = titre; cur.texte = texte; }
+      else N.push({ id: Date.now(), date: Date.now(), type: type, titre: titre, texte: texte });
+      edit = null; sauver(); dessiner();
+    };
+    Array.prototype.forEach.call(corps.querySelectorAll('.id-mod'), function(el){
+      el.onclick = function(){ edit = Number(el.getAttribute('data-id')); dessiner(); };
+    });
+    Array.prototype.forEach.call(corps.querySelectorAll('.id-sup'), function(el){
+      el.onclick = function(){
+        if (!confirm('Supprimer cette idée ?')) return;
+        var id = Number(el.getAttribute('data-id'));
+        for (var j = N.length - 1; j >= 0; j--) if (N[j].id === id) N.splice(j, 1);
+        edit = null; sauver(); dessiner();
+      };
+    });
+  }
+  dessiner();
 }
 function ouvrirBlocNotes(){
   var cle = 'kc_notes', notes = [];
