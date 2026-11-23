@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261123-221832">
+<meta name="build" content="20261123-223130">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -2784,6 +2784,7 @@ function ouvrirSuivi(){
   }
 
   var zoomPas = 56;
+  var visK = "", visD0 = 0, visD1 = 0;
   function courbe(st){
     var H = 230, AX = 56, PAS = zoomPas, RAMPE = 0.6, top = 30, bas = 40, i, v, op, it, dt, fr;
     var Wc = PAS * st.nb + 14 + 90;
@@ -2810,6 +2811,7 @@ function ouvrirSuivi(){
     if (fim > P[P.length - 1].x) P.push({ x: fim, y: run, s: false });
     var mn = st.debut, mx = st.debut;
     for (i = 0; i < P.length; i++) { if (P[i].y < mn) mn = P[i].y; if (P[i].y > mx) mx = P[i].y; }
+    if (visK === st.k) { var yv = P[0].y; for (i = 0; i < P.length; i++) if (P[i].x <= visD0) yv = P[i].y; mn = mx = yv; for (i = 0; i < P.length; i++) { if (P[i].x < visD0 || P[i].x > visD1) continue; if (P[i].y < mn) mn = P[i].y; if (P[i].y > mx) mx = P[i].y; } }
     if (mx === mn) { mx += 1; mn -= 1; }
     var marge = (mx - mn) * 0.15;
     mn -= marge; mx += marge;
@@ -2987,6 +2989,30 @@ function ouvrirSuivi(){
         return null;
       });
     };
+    var fsc = o.querySelector('#su-scroll');
+    if (fsc) {
+      var focc = false, fl0 = -999;
+      var fmaj = function(){
+        var d0 = (fsc.scrollLeft - 14) / zoomPas;
+        if (Math.abs(d0 - fl0) < 0.03) return;
+        fl0 = d0;
+        visK = st.k;
+        visD0 = d0;
+        visD1 = d0 + fsc.clientWidth / zoomPas;
+        var t = document.createElement('div');
+        t.innerHTML = courbe(st);
+        var w = t.firstChild;
+        if (!w || w.children.length < 2) return;
+        fsc.previousElementSibling.replaceWith(w.children[0]);
+        fsc.firstElementChild.replaceWith(w.children[1].firstElementChild);
+      };
+      fsc.addEventListener('scroll', function(){
+        if (focc) return;
+        focc = true;
+        requestAnimationFrame(function(){ focc = false; fmaj(); });
+      });
+      fmaj();
+    }
     var zsc = o.querySelector('#su-scroll');
     if (zsc) {
       var zd0 = 0, zdn = 0, zp0 = zoomPas, zcx = 0;
