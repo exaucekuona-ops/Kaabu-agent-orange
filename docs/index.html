@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261121-223253">
+<meta name="build" content="20261123-101234">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -805,9 +805,11 @@ function copierCode(code){
     if (!session) { finChargement(); return montrer('login'); }
     try {
       const c0 = JSON.parse(localStorage.getItem('kc_msg_' + session.user.id) || 'null');
-      if (c0 && c0.length && !$('zone').children.length) { moi = { id: session.user.id }; dernierJour = ''; c0.forEach(ajouter); }
+      var pc0 = null; try { pc0 = JSON.parse(localStorage.getItem('kc_prof_' + session.user.id) || 'null'); } catch (e) {}
+      try { if (pc0) $('mi-admin').classList.toggle('hidden', !(pc0.is_admin || pc0.is_supreme)); } catch (e) {}
+      if (c0 && c0.length && !$('zone').children.length) { moi = Object.assign({ id: session.user.id }, pc0 || {}); dernierJour = ''; c0.forEach(ajouter); }
     } catch (e) {}
-    let { data: p, error: pErr } = await sb.from('profiles').select('nom,statut,is_admin,is_supreme,phone').eq('id', session.user.id).single();
+    let { data: p, error: pErr } = await Promise.race([ sb.from('profiles').select('nom,statut,is_admin,is_supreme,phone').eq('id', session.user.id).single(), new Promise(function (r) { if (pc0) setTimeout(function () { r({ data: null, error: { message: 'delai' } }); }, 3000); }) ]);
     let horsLigne = false;
     try {
       const kp = 'kc_prof_' + session.user.id;
@@ -955,11 +957,38 @@ $('onglets').innerHTML = [['tous', 'Tous (' + data.length + ')'], ['admins', 'Ad
     try { const t = await sb.rpc('annuaire_tel'); tels = {}; (t.data || []).forEach(x => { tels[x.id] = x; }); } catch (e) {}
   }
 
+  /* DEBUT-AVLOCAL */
+var _avU = {}, _avP = {};
+function avLocal(chemin, urlPub){
+    if (_avU[chemin]) return _avU[chemin];
+    if (_avP[chemin] || !window.caches) return urlPub;
+    _avP[chemin] = 1;
+    caches.open('kaabu-medias').then(function(c){
+      var cle = new Request('/kaabu-avatar/' + encodeURIComponent(chemin));
+      return c.match(cle).then(function(rep){
+        if (rep) return rep;
+        return fetch(urlPub).then(function(r){
+          if (!r.ok) return null;
+          return c.put(cle, r.clone()).then(function(){ return r; });
+        });
+      });
+    }).then(function(rep){
+      if (!rep) { _avP[chemin] = 0; return; }
+      return rep.blob().then(function(b){
+        var u = URL.createObjectURL(b); _avU[chemin] = u;
+        document.querySelectorAll('img[data-av]').forEach(function(im){
+          if (im.getAttribute('data-av') === chemin) im.src = u;
+        });
+      });
+    }).catch(function(){ _avP[chemin] = 0; });
+    return urlPub;
+  }
+  /* FIN-AVLOCAL */
   function avatarDe(id, nom) {
     const p = annuaire[id];
     if (p && p.photo_url) {
       const url = sb.storage.from('avatars').getPublicUrl(p.photo_url).data.publicUrl;
-      return `<img class="av" src="${esc(url)}">`;
+      return `<img class="av" data-av="${esc(p.photo_url)}" src="${esc(avLocal(p.photo_url, url))}">`;
     }
     return `<span class="ini">${esc(Array.from(nom || '?')[0].toUpperCase())}</span>`;
   }
@@ -3551,7 +3580,7 @@ async function ouvrirPrive(id){
   const { data, error } = await sb.from('prives').select('*')
     .or(`and(de.eq.${moi.id},a.eq.${id}),and(de.eq.${id},a.eq.${moi.id})`)
     .order('created_at', { ascending: false }).limit(100);
-  if (error) { $('prive-zone').textContent = 'Erreur : ' + error.message; return; }
+  if (error) { if (!$('prive-zone').children.length) $('prive-zone').textContent = 'Erreur : ' + error.message; return; }
   var _ml = (data || []).reverse().map(function(x){ return { d: x.created_at, m: x }; });
   try{ var ap = await sb.from('appels').select('id,de,vers,etat,created_at,rep:reponse->>type,dur:reponse->>duree').or('and(de.eq.' + moi.id + ',vers.eq.' + id + '),and(de.eq.' + id + ',vers.eq.' + moi.id + ')').eq('etat', 'fini').order('created_at', { ascending: false }).limit(30); (ap.data || []).forEach(function(c){ _ml.push({ d: c.created_at, c: c }); }); }catch(e){}
   _ml.sort(function(p, q){ return new Date(p.d) - new Date(q.d); });
@@ -4819,7 +4848,7 @@ function majCoche(id){
     try{
       if(pret()){
         var c=lire(cle('prv_'+id,moi.id));
-        if(c&&c.length&&priveId===id){ c.slice(-300).forEach(function(m){ ajouterPrive(m); }); cache=true; }
+        if(c&&c.length&&priveId===id){ c.slice(-300).forEach(function(m){ ajouterPrive(m); }); try{ (lire(cle('apl_'+id,moi.id))||[]).forEach(function(x){ ajouterAppelPrive(x); }); }catch(e){} cache=true; }
       }
     }catch(e){}
     try{ await p; }catch(e){}
@@ -4827,6 +4856,8 @@ function majCoche(id){
     if(cache) majLus(id);
   };
 
+  var _aap=ajouterAppelPrive;
+  ajouterAppelPrive=function(a){ try{ if(pret()&&a&&a.id&&priveId){ var k=cle('apl_'+priveId,moi.id), l=lire(k)||[]; if(!l.some(function(x){return x.id===a.id;})){ l.push(a); localStorage.setItem(k,JSON.stringify(l.slice(-50))); } } }catch(e){} return _aap.apply(this,arguments); };
   function toutSauver(){ sauverMsgs(); try{ Object.keys(pc).forEach(sauverPrive); }catch(e){} }
   document.addEventListener('visibilitychange',function(){ if(document.hidden) toutSauver(); });
   window.addEventListener('pagehide',toutSauver);
