@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261123-101234">
+<meta name="build" content="20261123-102918">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -1575,7 +1575,7 @@ function kcMenuPlus(m){
   o.style.cssText='position:fixed;inset:0;z-index:100000';
   o.onclick=function(){ o.remove(); };
   var star=!!kcEtoiles()[String(m.id)], pin=(kcEpingles()[String(priveId)]===String(m.id));
-  var mien=(m.de===moi.id)&&(!m.type||m.type==='texte')&&!m.supprime;
+  var mien=(m.de===moi.id)&&(!m.type||m.type==='texte')&&!m.supprime&&(!m.created_at||Date.now()-new Date(m.created_at).getTime()<15*60*1000);
   var it=[['kc-p-star',star?'Retirer des importants':'Important'],['kc-p-part','Partager'],['kc-p-pin',pin?'Désépingler':'Épingler']];
   if(mien) it.push(['kc-p-mod','Modifier']);
   o.innerHTML='<div style="position:absolute;top:calc(56px + env(safe-area-inset-top,0px));right:8px;background:#233138;color:#e9edef;border-radius:14px;min-width:210px;padding:6px 0;box-shadow:0 6px 24px rgba(0,0,0,.5)">'+it.map(function(x){ return '<div id="'+x[0]+'" style="padding:14px 20px;font-size:1rem">'+x[1]+'</div>'; }).join('')+'</div>';
