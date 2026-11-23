@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261123-220805">
+<meta name="build" content="20261123-221832">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -2494,7 +2494,7 @@ function ouvrirOutils(){
       '<div style="font-weight:700">' + nom + '</div></div>';
   }
   o.innerHTML = '<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:#111b21;border-bottom:1px solid #202c33;font-size:1.2rem;font-weight:700"><i id="ou-retour" class="fa-solid fa-arrow-left" style="cursor:pointer"></i>Outils</div>' +
-    '<div style="display:flex;gap:12px;padding:16px">' + carte('ou-c-retrait', 'fa-wallet', 'Retrait') + carte('ou-c-notes', 'fa-note-sticky', 'Bloc-notes') + carte('ou-c-suivi', 'fa-chart-line', 'Suivi') + carte('ou-c-trades', 'fa-book', 'Trades') + '</div>';
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px">' + carte('ou-c-retrait', 'fa-wallet', 'Retrait') + carte('ou-c-notes', 'fa-note-sticky', 'Bloc-notes') + carte('ou-c-suivi', 'fa-chart-line', 'Suivi') + carte('ou-c-trades', 'fa-book', 'Trades') + '</div>';
   document.body.appendChild(o);
   o.querySelector('#ou-retour').onclick = function(){ o.remove(); };
   o.querySelector('#ou-c-retrait').onclick = function(){ ouvrirRetrait(); };
