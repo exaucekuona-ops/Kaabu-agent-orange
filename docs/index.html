@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261123-223130">
+<meta name="build" content="20261123-225320">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -3003,8 +3003,8 @@ function ouvrirSuivi(){
         t.innerHTML = courbe(st);
         var w = t.firstChild;
         if (!w || w.children.length < 2) return;
-        fsc.previousElementSibling.replaceWith(w.children[0]);
-        fsc.firstElementChild.replaceWith(w.children[1].firstElementChild);
+        var nax = w.children[0], nsv = w.children[1].firstElementChild; fsc.previousElementSibling.replaceWith(nax);
+        fsc.firstElementChild.replaceWith(nsv);
       };
       fsc.addEventListener('scroll', function(){
         if (focc) return;
