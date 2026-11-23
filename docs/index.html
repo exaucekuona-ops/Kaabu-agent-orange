@@ -2767,7 +2767,7 @@ function ouvrirSuivi(){
     var pct = st.debut > 0 ? ' (' + (st.net >= 0 ? '+' : '−') + num(Math.abs(st.net / st.debut * 100)) + ' %)' : '';
     h = '<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:#111b21;border-bottom:1px solid #202c33;font-size:1.2rem;font-weight:700"><i id="su-retour" class="fa-solid fa-arrow-left" style="cursor:pointer"></i><span style="flex:1">Suivi</span><span id="su-dev" style="font-size:.8rem;font-weight:700;padding:6px 12px;border-radius:20px;background:#202c33;cursor:pointer">' + S.devise + '</span></div>';
     h += '<div id="su-corps" style="flex:1;overflow:auto;padding:14px 16px">';
-    h += '<div style="' + CARTE + '"><div style="' + PETIT + '">Mon solde (tous mes biens)</div><div style="font-size:2rem;font-weight:800;margin:4px 0">' + mt(solde) + '</div><div style="font-weight:700;color:' + coul(st.net) + '">' + (st.net > 0 ? '▲ ' : st.net < 0 ? '▼ ' : '') + sg(st.net) + pct + ' <span style="font-weight:400;color:#8696a0">en ' + MOIS[+mc.slice(5, 7) - 1] + '</span></div><div id="su-solde" style="margin-top:12px;display:inline-block;padding:9px 14px;border-radius:12px;background:#202c33;font-size:.9rem;cursor:pointer">✏️ Écrire mon solde du jour</div></div>';
+    h += '<div style="' + CARTE + '"><div style="' + PETIT + '">Mon solde (tous mes biens)</div><div style="font-size:2rem;font-weight:800;margin:4px 0">' + mt(solde) + '</div><div style="font-weight:700;color:' + coul(st.net) + '">' + (st.net > 0 ? '▲ ' : st.net < 0 ? '▼ ' : '') + sg(st.net) + pct + ' <span style="font-weight:400;color:#8696a0">en ' + MOIS[+mc.slice(5, 7) - 1] + '</span></div><div id="su-solde" style="margin-top:12px;display:inline-block;padding:9px 14px;border-radius:12px;background:#202c33;font-size:.9rem;cursor:pointer">✏️ Écrire mon solde du jour</div><div id="su-calc" style="margin-top:12px;margin-left:8px;display:inline-block;padding:9px 14px;border-radius:12px;background:#202c33;font-size:.9rem;cursor:pointer">🧮 Calculer</div></div>';
     h += '<div style="' + CARTE + '"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><i id="su-prec" class="fa-solid fa-chevron-left" style="padding:6px 12px;cursor:pointer"></i><b style="text-transform:capitalize">' + nomMois(mc) + '</b><i id="su-suiv" class="fa-solid fa-chevron-right" style="padding:6px 12px;cursor:pointer"></i></div>' + courbe(st);
     h += '<div style="text-align:center;font-weight:700;margin-top:8px;color:' + (st.nbOps ? coul(st.net) : GRIS) + '">' + (!st.nbOps ? 'Ajoute ton premier gain ou ta première perte' : st.net > 0 ? '📈 Ça monte : tu es en gain ce mois-ci' : st.net < 0 ? '📉 Ça baisse : tu es en perte ce mois-ci' : '➖ Équilibre : ni gain ni perte') + '</div></div>';
     var act = st.gagn + st.perd;
@@ -2833,6 +2833,36 @@ function ouvrirSuivi(){
         else {
           var dif = Math.round((x - soldeActuel()) * 100) / 100;
           if (dif !== 0) S.ops.push({ id: Date.now(), d: auj, type: dif > 0 ? 'gain' : 'perte', m: Math.abs(dif), note: 'Solde du jour', auto: true });
+        }
+        mc = auj.slice(0, 7);
+        sauver();
+        return null;
+      });
+    };
+    o.querySelector('#su-calc').onclick = function(){
+      feuille('🧮 Calculer mon solde', [
+        { label: 'Cash (argent en main)', mode: 'decimal', val: '' },
+        { label: 'Airtel', mode: 'decimal', val: '' },
+        { label: 'Orange', mode: 'decimal', val: '' },
+        { label: 'Africell', mode: 'decimal', val: '' },
+        { label: 'Vodacom', mode: 'decimal', val: '' }
+      ], 'Calculer et enregistrer', function(v){
+        var tot = 0, rempli = false;
+        for (var k = 0; k < v.length; k++) {
+          if (String(v[k]).trim() === '') continue;
+          var n = lire(v[k]);
+          if (n === null) return 'Montant invalide';
+          tot += n; rempli = true;
+        }
+        if (!rempli) return 'Écris au moins un montant';
+        tot = Math.round(tot * 100) / 100;
+        var gardes = [];
+        for (var q = 0; q < S.ops.length; q++) { if (!(S.ops[q].auto && S.ops[q].d === auj)) gardes.push(S.ops[q]); }
+        S.ops = gardes;
+        if (!S.ops.length && !S.depart) { S.depart = tot; }
+        else {
+          var dif = Math.round((tot - soldeActuel()) * 100) / 100;
+          if (dif !== 0) S.ops.push({ id: Date.now(), d: auj, type: dif > 0 ? 'gain' : 'perte', m: Math.abs(dif), note: 'Solde calculé', auto: true });
         }
         mc = auj.slice(0, 7);
         sauver();
