@@ -135,7 +135,7 @@
 #visio #visio-img{width:100%!important;max-width:800px!important;height:auto!important;max-height:90vh!important;object-fit:contain!important}
 #chat .entete #logo-app,#chat .entete #titre-app{display:none!important}
 </style>
-<style>/*fix-largeur*/html,body{max-width:100%;overflow-x:hidden}.barre{box-sizing:border-box;max-width:100%}#texte{min-width:0;flex:1 1 0}#saisie .ico,#saisie .envoi{flex:0 0 auto}</style><style>/*barre-wa*/
+<style>/*fix-largeur*/html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body{max-width:100%;overflow-x:hidden}.barre{box-sizing:border-box;max-width:100%}#texte{min-width:0;flex:1 1 0}#saisie .ico,#saisie .envoi{flex:0 0 auto}</style><style>/*barre-wa*/
 #saisie{align-items:center}
 #saisie .pilule{flex:1 1 0;min-width:0;display:flex;align-items:center;background:#202c33;border-radius:28px;padding:0 4px 0 16px;min-height:48px}
 #saisie .pilule #texte{flex:1 1 0;min-width:0;background:transparent;border:0;outline:0;box-shadow:none;border-radius:0;padding:10px 4px;color:#e9edef;font-size:17px}
@@ -2494,12 +2494,13 @@ function ouvrirOutils(){
       '<div style="font-weight:700">' + nom + '</div></div>';
   }
   o.innerHTML = '<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:#111b21;border-bottom:1px solid #202c33;font-size:1.2rem;font-weight:700"><i id="ou-retour" class="fa-solid fa-arrow-left" style="cursor:pointer"></i>Outils</div>' +
-    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px">' + carte('ou-c-retrait', 'fa-wallet', 'Retrait') + carte('ou-c-notes', 'fa-note-sticky', 'Bloc-notes') + carte('ou-c-suivi', 'fa-chart-line', 'Suivi') + carte('ou-c-trades', 'fa-book', 'Trades') + '</div>';
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px">' + carte('ou-c-retrait', 'fa-wallet', 'Retrait') + carte('ou-c-notes', 'fa-note-sticky', 'Bloc-notes') + carte('ou-c-suivi', 'fa-chart-line', 'Suivi') + carte('ou-c-trades', 'fa-book', 'Trades') + ((typeof moi!=='undefined' && moi && moi.is_supreme) ? carte('ou-c-epargne', 'fa-piggy-bank', 'Épargne PC') : '') + '</div>';
   document.body.appendChild(o);
   o.querySelector('#ou-retour').onclick = function(){ o.remove(); };
   o.querySelector('#ou-c-retrait').onclick = function(){ ouvrirRetrait(); };
   o.querySelector('#ou-c-notes').onclick = function(){ ouvrirBlocNotes(); };
   o.querySelector('#ou-c-suivi').onclick = function(){ ouvrirSuivi(); };
+  var ep = o.querySelector('#ou-c-epargne'); if (ep) ep.onclick = function(){ ouvrirEpargne(); };
 o.querySelector('#ou-c-trades').onclick = function(){ ouvrirTrades(); };
 }
 function ouvrirTrades(){
@@ -2729,6 +2730,62 @@ function ouvrirBlocNotes(){
   }
   liste();
 }
+function ouvrirEpargne(){
+  var CLE = 'kc_epargne', VERT = '#00a884', ROUGE = '#f15c6d';
+  var CARTE = 'background:#111b21;border:1px solid #202c33;border-radius:16px;padding:16px;margin-bottom:14px';
+  var PETIT = 'font-size:.75rem;color:#8696a0';
+  var BTN = 'padding:12px 16px;border-radius:12px;background:#202c33;font-weight:700;cursor:pointer;text-align:center';
+  var S = { obj: 250, v: [] };
+  try { var br = JSON.parse(localStorage.getItem(CLE) || 'null'); if (br && br.v) S = br; } catch (e) {}
+  function sauver(){ try { localStorage.setItem(CLE, JSON.stringify(S)); } catch (e) {} }
+  function pad(n){ return ('0' + n).slice(-2); }
+  function ymd(d){ return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function num(n){ return (Math.round(n * 100) / 100).toLocaleString('fr-FR'); }
+  var o = document.createElement('div');
+  o.style.cssText = 'position:fixed;inset:0;background:#0b141a;z-index:10000;display:flex;flex-direction:column;color:#e9edef';
+  document.body.appendChild(o);
+
+  function dessiner(){
+    var auj = ymd(new Date()), jour = new Date().getDay() === 0 ? 2 : 1;
+    var tot = 0, fait = false, i, h;
+    for (i = 0; i < S.v.length; i++) { tot += S.v[i].m; if (S.v[i].d === auj) fait = true; }
+    var reste = Math.max(0, S.obj - tot), p = Math.min(100, tot / S.obj * 100);
+    var d = new Date(), n = 0, r = reste;
+    if (!fait) d.setDate(d.getDate() - 1);
+    while (r > 0 && n < 5000) { d.setDate(d.getDate() + 1); r -= (d.getDay() === 0 ? 2 : 1); n++; }
+    h = '<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:#111b21;border-bottom:1px solid #202c33;font-size:1.2rem;font-weight:700"><i id="ep-retour" class="fa-solid fa-arrow-left" style="cursor:pointer"></i><span style="flex:1">Épargne PC 💻</span></div>';
+    h += '<div style="flex:1;overflow:auto;padding:14px 16px">';
+    h += '<div style="' + CARTE + '"><div style="' + PETIT + '">Épargné pour le PC</div><div style="font-size:2rem;font-weight:800;margin:4px 0">' + num(tot) + ' $ <span style="font-size:1rem;font-weight:400;color:#8696a0">sur ' + num(S.obj) + ' $</span></div><div style="height:12px;border-radius:6px;background:#202c33;overflow:hidden;margin:10px 0 6px"><div style="height:100%;width:' + p + '%;background:' + VERT + '"></div></div><div style="font-size:.85rem;color:#aebac1">' + num(p) + ' % atteint · reste ' + num(reste) + ' $</div></div>';
+    if (reste > 0) {
+      h += '<div style="' + CARTE + '"><div style="' + PETIT + '">Jours restants</div><div style="font-size:1.6rem;font-weight:800;margin:4px 0">' + n + ' jours</div><div style="font-size:.85rem;color:#aebac1">Achat prévu : <b>' + d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + '</b></div><div style="' + PETIT + ';margin-top:6px">1 $ par jour, 2 $ le dimanche</div></div>';
+    } else {
+      h += '<div style="' + CARTE + ';text-align:center;font-weight:700;color:' + VERT + '">🎉 Objectif atteint, le PC est à toi !</div>';
+    }
+    h += '<div style="' + CARTE + '"><div id="ep-jour" style="' + BTN + ';background:' + (fait ? '#202c33' : VERT) + '">' + (fait ? '✅ Déjà fait ce jour (ajouter encore ' + jour + ' $)' : '➕ Épargne du jour : ' + jour + ' $') + '</div><div style="display:flex;gap:8px;margin-top:12px"><input id="ep-m" type="number" inputmode="decimal" placeholder="Autre montant en $" style="flex:1;min-width:0;padding:12px;border-radius:12px;border:1px solid #202c33;background:#0b141a;color:#e9edef;font-size:1rem"><div id="ep-add" style="' + BTN + '">Ajouter</div></div><div style="' + PETIT + ';margin-top:10px">Première fois : ajoute ici le montant déjà mis de côté.</div></div>';
+    var lst = S.v.slice().sort(function(a, b){ return a.d < b.d ? 1 : a.d > b.d ? -1 : b.id - a.id; }).slice(0, 15);
+    if (lst.length) {
+      h += '<div style="' + CARTE + ';padding:6px 14px"><div style="font-weight:700;margin:8px 0">Versements</div>';
+      for (i = 0; i < lst.length; i++) h += '<div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid #1a252c"><span>' + lst[i].d.slice(8) + '/' + lst[i].d.slice(5, 7) + '</span><span style="color:' + VERT + ';font-weight:700">+' + num(lst[i].m) + ' $ <i class="fa-solid fa-xmark ep-x" data-id="' + lst[i].id + '" style="color:' + ROUGE + ';margin-left:12px;cursor:pointer"></i></span></div>';
+      h += '</div>';
+    }
+    h += '</div>';
+    o.innerHTML = h;
+    o.querySelector('#ep-retour').onclick = function(){ o.remove(); };
+    o.querySelector('#ep-jour').onclick = function(){ S.v.push({ id: Date.now(), d: auj, m: jour }); sauver(); dessiner(); };
+    o.querySelector('#ep-add').onclick = function(){
+      var m = parseFloat(String(o.querySelector('#ep-m').value).replace(',', '.'));
+      if (isNaN(m) || m <= 0) return;
+      S.v.push({ id: Date.now(), d: auj, m: m }); sauver(); dessiner();
+    };
+    var xs = o.querySelectorAll('.ep-x');
+    for (i = 0; i < xs.length; i++) xs[i].onclick = function(){
+      var id = +this.getAttribute('data-id');
+      S.v = S.v.filter(function(v){ return v.id !== id; }); sauver(); dessiner();
+    };
+  }
+  dessiner();
+}
+
 function ouvrirSuivi(){
   var CLE = 'kc_suivi', VERT = '#00a884', ROUGE = '#f15c6d', GRIS = '#8696a0';
   var MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
