@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261128-111931">
+<meta name="build" content="20261128-114334">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -2539,7 +2539,7 @@ function ouvrirReveil(){
     '</div>';
   document.body.appendChild(o);
   var rvStream = null, rvBoucle = null, rvDetecteur = null;
-  var rvEtat = 'haut', rvCompteur = 0, rvNezHaut = null, rvNezBas = false;
+  var rvEtat = 'haut', rvCompteur = 0, rvNezHaut = null, rvAngLiss = null, rvFramesBas = 0, rvFramesHaut = 0, rvDernierCompte = 0;
   var video = o.querySelector('#rv-video');
   var canvas = o.querySelector('#rv-canvas');
   var ctx = canvas.getContext('2d');
@@ -2576,17 +2576,23 @@ function ouvrirReveil(){
                 }
                 if (nez && nez.score>0.4) {
                   if (rvNezHaut===null || nez.y < rvNezHaut) rvNezHaut = nez.y;
-                  var seuilBas = rvNezHaut + (canvas.height*0.12);
-                  if (nez.y > seuilBas) rvNezBas = true;
-                  if (ang===null && rvNezBas) {
-                    ang = (nez.y < rvNezHaut + (canvas.height*0.04)) ? 170 : 70;
+                  if (ang===null) {
+                    var plage = canvas.height*0.12;
+                    var prop = Math.max(0, Math.min(1, (nez.y - rvNezHaut) / plage));
+                    ang = 170 - prop*100;
                   }
                 }
                 if (ang!==null) {
-                  if (ang < 90) rvEtat = 'bas';
-                  else if (ang > 160 && rvEtat === 'bas') {
+                  rvAngLiss = (rvAngLiss===null) ? ang : (rvAngLiss*0.7 + ang*0.3);
+                  var maintenant = Date.now();
+                  if (rvAngLiss < 85) { rvFramesBas++; rvFramesHaut = 0; }
+                  else if (rvAngLiss > 165) { rvFramesHaut++; rvFramesBas = 0; }
+                  else { rvFramesBas = 0; rvFramesHaut = 0; }
+                  if (rvFramesBas >= 3) rvEtat = 'bas';
+                  if (rvFramesHaut >= 3 && rvEtat === 'bas' && (maintenant - rvDernierCompte) > 600) {
                     rvEtat = 'haut';
                     rvCompteur++;
+                    rvDernierCompte = maintenant;
                     compteurEl.textContent = rvCompteur + ' / 10';
                   }
                 }
