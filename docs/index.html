@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta name="build" content="20261128-114334">
+<meta name="build" content="20261128-115232">
 <!-- BLOC : MISE-A-JOUR -->
 <script>
 (function(){
@@ -2594,6 +2594,7 @@ function ouvrirReveil(){
                     rvCompteur++;
                     rvDernierCompte = maintenant;
                     compteurEl.textContent = rvCompteur + ' / 10';
+                    if (nez && nez.score>0.4) rvNezHaut = nez.y;
                   }
                 }
               }
